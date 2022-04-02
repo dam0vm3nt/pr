@@ -1,0 +1,7 @@
+.idea
+vendor
+
+dist/
+
+docs/.graphqlconfig
+bazel-*

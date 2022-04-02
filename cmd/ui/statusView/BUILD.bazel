@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "statusView",
+    srcs = ["prStatusView.go"],
+    importpath = "github.com/vballestra/sv/cmd/ui/statusView",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cmd/ui",
+        "//sv",
+        "@com_github_charmbracelet_bubbles//progress",
+        "@com_github_charmbracelet_bubbles//spinner",
+        "@com_github_charmbracelet_bubbletea//:bubbletea",
+        "@com_github_charmbracelet_lipgloss//:lipgloss",
+        "@com_github_evertras_bubble_table//table",
+        "@com_github_pterm_pterm//:pterm",
+    ],
+)

@@ -1,0 +1,29 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "cmd",
+    srcs = [
+        "approvePr.go",
+        "auth.go",
+        "branches.go",
+        "list.go",
+        "listBranches.go",
+        "pr.go",
+        "prShow.go",
+        "prStatus.go",
+        "root.go",
+    ],
+    importpath = "github.com/vballestra/sv/cmd",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//bitbucket",
+        "//cmd/ui",
+        "//cmd/ui/statusView",
+        "//sv",
+        "@com_github_antihax_optional//:optional",
+        "@com_github_charmbracelet_lipgloss//:lipgloss",
+        "@com_github_go_git_go_git_v5//:go-git",
+        "@com_github_pterm_pterm//:pterm",
+        "@com_github_spf13_cobra//:cobra",
+    ],
+)

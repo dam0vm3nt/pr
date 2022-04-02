@@ -1,0 +1,34 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+load("@bazel_gazelle//:def.bzl", "gazelle")
+
+# gazelle:prefix github.com/vballestra/sv
+gazelle(name = "gazelle")
+
+gazelle(
+    name = "gazelle-update-repos",
+    args = [
+        "-from_file=go.mod",
+        "-to_macro=deps.bzl%go_dependencies",
+        "-prune",
+    ],
+    command = "update-repos",
+)
+
+go_binary(
+    name = "sv",
+    embed = [":sv_lib"],
+    visibility = ["//visibility:public"],
+)
+
+go_library(
+    name = "sv_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/vballestra/sv",
+    visibility = ["//visibility:private"],
+    deps = ["//cmd"],
+)
+
+alias(
+    name = "main",
+    actual = ":sv",
+)
