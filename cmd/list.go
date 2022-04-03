@@ -5,7 +5,7 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"github.com/ktrysmt/go-bitbucket"
+	"fmt"
 	"github.com/spf13/cobra"
 	"log"
 )
@@ -21,12 +21,22 @@ var listCmd = &cobra.Command{
 			log.Fatalf("While getting the client %s", errc)
 		}
 
-		po := &bitbucket.PullRequestsOptions{Owner: "latchMaster", RepoSlug: "latch-cortex"}
-		prs, err := c.Repositories.PullRequests.Gets(po)
-		if err != nil {
+		prs, resp, err := c.PullRequests.List(account, repoSlug)
+		if err != nil || resp.StatusCode != 200 {
 			log.Fatalf("Something has occurred : %s", err)
 		}
-		log.Printf("Found %s\n", prs)
+
+		for prs != nil {
+			for _, pr := range prs.Values {
+				fmt.Printf(" - %d : %s\n   (%s) Author: %s\n", *pr.ID, *pr.Title, *pr.Source.Branch.Name, *pr.Author.DisplayName)
+			}
+			if prs.Next != nil {
+				// TODO Load next page
+				prs = nil
+			} else {
+				prs = nil
+			}
+		}
 	},
 }
 

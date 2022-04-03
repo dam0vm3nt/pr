@@ -5,9 +5,7 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"errors"
-	"fmt"
-	"github.com/ktrysmt/go-bitbucket"
+	"github.com/davidji99/bitbucket-go/bitbucket"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -35,18 +33,10 @@ func Execute() {
 
 var _token, _username, _password *string
 
+var account, repoSlug string
+
 func GetClient() (*bitbucket.Client, error) {
-	var c *bitbucket.Client
-
-	if len(*_token) != 0 {
-		c = bitbucket.NewOAuthbearerToken(*_token)
-	} else if len(*_username) != 0 && len(*_password) != 0 {
-		c = bitbucket.NewBasicAuth(*_username, *_password)
-	} else {
-		return nil, errors.New(fmt.Sprintf("No credentials given, cannot auth"))
-	}
-
-	return c, nil
+	return bitbucket.New(*_username, *_password)
 }
 
 func init() {
@@ -55,9 +45,10 @@ func init() {
 	// will be global for your application.
 
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.gobb-cli.yaml)")
-	_token = rootCmd.PersistentFlags().StringP("token", "t", "", "Token")
 	_username = rootCmd.PersistentFlags().StringP("username", "u", "", "Username")
 	_password = rootCmd.PersistentFlags().StringP("password", "p", "", "Password")
+	rootCmd.PersistentFlags().StringVarP(&account, "account", "a", "latchMaster", "Account")
+	rootCmd.PersistentFlags().StringVarP(&repoSlug, "repository", "r", "latch-cortex", "Repository")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.

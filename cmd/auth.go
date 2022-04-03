@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"log"
-
-	"github.com/ktrysmt/go-bitbucket"
 )
 
 var authCmd = &cobra.Command{
@@ -27,16 +25,14 @@ to quickly create a Cobra application.`,
 			log.Fatalf("While getting the client %s", errc)
 		}
 
-		lo := &bitbucket.RepositoriesOptions{Role: "member", Owner: "latchMaster"}
-		repos, err := c.Repositories.ListForAccount(lo)
-		if err != nil {
+		repos, resp, err := c.Repositories.List(account)
+		if err != nil || resp.StatusCode != 200 {
 			fmt.Printf("Error occurred : %s\n", err)
 			return
 		}
 
 		fmt.Printf("Found : %d\n", repos.Size)
-		for i := int32(0); i < repos.Size; i++ {
-			repo := repos.Items[i]
+		for _, repo := range repos.Values {
 			fmt.Printf(" - %s\n", repo.Name)
 		}
 	},

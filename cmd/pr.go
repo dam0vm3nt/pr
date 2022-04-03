@@ -10,7 +10,7 @@ import (
 
 // prCmd represents the pr command
 var prCmd = &cobra.Command{
-	Use:   "pr",
+	Use:   "pr [id]",
 	Short: "Pr related stuff",
 	Long:  `Anything to deal with prs`,
 }
