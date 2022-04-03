@@ -17,64 +17,72 @@ import (
 var prShowCmd = &cobra.Command{
 	Use:   "show",
 	Short: "Shows one PR details",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Long:  `Shows one PR with all details`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			log.Fatalln("No ID supplied")
 		}
 
-		c, err := GetClient()
-		if err != nil {
-			log.Fatalf("Counldn't get client : %s\n", err)
-		}
+		c, ctx := GetClient()
 
 		for _, id := range args {
-			n, _ := strconv.ParseInt(id, 10, 64)
-			pr, resp, err2 := c.PullRequests.Get(account, repoSlug, n)
+			n, _ := strconv.ParseInt(id, 10, 32)
+			pr, resp, err2 := c.PullrequestsApi.RepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdGet(ctx, int32(n), repoSlug, account)
 
 			if err2 != nil || resp.StatusCode != 200 {
 				continue
 			}
 
-			fmt.Printf("#%d %s (%s)\n%s -> %s\n\nDiffs:\n\n", *pr.ID, *pr.Title, *pr.Author.DisplayName,
-				*pr.Source.Branch.Name, *pr.Destination.Branch.Name)
+			sourceBranch := pr.Source.Branch.(map[string]interface{})["name"].(string)
+			destBranch := pr.Destination.Branch.(map[string]interface{})["name"].(string)
+			fmt.Printf("#%d %s (%s)\n%s -> %s\n\nDiffs:\n\n", pr.Id, pr.Title, pr.Author.DisplayName,
+				sourceBranch, destBranch)
 
-			rawDiff, resp, err4 := c.PullRequests.GetDiffRaw(account, repoSlug, *pr.ID)
-			diffStr := rawDiff.String()
+			diff, _, err4 := c.PullrequestsApi.RepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdDiffGet(ctx, pr.Id, repoSlug, account)
 			if err4 != nil {
 				log.Fatalf("Error while getting raw diff : %s", err4)
 			}
-			files, _, err5 := gitdiff.Parse(bytes.NewBufferString(resp.Body))
+			files, _, err5 := gitdiff.Parse(bytes.NewBuffer(diff))
 			if err5 != nil {
 				log.Fatalf("Couldn't parse diff : %s", err5)
 			}
-			rawDiff.Reset()
-			log.Printf("Str: '%s'\n", diffStr)
 
 			fmt.Printf("Diff of %d files:\n\n", len(files))
 			for _, file := range files {
-				fmt.Printf("%s -> %s:\n", file.OldName, file.NewName)
-				for _, frag := range file.TextFragments {
+				if file.IsRename {
+					fmt.Printf("%s -> %s:\n", file.OldName, file.NewName)
+				} else if file.IsDelete {
+					fmt.Printf("DELETED %s\n", file.OldName)
+					continue
+				} else if file.IsNew {
+					fmt.Printf("NEW %s:\n", file.NewName)
+				} else if file.IsCopy {
+					fmt.Printf("COPY %s -> %s:\n", file.OldName, file.NewName)
+				} else {
+					fmt.Printf("%s:\n", file.NewName)
+				}
 
-					fmt.Printf("%s (+%d, -%d,  O=%d, N=%d)\n", frag.Comment, frag.LinesAdded, frag.LinesDeleted,
-						frag.OldLines, frag.NewLines)
-					oldN := frag.OldPosition
-					newN := frag.NewPosition
-					for _, ln := range frag.Lines {
-						fmt.Printf("%05d %05d %s  %s", oldN, newN, ln.Op, ln.Line)
-						if ln.Op == gitdiff.OpAdd {
-							oldN -= 1
+				if file.IsBinary {
+					fmt.Printf("\nBINARY FILE\n")
+				} else {
+					for _, frag := range file.TextFragments {
+
+						fmt.Printf("==O== ==N== (+%d, -%d,  O=%d, N=%d)\n", frag.LinesAdded, frag.LinesDeleted,
+							frag.OldLines, frag.NewLines)
+						oldN := frag.OldPosition
+						newN := frag.NewPosition
+
+						for _, ln := range frag.Lines {
+							fmt.Printf("%05d %05d %s  %s", oldN, newN, ln.Op, ln.Line)
+							if ln.Op == gitdiff.OpAdd {
+								oldN -= 1
+							}
+							if ln.Op == gitdiff.OpDelete {
+								newN -= 1
+							}
+							newN += 1
+							oldN += 1
 						}
-						if ln.Op == gitdiff.OpDelete {
-							newN -= 1
-						}
-						newN += 1
-						oldN += 1
 					}
 				}
 			}

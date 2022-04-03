@@ -5,7 +5,9 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"github.com/davidji99/bitbucket-go/bitbucket"
+	"context"
+	"github.com/vballestra/gobb-cli/bitbucket"
+	"net/http"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -35,8 +37,12 @@ var _token, _username, _password *string
 
 var account, repoSlug string
 
-func GetClient() (*bitbucket.Client, error) {
-	return bitbucket.New(*_username, *_password)
+func GetClient() (*bitbucket.APIClient, context.Context) {
+	cfg := bitbucket.NewConfiguration()
+	cfg.HTTPClient = &http.Client{}
+	auth := bitbucket.BasicAuth{UserName: *_username, Password: *_password}
+	ctx := context.WithValue(context.Background(), bitbucket.ContextBasicAuth, auth)
+	return bitbucket.NewAPIClient(cfg), ctx
 }
 
 func init() {

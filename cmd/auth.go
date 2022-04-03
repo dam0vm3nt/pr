@@ -7,7 +7,6 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
-	"log"
 )
 
 var authCmd = &cobra.Command{
@@ -20,12 +19,9 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		c, errc := GetClient()
-		if errc != nil {
-			log.Fatalf("While getting the client %s", errc)
-		}
+		c, ctx := GetClient()
 
-		repos, resp, err := c.Repositories.List(account)
+		repos, resp, err := c.RepositoriesApi.RepositoriesWorkspaceGet(ctx, account, nil)
 		if err != nil || resp.StatusCode != 200 {
 			fmt.Printf("Error occurred : %s\n", err)
 			return
