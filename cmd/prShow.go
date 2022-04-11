@@ -53,31 +53,46 @@ var prShowCmd = &cobra.Command{
 			if err5 != nil {
 				pterm.Fatal.Println(fmt.Sprintf("Couldn't fetch comments: %s", err5))
 			}
+			paginatedComments := PaginatedPullRequestComments{&comments}
+			commentsChan := Paginate[bitbucket.PullrequestComment, bitbucket.PaginatedPullrequestComments](ctx, paginatedComments)
 
 			commentMap := make(map[string]map[int64][]bitbucket.Comment)
-			for _, comment := range comments.Values {
+			prComments := make([]bitbucket.Comment, 0)
+			for comment := range commentsChan {
+				if comment.Deleted {
+					continue
+				}
+				cmt := bitbucket.Comment{
+					Id:        comment.Id,
+					CreatedOn: comment.CreatedOn,
+					Content:   comment.Content,
+					User:      comment.User,
+					Parent:    comment.Parent,
+				}
 				if inline, ok := comment.Inline.(map[string]interface{}); ok {
 					to := int64(inline["to"].(float64))
 					path := inline["path"].(string)
 
-					comments_by_path, has_path := commentMap[path]
-					if !has_path {
-						comments_by_path = make(map[int64][]bitbucket.Comment)
-						commentMap[path] = comments_by_path
+					commentsByPath, hasPath := commentMap[path]
+					if !hasPath {
+						commentsByPath = make(map[int64][]bitbucket.Comment)
+						commentMap[path] = commentsByPath
 					}
-					comments_by_line, has_line := comments_by_path[to]
-					if !has_line {
-						comments_by_line = make([]bitbucket.Comment, 0)
+					commentsByLine, hasLine := commentsByPath[to]
+					if !hasLine {
+						commentsByLine = make([]bitbucket.Comment, 0)
 					}
-					comments_by_line = append(comments_by_line, bitbucket.Comment{
-						Content: comment.Content,
-						User:    comment.User,
-					})
-					comments_by_path[to] = comments_by_line
+					commentsByLine = append(commentsByLine, cmt)
+					commentsByPath[to] = commentsByLine
+				} else {
+					prComments = append(prComments, cmt)
 				}
 			}
 
+			PrintComments(prComments)
+
 			fmt.Printf("Diff of %d files:\n\n", len(files))
+
 			for _, file := range files {
 				fn := file.OldName
 				if file.IsRename {
@@ -94,7 +109,7 @@ var prShowCmd = &cobra.Command{
 					fmt.Printf("%s:\n", file.NewName)
 				}
 
-				comments_for_file, have_file_comments := commentMap[fn]
+				commentsForFile, haveFileComments := commentMap[fn]
 
 				if file.IsBinary {
 					fmt.Printf("\nBINARY FILE\n")
@@ -108,16 +123,13 @@ var prShowCmd = &cobra.Command{
 
 						for _, ln := range frag.Lines {
 							fmt.Printf("%05d %05d %s  %s", oldN, newN, ln.Op, ln.Line)
-							if have_file_comments {
-								if comments_for_line, have_line_comments := comments_for_file[newN]; have_line_comments {
-									for _, comment := range comments_for_line {
-										content := comment.Content.(map[string]interface{})
-										raw := content["raw"].(string)
-										pterm.Printf("------- %s (%s) ------\n%s\n-------\n", comment.User.DisplayName, comment.User.Username, raw)
-									}
+							if haveFileComments {
+								if commentsForLine, haveLineComments := commentsForFile[newN]; haveLineComments {
+									PrintComments(commentsForLine)
+									pterm.Println("-------")
 
 									// Remove the comment as it shouldn't be printed anymore
-									delete(comments_for_file, newN)
+									delete(commentsForFile, newN)
 								}
 							}
 
@@ -136,6 +148,18 @@ var prShowCmd = &cobra.Command{
 
 		}
 	},
+}
+
+func PrintComments(comments []bitbucket.Comment) {
+	for _, comment := range comments {
+		content := comment.Content.(map[string]interface{})
+		raw := content["raw"].(string)
+		reply := ""
+		if comment.Parent != nil {
+			reply = fmt.Sprintf(" <- %d", comment.Parent.Id)
+		}
+		pterm.Printf("------- [%d%s] %s at %s ------\n%s\n", comment.Id, reply, comment.User.DisplayName, comment.CreatedOn, raw)
+	}
 }
 
 func GetPtr[T any](ptr *T, def T) T {

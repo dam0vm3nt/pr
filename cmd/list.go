@@ -71,6 +71,26 @@ func (p PaginatedPullrequests) GetValues() []bitbucket.Pullrequest {
 	return p.Values
 }
 
+type PaginatedPullRequestComments struct {
+	*bitbucket.PaginatedPullrequestComments
+}
+
+func (p PaginatedPullRequestComments) GetContainer() *bitbucket.PaginatedPullrequestComments {
+	return p.PaginatedPullrequestComments
+}
+
+func (p PaginatedPullRequestComments) GetNext() string {
+	return p.Next
+}
+
+func (p PaginatedPullRequestComments) GetPages() int32 {
+	return p.Size
+}
+
+func (p PaginatedPullRequestComments) GetValues() []bitbucket.PullrequestComment {
+	return p.Values
+}
+
 var maxPages int32
 var prsQuery string
 

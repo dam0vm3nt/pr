@@ -23,7 +23,7 @@ func Paginate[T any, C any](ctx context.Context, pager Paginated[T, C]) <-chan T
 	c := make(chan T)
 
 	// Fetch pages
-	spinner := pterm.DefaultSpinner
+	spinner := pterm.DefaultSpinner.WithRemoveWhenDone(true)
 	spinner.Start()
 
 	go func() {
