@@ -10,9 +10,10 @@ import (
 
 // prCmd represents the pr command
 var prCmd = &cobra.Command{
-	Use:   "pr [id]",
-	Short: "Pr related stuff",
-	Long:  `Anything to deal with prs`,
+	Use:     "prs",
+	Short:   "Pr related stuff",
+	Long:    `Anything to deal with prs`,
+	Aliases: []string{"pull-requests"},
 }
 
 func init() {

@@ -8,7 +8,9 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
+	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
+	"github.com/vballestra/gobb-cli/bitbucket"
 	"log"
 	"strconv"
 )
@@ -47,8 +49,37 @@ var prShowCmd = &cobra.Command{
 				log.Fatalf("Couldn't parse diff : %s", err5)
 			}
 
+			comments, _, err5 := c.PullrequestsApi.RepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsGet(ctx, pr.Id, repoSlug, account)
+			if err5 != nil {
+				pterm.Fatal.Println(fmt.Sprintf("Couldn't fetch comments: %s", err5))
+			}
+
+			commentMap := make(map[string]map[int64][]bitbucket.Comment)
+			for _, comment := range comments.Values {
+				if inline, ok := comment.Inline.(map[string]interface{}); ok {
+					to := int64(inline["to"].(float64))
+					path := inline["path"].(string)
+
+					comments_by_path, has_path := commentMap[path]
+					if !has_path {
+						comments_by_path = make(map[int64][]bitbucket.Comment)
+						commentMap[path] = comments_by_path
+					}
+					comments_by_line, has_line := comments_by_path[to]
+					if !has_line {
+						comments_by_line = make([]bitbucket.Comment, 0)
+					}
+					comments_by_line = append(comments_by_line, bitbucket.Comment{
+						Content: comment.Content,
+						User:    comment.User,
+					})
+					comments_by_path[to] = comments_by_line
+				}
+			}
+
 			fmt.Printf("Diff of %d files:\n\n", len(files))
 			for _, file := range files {
+				fn := file.OldName
 				if file.IsRename {
 					fmt.Printf("%s -> %s:\n", file.OldName, file.NewName)
 				} else if file.IsDelete {
@@ -56,11 +87,14 @@ var prShowCmd = &cobra.Command{
 					continue
 				} else if file.IsNew {
 					fmt.Printf("NEW %s:\n", file.NewName)
+					fn = file.NewName
 				} else if file.IsCopy {
 					fmt.Printf("COPY %s -> %s:\n", file.OldName, file.NewName)
 				} else {
 					fmt.Printf("%s:\n", file.NewName)
 				}
+
+				comments_for_file, have_file_comments := commentMap[fn]
 
 				if file.IsBinary {
 					fmt.Printf("\nBINARY FILE\n")
@@ -74,6 +108,19 @@ var prShowCmd = &cobra.Command{
 
 						for _, ln := range frag.Lines {
 							fmt.Printf("%05d %05d %s  %s", oldN, newN, ln.Op, ln.Line)
+							if have_file_comments {
+								if comments_for_line, have_line_comments := comments_for_file[newN]; have_line_comments {
+									for _, comment := range comments_for_line {
+										content := comment.Content.(map[string]interface{})
+										raw := content["raw"].(string)
+										pterm.Printf("------- %s (%s) ------\n%s\n-------\n", comment.User.DisplayName, comment.User.Username, raw)
+									}
+
+									// Remove the comment as it shouldn't be printed anymore
+									delete(comments_for_file, newN)
+								}
+							}
+
 							if ln.Op == gitdiff.OpAdd {
 								oldN -= 1
 							}

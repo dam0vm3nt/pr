@@ -15235,7 +15235,7 @@ definitions:
       \ Pipelines step execution context."
   deployment:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         uuid:
@@ -15494,7 +15494,7 @@ definitions:
       additionalProperties: {}
   pipelines_ddev_pipeline_step:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       description: "A step of a Bitbucket pipeline. This represents the actual result\
         \ of the step execution."
@@ -15506,7 +15506,7 @@ definitions:
     x-bb-batch-max-size: 100
   group:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         links:
@@ -15729,7 +15729,7 @@ definitions:
     additionalProperties: {}
   pipeline_ssh_public_key:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         key_type:
@@ -15857,7 +15857,7 @@ definitions:
     additionalProperties: {}
   deployment_environment:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         uuid:
@@ -15937,7 +15937,7 @@ definitions:
       pagelen: 1
   pipeline_cache:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         uuid:
@@ -15990,7 +15990,7 @@ definitions:
       additionalProperties: {}
   report:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         uuid:
@@ -16203,7 +16203,7 @@ definitions:
       additionalProperties: {}
   pullrequest:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         links:
@@ -16655,7 +16655,7 @@ definitions:
     description: "A paged list of environments"
   branching_model_settings:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         links:
@@ -16770,7 +16770,7 @@ definitions:
       additionalProperties: {}
   pipeline_state_in_progress_stage:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       title: "Pipeline In-Progress Stage"
       description: "A result of an in progress pipeline state."
@@ -16872,7 +16872,7 @@ definitions:
     additionalProperties: {}
   pipeline_known_host:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         uuid:
@@ -17005,7 +17005,7 @@ definitions:
     additionalProperties: {}
   jira_site:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       description: "A Jira Site."
       additionalProperties: {}
@@ -17085,7 +17085,7 @@ definitions:
     additionalProperties: {}
   pipelines_config:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         enabled:
@@ -17098,7 +17098,7 @@ definitions:
       additionalProperties: {}
   version:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         links:
@@ -17229,7 +17229,7 @@ definitions:
     additionalProperties: {}
   issue:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         links:
@@ -17370,7 +17370,7 @@ definitions:
       additionalProperties: {}
   webhook_subscription:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         uuid:
@@ -17393,7 +17393,7 @@ definitions:
           - "repository"
           - "team"
         subject:
-          $ref: "#/definitions/object"
+          $ref: "#/definitions/base"
         active:
           type: "boolean"
         created_at:
@@ -17437,7 +17437,7 @@ definitions:
       additionalProperties: {}
   deployments_stg_west_deployment_environment_lock:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         environmentUuid:
@@ -17454,7 +17454,7 @@ definitions:
     x-bb-batch-max-size: 100
   pipeline_variable:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         uuid:
@@ -17476,7 +17476,7 @@ definitions:
       additionalProperties: {}
   repository:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         links:
@@ -17716,7 +17716,7 @@ definitions:
         text: "text"
   pipeline_error:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         key:
@@ -17730,7 +17730,7 @@ definitions:
       additionalProperties: {}
   component:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         links:
@@ -17755,7 +17755,7 @@ definitions:
       additionalProperties: {}
   base_commit:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         hash:
@@ -17807,7 +17807,7 @@ definitions:
       additionalProperties: {}
   deployment_release:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         uuid:
@@ -17832,7 +17832,7 @@ definitions:
       additionalProperties: {}
   pipeline_schedule_execution:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       title: "Pipeline Schedule Execution"
       description: "A Pipelines schedule execution."
@@ -17918,7 +17918,7 @@ definitions:
       additionalProperties: {}
   pipeline_schedule:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         uuid:
@@ -17948,7 +17948,7 @@ definitions:
       additionalProperties: {}
   branching_model:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         branch_types:
@@ -18028,7 +18028,7 @@ definitions:
       additionalProperties: {}
   pipeline:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         uuid:
@@ -18067,7 +18067,7 @@ definitions:
       additionalProperties: {}
   issue_attachment:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         links:
@@ -18242,7 +18242,7 @@ definitions:
       additionalProperties: {}
   deploy_key:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         key:
@@ -18338,7 +18338,7 @@ definitions:
       additionalProperties: {}
   comment:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         id:
@@ -18482,7 +18482,7 @@ definitions:
     additionalProperties: {}
   deployment_environment_lock:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         environmentUuid:
@@ -18499,7 +18499,7 @@ definitions:
     x-bb-batch-max-size: 100
   deployments_ddev_deployment_environment:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         uuid:
@@ -18616,14 +18616,14 @@ definitions:
       pagelen: 1
   pipeline_target:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       title: "Pipeline Target"
       description: "A representation of the target that a pipeline executes on."
       additionalProperties: {}
   pipeline_state_completed_result:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       title: "Pipeline Completed Result"
       description: "A result of a completed pipeline state."
@@ -18646,7 +18646,7 @@ definitions:
       additionalProperties: {}
   deployment_state_completed_status:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       title: "Completed Deployment"
       description: "The status of a completed deployment."
@@ -18677,7 +18677,7 @@ definitions:
     description: "A key-value element that will be displayed along with the report."
   pipeline_step_error:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         key:
@@ -19089,7 +19089,7 @@ definitions:
     additionalProperties: {}
   pipeline_state:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       title: "Pipeline State"
       description: "The representation of the progress state of a pipeline."
@@ -19136,7 +19136,7 @@ definitions:
     description: "A paged list of environments"
   jira_project:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       description: "A Jira Project."
       additionalProperties: {}
@@ -19206,7 +19206,7 @@ definitions:
     additionalProperties: {}
   deployments_ddev_deployment_environment_lock:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         environmentUuid:
@@ -19223,7 +19223,7 @@ definitions:
     x-bb-batch-max-size: 100
   pipeline_step:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         uuid:
@@ -19385,7 +19385,7 @@ definitions:
     additionalProperties: {}
   workspace_membership:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         links:
@@ -19411,7 +19411,7 @@ definitions:
       additionalProperties: {}
   deployment_variable:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         uuid:
@@ -19498,7 +19498,7 @@ definitions:
     additionalProperties: {}
   commitstatus:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         links:
@@ -19741,7 +19741,7 @@ definitions:
       pagelen: 1
   account:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         links:
@@ -20035,7 +20035,7 @@ definitions:
     additionalProperties: {}
   branchrestriction:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       required:
       - "branch_match_kind"
@@ -20120,21 +20120,21 @@ definitions:
       additionalProperties: {}
   pipeline_step_state_completed_result:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       title: "Pipeline Completed Step Result"
       description: "A result of a completed pipeline step state."
       additionalProperties: {}
   pipeline_trigger:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       title: "Pipeline Trigger"
       description: "A representation of the trigger used for a pipeline."
       additionalProperties: {}
   project:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         links:
@@ -20404,7 +20404,7 @@ definitions:
       additionalProperties: {}
   ddev_report:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       description: "A report for a commit."
       additionalProperties: {}
@@ -20531,7 +20531,7 @@ definitions:
     additionalProperties: {}
   participant:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         user:
@@ -20614,14 +20614,14 @@ definitions:
     additionalProperties: {}
   pipeline_step_state:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       title: "Pipeline Step State"
       description: "The representation of the progress state of a pipeline step."
       additionalProperties: {}
   author:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         raw:
@@ -20668,7 +20668,7 @@ definitions:
     additionalProperties: {}
   deployments_stg_west_deployment_environment:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         uuid:
@@ -20687,7 +20687,7 @@ definitions:
     x-bb-batch-max-size: 100
   snippet:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         id:
@@ -20868,7 +20868,7 @@ definitions:
       additionalProperties: {}
   milestone:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         links:
@@ -20891,17 +20891,18 @@ definitions:
       title: "Milestone"
       description: "A milestone as defined in a repository's issue tracker."
       additionalProperties: {}
-  object:
+  base:
     type: "object"
     required:
     - "type"
-    discriminator: "type"
+    #discriminator: "type"
     properties:
       type:
         type: "string"
-    description: "Base type for most resource objects. It defines the common `type`\
-      \ element that identifies an object's type. It also identifies the element as\
-      \ Swagger's `discriminator`."
+    description: |
+      Base type for most resource objects. It defines the common `type`
+      element that identifies an object's type. It also identifies the element as
+      Swagger's `discriminator`.
     additionalProperties: {}
   pipeline_step_state_in_progress:
     allOf:
@@ -20917,7 +20918,7 @@ definitions:
       additionalProperties: {}
   ssh_key:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         uuid:
@@ -21075,7 +21076,7 @@ definitions:
     additionalProperties: {}
   pipelines_stg_west_pipeline_step:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       description: "A step of a Bitbucket pipeline. This represents the actual result\
         \ of the step execution."
@@ -21087,7 +21088,7 @@ definitions:
     x-bb-batch-max-size: 100
   snippet_comment:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         links:
@@ -21120,14 +21121,14 @@ definitions:
       additionalProperties: {}
   deployment_state:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       title: "Deployment State"
       description: "The representation of the progress state of a deployment."
       additionalProperties: {}
   pipeline_build_number:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         next:
@@ -21301,7 +21302,7 @@ definitions:
       pagelen: 1
   pipeline_ssh_key_pair:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         private_key:
@@ -21369,7 +21370,7 @@ definitions:
     additionalProperties: {}
   report_annotation:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         external_id:
@@ -21496,7 +21497,7 @@ definitions:
     additionalProperties: {}
   workspace:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         links:
@@ -21608,7 +21609,7 @@ definitions:
       additionalProperties: {}
   pipeline_selector:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       properties:
         type:
@@ -21629,7 +21630,7 @@ definitions:
       additionalProperties: {}
   stg_west_report:
     allOf:
-    - $ref: "#/definitions/object"
+    - $ref: "#/definitions/base"
     - type: "object"
       description: "A report for a commit."
       additionalProperties: {}

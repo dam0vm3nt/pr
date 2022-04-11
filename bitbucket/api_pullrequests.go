@@ -814,7 +814,9 @@ Returns all pull requests on the specified repository.  By default only open pul
 */
 
 type PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsGetOpts struct {
-	State optional.String
+	State   optional.String `json:"state"`
+	Pagelen optional.Int32  `json:"pagelen"`
+	Q       optional.String `json:"q"`
 }
 
 func (a *PullrequestsApiService) RepositoriesWorkspaceRepoSlugPullrequestsGet(ctx context.Context, repoSlug string, workspace string, localVarOptionals *PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsGetOpts) (PaginatedPullrequests, *http.Response, error) {
@@ -837,6 +839,13 @@ func (a *PullrequestsApiService) RepositoriesWorkspaceRepoSlugPullrequestsGet(ct
 
 	if localVarOptionals != nil && localVarOptionals.State.IsSet() {
 		localVarQueryParams.Add("state", parameterToString(localVarOptionals.State.Value(), ""))
+	}
+	if localVarOptionals != nil && localVarOptionals.Pagelen.IsSet() {
+		localVarQueryParams.Add("pagelen", parameterToString(localVarOptionals.Pagelen.Value(), ""))
+	}
+
+	if localVarOptionals != nil && localVarOptionals.Q.IsSet() {
+		localVarQueryParams.Add("q", parameterToString(localVarOptionals.Q.Value(), ""))
 	}
 	// to determine the Content-Type header
 	localVarHttpContentTypes := []string{"application/json"}
