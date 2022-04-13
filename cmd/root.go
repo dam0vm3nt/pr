@@ -7,6 +7,7 @@ package cmd
 import (
 	"context"
 	"github.com/vballestra/gobb-cli/bitbucket"
+	"github.com/vballestra/gobb-cli/sv"
 	"net/http"
 	"os"
 
@@ -37,12 +38,23 @@ var _token, _username, _password *string
 
 var account, repoSlug string
 
+var githubToken string
+
 func GetClient() (*bitbucket.APIClient, context.Context) {
 	cfg := bitbucket.NewConfiguration()
 	cfg.HTTPClient = &http.Client{}
 	auth := bitbucket.BasicAuth{UserName: *_username, Password: *_password}
 	ctx := context.WithValue(context.Background(), bitbucket.ContextBasicAuth, auth)
 	return bitbucket.NewAPIClient(cfg), ctx
+}
+
+func GetSv() sv.Sv {
+	if len(githubToken) > 0 {
+		return sv.NewGitHubSv(githubToken)
+	} else {
+		return sv.NewBitBucketSv(*_username, *_password, repoSlug, account)
+	}
+
 }
 
 func init() {
@@ -55,7 +67,7 @@ func init() {
 	_password = rootCmd.PersistentFlags().StringP("password", "p", "", "Password")
 	rootCmd.PersistentFlags().StringVarP(&account, "account", "a", "latchMaster", "Account")
 	rootCmd.PersistentFlags().StringVarP(&repoSlug, "repository", "r", "latch-cortex", "Repository")
-
+	rootCmd.PersistentFlags().StringVarP(&githubToken, "token", "t", "", "Github token")
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 

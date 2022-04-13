@@ -10,6 +10,7 @@ import (
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 	"github.com/vballestra/gobb-cli/bitbucket"
+	"github.com/vballestra/gobb-cli/sv"
 )
 
 // listBranchesCmd represents the listBranches command
@@ -28,10 +29,10 @@ var listBranchesCmd = &cobra.Command{
 		}
 		td := pterm.TableData{[]string{"Name"}}
 
-		var pager Paginated[bitbucket.Branch, bitbucket.PaginatedBranches]
+		var pager sv.Paginated[bitbucket.Branch, bitbucket.PaginatedBranches]
 		pager = PaginatedBranches{&refs}
 
-		items := Paginate(ctx, pager)
+		items := sv.Paginate(ctx, pager)
 		for itm := range items {
 			td = append(td, []string{itm.Name})
 		}

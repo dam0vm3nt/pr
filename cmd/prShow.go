@@ -8,9 +8,12 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
+	"github.com/charmbracelet/glamour"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 	"github.com/vballestra/gobb-cli/bitbucket"
+	"github.com/vballestra/gobb-cli/sv"
 	"log"
 	"strconv"
 )
@@ -53,8 +56,8 @@ var prShowCmd = &cobra.Command{
 			if err5 != nil {
 				pterm.Fatal.Println(fmt.Sprintf("Couldn't fetch comments: %s", err5))
 			}
-			paginatedComments := PaginatedPullRequestComments{&comments}
-			commentsChan := Paginate[bitbucket.PullrequestComment, bitbucket.PaginatedPullrequestComments](ctx, paginatedComments)
+			paginatedComments := sv.PaginatedPullRequestComments{&comments}
+			commentsChan := sv.Paginate[bitbucket.PullrequestComment, bitbucket.PaginatedPullrequestComments](ctx, paginatedComments)
 
 			commentMap := make(map[string]map[int64][]bitbucket.Comment)
 			prComments := make([]bitbucket.Comment, 0)
@@ -151,6 +154,20 @@ var prShowCmd = &cobra.Command{
 }
 
 func PrintComments(comments []bitbucket.Comment) {
+	style := lipgloss.NewStyle().
+		Bold(true).
+		// Foreground(lipgloss.Color("#FAFAFA")).
+		// Background(lipgloss.Color("#7D56F4")).
+		PaddingTop(2).
+		PaddingLeft(4).
+		PaddingRight(4)
+	r, _ := glamour.NewTermRenderer(
+		// detect background color and pick either the default dark or light theme
+		glamour.WithAutoStyle(),
+		// wrap output at specific width
+		glamour.WithWordWrap(200),
+	)
+
 	for _, comment := range comments {
 		content := comment.Content.(map[string]interface{})
 		raw := content["raw"].(string)
@@ -158,7 +175,9 @@ func PrintComments(comments []bitbucket.Comment) {
 		if comment.Parent != nil {
 			reply = fmt.Sprintf(" <- %d", comment.Parent.Id)
 		}
-		pterm.Printf("------- [%d%s] %s at %s ------\n%s\n", comment.Id, reply, comment.User.DisplayName, comment.CreatedOn, raw)
+
+		rawRendered, _ := r.Render(raw)
+		fmt.Print(style.Render(fmt.Sprintf("------- [%d%s] %s at %s ------\n%s\n", comment.Id, reply, comment.User.DisplayName, comment.CreatedOn, rawRendered)))
 	}
 }
 

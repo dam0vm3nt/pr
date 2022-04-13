@@ -6,10 +6,8 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/antihax/optional"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
-	"github.com/vballestra/gobb-cli/bitbucket"
 	"log"
 )
 
@@ -21,74 +19,28 @@ var listCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Run: func(cmd *cobra.Command, args []string) {
 
-		c, ctx := GetClient()
+		c := GetSv()
 
-		vars := bitbucket.PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsGetOpts{
-			State: optional.NewString("ACTIVE"),
-		}
-		if len(prsQuery) > 0 {
-			vars.Q = optional.NewString(prsQuery)
-		}
-		prs, resp, err := c.PullrequestsApi.RepositoriesWorkspaceRepoSlugPullrequestsGet(ctx, repoSlug, account, &vars)
-		if err != nil || resp.StatusCode != 200 {
+		if prs, err := c.ListPullRequests(prsQuery); err != nil {
 			log.Fatalf("Something has occurred : %s", err)
-		}
+		} else {
 
-		data := pterm.TableData{{"ID", "Title", "Branch", "Author", "State", "Created At"}}
+			data := pterm.TableData{{"ID", "Title", "Branch", "Author", "State", "Created At"}}
 
-		for pr := range Paginate[bitbucket.Pullrequest, bitbucket.PaginatedPullrequests](ctx, PaginatedPullrequests{&prs}) {
-			branch := pr.Source.Branch.(map[string]interface{})
-			data = append(data, []string{
-				fmt.Sprintf("%5d", pr.Id), pr.Title, branch["name"].(string), fmt.Sprintf("%s", pr.Author.DisplayName), pr.State, pr.CreatedOn.String(),
-			})
-		}
+			for pr := range prs {
+				branch := pr.GetBranch()
+				data = append(data, []string{
+					fmt.Sprintf("%5d", pr.GetId()), pr.GetTitle(), branch.GetName(), fmt.Sprintf("%s", pr.GetAuthor().GetDisplayName()), pr.GetState(), pr.GetCreatedOn().String(),
+				})
+			}
 
-		rerr := pterm.DefaultTable.WithHasHeader().WithData(data).Render()
-		if rerr != nil {
-			pterm.Fatal.Println(rerr)
+			rerr := pterm.DefaultTable.WithHasHeader().WithData(data).Render()
+			if rerr != nil {
+				pterm.Fatal.Println(rerr)
+			}
 		}
 
 	},
-}
-
-type PaginatedPullrequests struct {
-	*bitbucket.PaginatedPullrequests
-}
-
-func (p PaginatedPullrequests) GetContainer() *bitbucket.PaginatedPullrequests {
-	return p.PaginatedPullrequests
-}
-
-func (p PaginatedPullrequests) GetNext() string {
-	return p.Next
-}
-
-func (p PaginatedPullrequests) GetPages() int32 {
-	return p.Size
-}
-
-func (p PaginatedPullrequests) GetValues() []bitbucket.Pullrequest {
-	return p.Values
-}
-
-type PaginatedPullRequestComments struct {
-	*bitbucket.PaginatedPullrequestComments
-}
-
-func (p PaginatedPullRequestComments) GetContainer() *bitbucket.PaginatedPullrequestComments {
-	return p.PaginatedPullrequestComments
-}
-
-func (p PaginatedPullRequestComments) GetNext() string {
-	return p.Next
-}
-
-func (p PaginatedPullRequestComments) GetPages() int32 {
-	return p.Size
-}
-
-func (p PaginatedPullRequestComments) GetValues() []bitbucket.PullrequestComment {
-	return p.Values
 }
 
 var maxPages int32
