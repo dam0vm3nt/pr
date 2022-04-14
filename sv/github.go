@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	gh "github.com/google/go-github/v43/github"
 	"golang.org/x/oauth2"
 	"time"
@@ -14,6 +15,11 @@ type GitHubSv struct {
 	client *gh.Client
 	owner  string
 	repo   string
+}
+
+func (g *GitHubSv) GetPullRequest(id string) (PullRequest, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func NewGitHubSv(token string) Sv {
@@ -59,6 +65,21 @@ type GitHubPullRequest struct {
 	*gh.PullRequest
 }
 
+func (g GitHubPullRequest) GetCommentsByLine() ([]Comment, map[string]map[int64][]Comment, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (g GitHubPullRequest) GetDiff() ([]*gitdiff.File, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (g GitHubPullRequest) GetBase() Branch {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (g GitHubPullRequest) GetBranch() Branch {
 	return GitHubBranch{g.PullRequest.Head}
 }
@@ -89,9 +110,4 @@ func (g GitHubPullRequest) GetAuthor() Author {
 
 func (g GitHubPullRequest) GetCreatedOn() time.Time {
 	return g.GetCreatedAt()
-}
-
-func (g *GitHubSv) getPullRequest(id string) PullRequest {
-	//TODO implement me
-	panic("implement me")
 }

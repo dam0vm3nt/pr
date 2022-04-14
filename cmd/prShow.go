@@ -5,17 +5,14 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
-	"github.com/vballestra/gobb-cli/bitbucket"
 	"github.com/vballestra/gobb-cli/sv"
 	"log"
-	"strconv"
 )
 
 // prShowCmd represents the prShow command
@@ -28,132 +25,92 @@ var prShowCmd = &cobra.Command{
 			log.Fatalln("No ID supplied")
 		}
 
-		c, ctx := GetClient()
+		sv := GetSv()
 
 		for _, id := range args {
-			n, _ := strconv.ParseInt(id, 10, 32)
-			pr, resp, err2 := c.PullrequestsApi.RepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdGet(ctx, int32(n), repoSlug, account)
 
-			if err2 != nil || resp.StatusCode != 200 {
-				continue
-			}
+			if pr, err := sv.GetPullRequest(id); err != nil {
+				pterm.Error.Println(err)
+			} else {
+				sourceBranch := pr.GetBranch().GetName()
+				destBranch := pr.GetBase().GetName()
+				fmt.Printf("#%d %s (%s)\n%s -> %s\n\nDiffs:\n\n", pr.GetId(), pr.GetTitle(), pr.GetAuthor().GetDisplayName(),
+					sourceBranch, destBranch)
 
-			sourceBranch := pr.Source.Branch.(map[string]interface{})["name"].(string)
-			destBranch := pr.Destination.Branch.(map[string]interface{})["name"].(string)
-			fmt.Printf("#%d %s (%s)\n%s -> %s\n\nDiffs:\n\n", pr.Id, pr.Title, pr.Author.DisplayName,
-				sourceBranch, destBranch)
-
-			diff, _, err4 := c.PullrequestsApi.RepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdDiffGet(ctx, pr.Id, repoSlug, account)
-			if err4 != nil {
-				log.Fatalf("Error while getting raw diff : %s", err4)
-			}
-			files, _, err5 := gitdiff.Parse(bytes.NewBuffer(diff))
-			if err5 != nil {
-				log.Fatalf("Couldn't parse diff : %s", err5)
-			}
-
-			comments, _, err5 := c.PullrequestsApi.RepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsGet(ctx, pr.Id, repoSlug, account)
-			if err5 != nil {
-				pterm.Fatal.Println(fmt.Sprintf("Couldn't fetch comments: %s", err5))
-			}
-			paginatedComments := sv.PaginatedPullRequestComments{&comments}
-			commentsChan := sv.Paginate[bitbucket.PullrequestComment, bitbucket.PaginatedPullrequestComments](ctx, paginatedComments)
-
-			commentMap := make(map[string]map[int64][]bitbucket.Comment)
-			prComments := make([]bitbucket.Comment, 0)
-			for comment := range commentsChan {
-				if comment.Deleted {
+				prComments, commentMap, err2 := pr.GetCommentsByLine()
+				if err2 != nil {
 					continue
 				}
-				cmt := bitbucket.Comment{
-					Id:        comment.Id,
-					CreatedOn: comment.CreatedOn,
-					Content:   comment.Content,
-					User:      comment.User,
-					Parent:    comment.Parent,
-				}
-				if inline, ok := comment.Inline.(map[string]interface{}); ok {
-					to := int64(inline["to"].(float64))
-					path := inline["path"].(string)
 
-					commentsByPath, hasPath := commentMap[path]
-					if !hasPath {
-						commentsByPath = make(map[int64][]bitbucket.Comment)
-						commentMap[path] = commentsByPath
-					}
-					commentsByLine, hasLine := commentsByPath[to]
-					if !hasLine {
-						commentsByLine = make([]bitbucket.Comment, 0)
-					}
-					commentsByLine = append(commentsByLine, cmt)
-					commentsByPath[to] = commentsByLine
-				} else {
-					prComments = append(prComments, cmt)
-				}
-			}
+				PrintComments(prComments)
 
-			PrintComments(prComments)
-
-			fmt.Printf("Diff of %d files:\n\n", len(files))
-
-			for _, file := range files {
-				fn := file.OldName
-				if file.IsRename {
-					fmt.Printf("%s -> %s:\n", file.OldName, file.NewName)
-				} else if file.IsDelete {
-					fmt.Printf("DELETED %s\n", file.OldName)
+				files, err3 := pr.GetDiff()
+				if err3 != nil {
 					continue
-				} else if file.IsNew {
-					fmt.Printf("NEW %s:\n", file.NewName)
-					fn = file.NewName
-				} else if file.IsCopy {
-					fmt.Printf("COPY %s -> %s:\n", file.OldName, file.NewName)
-				} else {
-					fmt.Printf("%s:\n", file.NewName)
 				}
 
-				commentsForFile, haveFileComments := commentMap[fn]
+				fmt.Printf("Diff of %d files:\n\n", len(files))
 
-				if file.IsBinary {
-					fmt.Printf("\nBINARY FILE\n")
-				} else {
-					for _, frag := range file.TextFragments {
+				for _, file := range files {
+					fn := file.OldName
+					if file.IsRename {
+						fmt.Printf("%s -> %s:\n", file.OldName, file.NewName)
+					} else if file.IsDelete {
+						fmt.Printf("DELETED %s\n", file.OldName)
+						continue
+					} else if file.IsNew {
+						fmt.Printf("NEW %s:\n", file.NewName)
+						fn = file.NewName
+					} else if file.IsCopy {
+						fmt.Printf("COPY %s -> %s:\n", file.OldName, file.NewName)
+					} else {
+						fmt.Printf("%s:\n", file.NewName)
+					}
 
-						fmt.Printf("==O== ==N== (+%d, -%d,  O=%d, N=%d)\n", frag.LinesAdded, frag.LinesDeleted,
-							frag.OldLines, frag.NewLines)
-						oldN := frag.OldPosition
-						newN := frag.NewPosition
+					commentsForFile, haveFileComments := commentMap[fn]
 
-						for _, ln := range frag.Lines {
-							fmt.Printf("%05d %05d %s  %s", oldN, newN, ln.Op, ln.Line)
-							if haveFileComments {
-								if commentsForLine, haveLineComments := commentsForFile[newN]; haveLineComments {
-									PrintComments(commentsForLine)
-									pterm.Println("-------")
+					if file.IsBinary {
+						fmt.Printf("\nBINARY FILE\n")
+					} else {
+						for _, frag := range file.TextFragments {
 
-									// Remove the comment as it shouldn't be printed anymore
-									delete(commentsForFile, newN)
+							fmt.Printf("==O== ==N== (+%d, -%d,  O=%d, N=%d)\n", frag.LinesAdded, frag.LinesDeleted,
+								frag.OldLines, frag.NewLines)
+							oldN := frag.OldPosition
+							newN := frag.NewPosition
+
+							for _, ln := range frag.Lines {
+								fmt.Printf("%05d %05d %s  %s", oldN, newN, ln.Op, ln.Line)
+								if haveFileComments {
+									if commentsForLine, haveLineComments := commentsForFile[newN]; haveLineComments {
+										PrintComments(commentsForLine)
+										pterm.Println("-------")
+
+										// Remove the comment as it shouldn't be printed anymore
+										delete(commentsForFile, newN)
+									}
 								}
-							}
 
-							if ln.Op == gitdiff.OpAdd {
-								oldN -= 1
+								if ln.Op == gitdiff.OpAdd {
+									oldN -= 1
+								}
+								if ln.Op == gitdiff.OpDelete {
+									newN -= 1
+								}
+								newN += 1
+								oldN += 1
 							}
-							if ln.Op == gitdiff.OpDelete {
-								newN -= 1
-							}
-							newN += 1
-							oldN += 1
 						}
 					}
 				}
+
 			}
 
 		}
 	},
 }
 
-func PrintComments(comments []bitbucket.Comment) {
+func PrintComments(comments []sv.Comment) {
 	style := lipgloss.NewStyle().
 		Bold(true).
 		// Foreground(lipgloss.Color("#FAFAFA")).
@@ -169,23 +126,15 @@ func PrintComments(comments []bitbucket.Comment) {
 	)
 
 	for _, comment := range comments {
-		content := comment.Content.(map[string]interface{})
-		raw := content["raw"].(string)
+		raw := comment.GetContent().GetRaw()
 		reply := ""
-		if comment.Parent != nil {
-			reply = fmt.Sprintf(" <- %d", comment.Parent.Id)
+		if id := comment.GetParentId(); id != nil {
+			reply = fmt.Sprintf(" <- %d", id)
 		}
 
 		rawRendered, _ := r.Render(raw)
-		fmt.Print(style.Render(fmt.Sprintf("------- [%d%s] %s at %s ------\n%s\n", comment.Id, reply, comment.User.DisplayName, comment.CreatedOn, rawRendered)))
+		fmt.Print(style.Render(fmt.Sprintf("------- [%d%s] %s at %s ------%s", comment.GetId(), reply, comment.GetUser().GetDisplayName(), comment.GetCreatedOn(), rawRendered)))
 	}
-}
-
-func GetPtr[T any](ptr *T, def T) T {
-	if ptr == nil {
-		return def
-	}
-	return *ptr
 }
 
 func init() {
