@@ -18,6 +18,7 @@ type BitBucketSv struct {
 	client    *bitbucket.APIClient
 	repoSlug  string
 	workspace string
+	localRepo string
 }
 
 func (b *BitBucketSv) GetPullRequest(id string) (PullRequest, error) {
@@ -31,12 +32,14 @@ func (b *BitBucketSv) GetPullRequest(id string) (PullRequest, error) {
 	return BitbucketPullRequestWrapper{&pr, b}, nil
 }
 
-func NewBitBucketSv(username string, password string, repoSlug string, workspace string) Sv {
+func NewBitBucketSv(username string, password string, repoSlug string, workspace string, repo string) Sv {
 	cfg := bitbucket.NewConfiguration()
 	cfg.HTTPClient = &http.Client{}
 	auth := bitbucket.BasicAuth{UserName: username, Password: password}
 	ctx := context.WithValue(context.Background(), bitbucket.ContextBasicAuth, auth)
-	return &BitBucketSv{ctx: ctx, client: bitbucket.NewAPIClient(cfg), repoSlug: repoSlug, workspace: workspace}
+	return &BitBucketSv{ctx: ctx, client: bitbucket.NewAPIClient(cfg), repoSlug: repoSlug, workspace: workspace,
+		localRepo: repo,
+	}
 }
 
 func (b *BitBucketSv) ListPullRequests(prsQuery string) (<-chan PullRequest, error) {

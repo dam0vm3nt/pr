@@ -55,6 +55,7 @@ var prShowCmd = &cobra.Command{
 					fn := file.OldName
 					if file.IsRename {
 						fmt.Printf("%s -> %s:\n", file.OldName, file.NewName)
+						fn = file.NewName
 					} else if file.IsDelete {
 						fmt.Printf("DELETED %s\n", file.OldName)
 						continue

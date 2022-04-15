@@ -40,6 +40,8 @@ var account, repoSlug string
 
 var githubToken string
 
+var localRepo string
+
 func GetClient() (*bitbucket.APIClient, context.Context) {
 	cfg := bitbucket.NewConfiguration()
 	cfg.HTTPClient = &http.Client{}
@@ -50,9 +52,9 @@ func GetClient() (*bitbucket.APIClient, context.Context) {
 
 func GetSv() sv.Sv {
 	if len(githubToken) > 0 {
-		return sv.NewGitHubSv(githubToken)
+		return sv.NewGitHubSv(githubToken, localRepo)
 	} else {
-		return sv.NewBitBucketSv(*_username, *_password, repoSlug, account)
+		return sv.NewBitBucketSv(*_username, *_password, repoSlug, account, localRepo)
 	}
 
 }
@@ -68,6 +70,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&account, "account", "a", "latchMaster", "Account")
 	rootCmd.PersistentFlags().StringVarP(&repoSlug, "repository", "r", "latch-cortex", "Repository")
 	rootCmd.PersistentFlags().StringVarP(&githubToken, "token", "t", "", "Github token")
+	rootCmd.PersistentFlags().StringVarP(&localRepo, "local", "l", "", "Local copy")
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 
