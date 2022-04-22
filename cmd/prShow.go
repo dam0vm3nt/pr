@@ -5,6 +5,7 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -30,17 +31,69 @@ type pullRequestView struct {
 	content        *lines
 	viewport       viewport.Model
 	ready          bool
-	headings       []heading
-	currentHeading int
+	headings       [][]heading
+	currentHeading []int
+	bookmarks      map[string][]int
 }
 
-func (p *pullRequestView) addHeading(format string, args ...any) {
+func (p *pullRequestView) addHeading(lev int, format string, args ...any) {
 	s := fmt.Sprintf(format, args...)
 	p.content.printf(s)
-	p.headings = append(p.headings, heading{len(*p.content) + 1, s})
+	p.headings[lev] = append(p.headings[lev], heading{len(*p.content) + 1, s})
 }
 
 func (p pullRequestView) Init() tea.Cmd {
+	return nil
+}
+
+func (p *pullRequestView) MoveToNextHeading(L int) {
+	if p.currentHeading[L] >= 0 && p.currentHeading[L] < len(p.headings[L])-1 {
+		p.currentHeading[L] += 1
+		p.viewport.YOffset = p.headings[L][p.currentHeading[L]].line - 1
+	} else if len(p.headings[L]) > 0 {
+		p.currentHeading[L] = 0
+		p.viewport.YOffset = p.headings[L][p.currentHeading[L]].line - 1
+	}
+}
+
+func (p *pullRequestView) MoveToPrevHeading(L int) {
+	if len(p.headings[L]) > 0 && p.currentHeading[L] > 0 {
+		p.currentHeading[L] -= 1
+		p.viewport.YOffset = p.headings[L][p.currentHeading[L]].line - 1
+	} else if len(p.headings[L]) > 0 {
+		p.currentHeading[L] = len(p.headings[L]) - 1
+		p.viewport.YOffset = p.headings[L][p.currentHeading[L]].line - 1
+	}
+}
+
+func (p *pullRequestView) MoveToNextBookmark(b string) error {
+	bookmarks := p.bookmarks[b]
+	if len(bookmarks) == 0 {
+		return errors.New("No bookmarks")
+	}
+	for _, l := range bookmarks {
+		if l > p.viewport.YOffset {
+			p.viewport.YOffset = l
+			return nil
+		}
+	}
+	p.viewport.YOffset = bookmarks[0]
+	return nil
+}
+
+func (p *pullRequestView) MoveToPrevBookmark(b string) error {
+	bookmarks := p.bookmarks[b]
+	if len(bookmarks) == 0 {
+		return errors.New("No bookmarks")
+	}
+	for i := len(bookmarks) - 1; i >= 0; i-- {
+		l := bookmarks[i]
+		if l < p.viewport.YOffset {
+			p.viewport.YOffset = l
+			return nil
+		}
+	}
+	p.viewport.YOffset = bookmarks[len(bookmarks)-1]
 	return nil
 }
 
@@ -60,27 +113,21 @@ func (p pullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "esc":
 			return p, tea.Quit
 		case "n":
-			if p.currentHeading >= 0 && p.currentHeading < len(p.headings)-1 {
-				p.currentHeading += 1
-				p.viewport.YOffset = p.headings[p.currentHeading].line - 1
-			} else if len(p.headings) > 0 {
-				p.currentHeading = 0
-				p.viewport.YOffset = p.headings[p.currentHeading].line - 1
-			}
-
+			p.MoveToNextHeading(COMMIT_LEVEL)
 		case "p":
-			if len(p.headings) > 0 && p.currentHeading > 0 {
-				p.currentHeading -= 1
-				p.viewport.YOffset = p.headings[p.currentHeading].line - 1
-			} else if len(p.headings) > 0 {
-				p.currentHeading = len(p.headings) - 1
-				p.viewport.YOffset = p.headings[p.currentHeading].line - 1
-			}
-
+			p.MoveToPrevHeading(COMMIT_LEVEL)
+		case "N":
+			p.MoveToNextHeading(FILE_LEVEL)
+		case "P":
+			p.MoveToPrevHeading(FILE_LEVEL)
+		case "c":
+			p.MoveToNextBookmark("COMMENT")
+		case "C":
+			p.MoveToPrevBookmark("COMMENT")
 		}
 
 	case tea.WindowSizeMsg:
-		headerHeight := len(*p.header) + 1
+		headerHeight := len(*p.header) + len(p.currentHeading)
 		footerHeight := 0
 		verticalMarginHeight := headerHeight + footerHeight
 
@@ -120,10 +167,12 @@ func (p pullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	p.viewport, cmd = p.viewport.Update(msg)
 
 	// Update last headings
-	p.currentHeading = -1
-	for n, h := range p.headings {
-		if h.line <= p.viewport.YOffset+1 {
-			p.currentHeading = n
+	for l := 0; l < len(p.currentHeading); l++ {
+		p.currentHeading[l] = -1
+		for n, h := range p.headings[l] {
+			if h.line <= p.viewport.YOffset+1 {
+				p.currentHeading[l] = n
+			}
 		}
 	}
 
@@ -138,12 +187,16 @@ func (p pullRequestView) View() string {
 	}
 	header := strings.Join(*p.header, "\n")
 	// Find the first header
-	heading := ""
-	if p.currentHeading >= 0 {
-		heading = p.headings[p.currentHeading].text
+	heading := make([]string, len(p.currentHeading))
+	for l := 0; l < len(p.currentHeading); l++ {
+		if p.currentHeading[l] >= 0 {
+			heading[l] = p.headings[l][p.currentHeading[l]].text
+		} else {
+			heading[l] = ""
+		}
 	}
 
-	return fmt.Sprintf("%s\n%s\n%s", header, heading, p.viewport.View())
+	return fmt.Sprintf("%s\n%s\n%s", header, strings.Join(heading, "\n"), p.viewport.View())
 }
 
 type lines []string
@@ -158,9 +211,23 @@ func (prv *lines) printf(format string, args ...any) {
 }
 
 func newView() *pullRequestView {
+
 	h := make(lines, 0)
 	c := make(lines, 0)
-	return &pullRequestView{header: &h, content: &c, headings: make([]heading, 0)}
+
+	headings := make([][]heading, HEADINGS)
+	for l := 0; l < HEADINGS; l++ {
+		headings[l] = make([]heading, 0)
+	}
+
+	return &pullRequestView{
+		header:         &h,
+		content:        &c,
+		headings:       headings,
+		currentHeading: make([]int, HEADINGS),
+		bookmarks: map[string][]int{
+			"COMMENT": make([]int, 0),
+		}}
 }
 
 // prShowCmd represents the prShow command
@@ -221,18 +288,18 @@ var prShowCmd = &cobra.Command{
 				for _, file := range files {
 					fn := file.OldName
 					if file.IsRename {
-						fmt.Printf("%s -> %s:\n", file.OldName, file.NewName)
+						prv.addHeading(FILE_LEVEL, "%s -> %s:", file.OldName, file.NewName)
 						fn = file.NewName
 					} else if file.IsDelete {
-						fmt.Printf("DELETED %s\n", file.OldName)
+						prv.addHeading(FILE_LEVEL, "DELETED %s", file.OldName)
 						continue
 					} else if file.IsNew {
-						fmt.Printf("NEW %s:\n", file.NewName)
+						prv.addHeading(FILE_LEVEL, "NEW %s:", file.NewName)
 						fn = file.NewName
 					} else if file.IsCopy {
-						fmt.Printf("COPY %s -> %s:\n", file.OldName, file.NewName)
+						prv.addHeading(FILE_LEVEL, "COPY %s -> %s:", file.OldName, file.NewName)
 					} else {
-						fmt.Printf("%s:\n", file.NewName)
+						prv.addHeading(FILE_LEVEL, "%s:", file.NewName)
 					}
 
 					commentsForFile, haveFileComments := commentMap[fn]
@@ -257,7 +324,7 @@ var prShowCmd = &cobra.Command{
 
 						for _, frag := range file.TextFragments {
 
-							prv.addHeading("==O== ==N== (+%d, -%d,  O=%d, N=%d)", frag.LinesAdded, frag.LinesDeleted,
+							prv.addHeading(COMMIT_LEVEL, "==O== ==N== (+%d, -%d,  O=%d, N=%d)", frag.LinesAdded, frag.LinesDeleted,
 								frag.OldLines, frag.NewLines)
 							oldN := frag.OldPosition
 							newN := frag.NewPosition
@@ -317,8 +384,8 @@ var prShowCmd = &cobra.Command{
 	},
 }
 
-func (prv *pullRequestView) removeLastHeader() {
-	prv.headings = append(prv.headings, heading{len(*prv.content), prv.headings[len(prv.headings)-2].text})
+func (prv *pullRequestView) removeLastHeader(lev int) {
+	prv.headings[lev] = append(prv.headings[lev], heading{len(*prv.content), prv.headings[lev][len(prv.headings[lev])-2].text})
 }
 
 func (prv *pullRequestView) PrintComments(comments []sv.Comment) {
@@ -348,13 +415,20 @@ func (prv *pullRequestView) PrintComments(comments []sv.Comment) {
 			reply = fmt.Sprintf(" <- %d", id)
 		}
 
-		prv.addHeading("------- [%d%s] %s at %s ------", comment.GetId(), reply, comment.GetUser().GetDisplayName(), comment.GetCreatedOn())
+		prv.bookmarks["COMMENT"] = append(prv.bookmarks["COMMENT"], len(*prv.content)+1)
+		prv.addHeading(COMMIT_LEVEL, "------- [%d%s] %s at %s ------", comment.GetId(), reply, comment.GetUser().GetDisplayName(), comment.GetCreatedOn())
 
 		rawRendered, _ := r.Render(raw)
 		prv.content.printf(rawRendered)
-		prv.removeLastHeader()
+		prv.removeLastHeader(COMMIT_LEVEL)
 	}
 }
+
+const (
+	FILE_LEVEL = iota
+	COMMIT_LEVEL
+	HEADINGS
+)
 
 func init() {
 	prCmd.AddCommand(prShowCmd)
