@@ -15,6 +15,7 @@ type PullRequest interface {
 	GetCommentsByLine() ([]Comment, map[string]map[int64][]Comment, error)
 	GetDiff() ([]*gitdiff.File, error)
 	GetBase() Branch
+	GetChecks() ([]Check, error)
 }
 
 type Comment interface {
@@ -23,6 +24,12 @@ type Comment interface {
 	GetId() interface{}
 	GetUser() Author
 	GetCreatedOn() time.Time
+}
+
+type Check interface {
+	GetName() string
+	GetStatus() string
+	GetUrl() string
 }
 
 type CommentContent interface {

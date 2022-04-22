@@ -74,6 +74,11 @@ type BitbucketPullRequestWrapper struct {
 	client *BitBucketSv
 }
 
+func (b BitbucketPullRequestWrapper) GetChecks() ([]Check, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (b BitbucketPullRequestWrapper) GetBase() Branch {
 	data := b.Destination.Branch.(map[string]interface{})
 	return BitBucketBranchWrapper{&data}

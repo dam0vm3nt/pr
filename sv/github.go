@@ -6,11 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
+	"github.com/cli/cli/v2/api"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	gh "github.com/google/go-github/v43/github"
 	"github.com/pterm/pterm"
+	sshagent "github.com/xanzy/ssh-agent"
+	ssh2 "golang.org/x/crypto/ssh"
 	"golang.org/x/oauth2"
+	"net"
 	"net/http"
 	"strconv"
 	"time"
@@ -19,6 +23,7 @@ import (
 type GitHubSv struct {
 	ctx       context.Context
 	client    *gh.Client
+	gqlClient *api.Client
 	owner     string
 	repo      string
 	tc        *http.Client
@@ -50,11 +55,13 @@ func NewGitHubSv(token string, repo string) Sv {
 		repo:      "latch-cortex",
 		tc:        tc,
 		localRepo: repo,
+		gqlClient: api.NewClientFromHTTP(tc),
 	}
 }
 
 func (g *GitHubSv) ListPullRequests(query string) (<-chan PullRequest, error) {
 	opts := &gh.PullRequestListOptions{}
+	opts.Page = 1
 	if res, resp, err := g.client.PullRequests.List(g.ctx, g.owner, g.repo, opts); err != nil {
 		return nil, err
 	} else if resp.StatusCode != 200 {
@@ -79,6 +86,92 @@ func (g *GitHubSv) ListPullRequests(query string) (<-chan PullRequest, error) {
 type GitHubPullRequest struct {
 	*gh.PullRequest
 	sv *GitHubSv
+}
+
+func (g GitHubPullRequest) GetChecks() ([]Check, error) {
+	type response struct {
+		Repository *struct {
+			PullRequest *struct {
+				StatusCheckRollup *struct {
+					Nodes []*struct {
+						Commit *struct {
+							StatusCheckRollup *struct {
+								Contexts *struct {
+									Nodes []*api.CheckContext
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	var resp1 response
+	err := g.sv.gqlClient.GraphQL("github.com", `
+query GetRepos($name: String!, $owner: String!, $number: Int!) {
+	repository(name: $name, owner: $owner) {
+		pullRequest(number: $number) {
+			statusCheckRollup: commits(last: 1) {
+				nodes {
+					commit {
+						statusCheckRollup {
+							contexts(first:100) {
+								nodes {
+									__typename
+									...on StatusContext {
+										context,
+										state,
+										targetUrl
+									},
+									...on CheckRun {
+										name,
+										status,
+										conclusion,
+										startedAt,
+										completedAt,
+										detailsUrl
+									}
+								},
+								pageInfo{hasNextPage,endCursor}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}`, map[string]interface{}{"name": g.sv.repo, "owner": g.sv.owner, "number": g.GetNumber()}, &resp1)
+	if err != nil {
+		pterm.Fatal.Println(err)
+	}
+	result := make([]Check, 0)
+
+	for _, rollups := range resp1.Repository.PullRequest.StatusCheckRollup.Nodes {
+
+		for _, checks := range rollups.Commit.StatusCheckRollup.Contexts.Nodes {
+			result = append(result, GitHubCheck{checks})
+		}
+
+	}
+
+	return result, nil
+}
+
+type GitHubCheck struct {
+	*api.CheckContext
+}
+
+func (g GitHubCheck) GetUrl() string {
+	return g.TargetURL
+}
+
+func (g GitHubCheck) GetName() string {
+	return g.Context
+}
+
+func (g GitHubCheck) GetStatus() string {
+	return g.State
 }
 
 func (g GitHubPullRequest) GetCommentsByLine() ([]Comment, map[string]map[int64][]Comment, error) {
@@ -112,7 +205,10 @@ func (g GitHubPullRequest) GetCommentsByLine() ([]Comment, map[string]map[int64]
 	prComments := make([]Comment, 0)
 	commentMap := make(map[string]map[int64][]Comment)
 
+	commentsById := make(map[int64]*gh.PullRequestComment)
+
 	for ghC := range commentsChan {
+		commentsById[*ghC.ID] = ghC
 		cmt := GitHubCommentWrapper{ghC}
 		if ghC.Path != nil {
 			path := *ghC.Path
@@ -122,7 +218,15 @@ func (g GitHubPullRequest) GetCommentsByLine() ([]Comment, map[string]map[int64]
 				commentMap[path] = byLine
 			}
 
-			line := int64(*ghC.Line)
+			var line int64
+			if ghC.Line != nil {
+				line = int64(*ghC.Line)
+			} else if ghC.OriginalLine != nil {
+				line = -int64(*ghC.OriginalLine)
+			} else {
+				pterm.Fatal.Println("comment without a line")
+			}
+
 			lineComments, hasComments := byLine[line]
 			if !hasComments {
 				lineComments = make([]Comment, 0)
@@ -154,7 +258,10 @@ func (g GitHubCommentContentWrapper) GetRaw() string {
 }
 
 func (g GitHubCommentWrapper) GetParentId() interface{} {
-	return g.InReplyTo
+	if g.InReplyTo == nil {
+		return nil
+	}
+	return *g.InReplyTo
 }
 
 func (g GitHubCommentWrapper) GetId() interface{} {
@@ -170,17 +277,29 @@ func (g GitHubCommentWrapper) GetCreatedOn() time.Time {
 }
 
 func (g GitHubPullRequest) GetDiff() ([]*gitdiff.File, error) {
-
-	agent, _ := ssh.NewSSHAgentAuth("vittorioballestra@vittorioballestraMacBookPro11,4")
-
 	rep, giterr := git.PlainOpen(g.sv.localRepo)
 	if giterr != nil {
 		return nil, giterr
 	}
-	err1 := rep.Fetch(&git.FetchOptions{RemoteName: "origin", Auth: agent})
-	if err1 != nil {
-		pterm.Warning.Println(err1)
-		// return nil, err1
+
+	if sshagent.Available() {
+		ag, _ := ssh.NewSSHAgentAuth("git")
+		sshag, _, err := sshagent.New()
+		if err == nil {
+			sig, _ := sshag.Signers()
+			fmt.Println(sig)
+		}
+
+		ag.HostKeyCallback = func(hostname string, remote net.Addr, key ssh2.PublicKey) error {
+			fmt.Printf("Hostname : %s, addr : %s, key : %s\n", hostname, remote, key)
+			return nil
+		}
+
+		err1 := rep.Fetch(&git.FetchOptions{RemoteName: "origin", Auth: ag})
+		if err1 != nil {
+			pterm.Warning.Println(err1)
+			// return nil, err1
+		}
 	}
 
 	base, _ := rep.Branch(*g.Base.Ref)
@@ -195,7 +314,15 @@ func (g GitHubPullRequest) GetDiff() ([]*gitdiff.File, error) {
 	cBr, _ := rep.CommitObject(refBrHash)
 	cBase, _ := rep.CommitObject(refBaseHash)
 
-	baseTree, err2 := cBase.Tree()
+	merge, err := cBr.MergeBase(cBase)
+	if err != nil {
+		pterm.Fatal.Println("Cannot find a merge base?!?")
+	}
+	if len(merge) != 1 {
+		pterm.Fatal.Printfln("More than one merge base ?!? %s", merge)
+	}
+
+	baseTree, err2 := merge[0].Tree()
 	if err2 != nil {
 		pterm.Error.Println(err2)
 	}
@@ -207,8 +334,6 @@ func (g GitHubPullRequest) GetDiff() ([]*gitdiff.File, error) {
 	changes, _ := baseTree.Patch(brTree)
 	buf := &bytes.Buffer{}
 	changes.Encode(buf)
-	str := changes.String()
-	fmt.Println(str)
 
 	files, _, err5 := gitdiff.Parse(buf)
 	if err5 != nil {
