@@ -16,6 +16,7 @@ type PullRequest interface {
 	GetDiff() ([]*gitdiff.File, error)
 	GetBase() Branch
 	GetChecks() ([]Check, error)
+	GetReviews() ([]Review, error)
 }
 
 type Comment interface {
@@ -30,6 +31,12 @@ type Check interface {
 	GetName() string
 	GetStatus() string
 	GetUrl() string
+}
+
+type Review interface {
+	GetState() string
+	GetAuthor() string
+	GetSubmitedAt() time.Time
 }
 
 type CommentContent interface {

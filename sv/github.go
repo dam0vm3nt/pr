@@ -28,7 +28,10 @@ type GitHubSv struct {
 	repo      string
 	tc        *http.Client
 	localRepo string
+	host      string
 }
+
+const githubDefaultHost = "github.com"
 
 func (g *GitHubSv) GetPullRequest(id string) (PullRequest, error) {
 	num, _ := strconv.ParseInt(id, 10, 32)
@@ -56,6 +59,7 @@ func NewGitHubSv(token string, repo string) Sv {
 		tc:        tc,
 		localRepo: repo,
 		gqlClient: api.NewClientFromHTTP(tc),
+		host:      githubDefaultHost,
 	}
 }
 
@@ -108,7 +112,8 @@ func (g GitHubPullRequest) GetChecks() ([]Check, error) {
 	}
 
 	var resp1 response
-	err := g.sv.gqlClient.GraphQL("github.com", `
+
+	err := g.sv.gqlClient.GraphQL(g.sv.host, `
 query GetRepos($name: String!, $owner: String!, $number: Int!) {
 	repository(name: $name, owner: $owner) {
 		pullRequest(number: $number) {
@@ -172,6 +177,66 @@ func (g GitHubCheck) GetName() string {
 
 func (g GitHubCheck) GetStatus() string {
 	return g.State
+}
+
+func (g GitHubPullRequest) GetReviews() ([]Review, error) {
+	type response struct {
+		Repository *struct {
+			PullRequest *struct {
+				Reviews *api.PullRequestReviews
+			}
+		}
+	}
+
+	var resp1 response
+
+	err := g.sv.gqlClient.GraphQL(g.sv.host, `
+query GetRepos($name: String!, $owner: String!, $number: Int!) {
+	repository(name: $name, owner: $owner) {
+		pullRequest(number: $number) {
+			reviews(first: 100) {
+				nodes {
+					author { login }
+					body
+					bodyHTML
+					bodyText
+					state
+					submittedAt	
+				}
+			}
+		}
+	}
+}`, map[string]interface{}{"name": g.sv.repo, "owner": g.sv.owner, "number": g.GetNumber()}, &resp1)
+	if err != nil {
+		pterm.Fatal.Println(err)
+	}
+	result := make([]Review, 0)
+
+	for _, rev := range resp1.Repository.PullRequest.Reviews.Nodes {
+
+		//for _, rev1 := range rev.Nodes {
+		result = append(result, GitHubReview{rev})
+		//}
+
+	}
+
+	return result, nil
+}
+
+type GitHubReview struct {
+	api.PullRequestReview
+}
+
+func (g GitHubReview) GetState() string {
+	return g.State
+}
+
+func (g GitHubReview) GetAuthor() string {
+	return g.Author.Login
+}
+
+func (g GitHubReview) GetSubmitedAt() time.Time {
+	return *g.SubmittedAt
 }
 
 func (g GitHubPullRequest) GetCommentsByLine() ([]Comment, map[string]map[int64][]Comment, error) {

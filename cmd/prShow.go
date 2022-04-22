@@ -195,6 +195,14 @@ var prShowCmd = &cobra.Command{
 					pterm.Warning.Println("Couldn't read the checks ", err)
 				}
 
+				if reviews, err := pr.GetReviews(); err == nil {
+					for _, rev := range reviews {
+						prv.header.printf("* %s : %s (%s)", rev.GetState(), rev.GetAuthor(), rev.GetSubmitedAt())
+					}
+				} else {
+					pterm.Warning.Println("Couldn't read the checks ", err)
+				}
+
 				prComments, commentMap, err2 := pr.GetCommentsByLine()
 				if err2 != nil {
 					continue
