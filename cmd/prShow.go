@@ -12,6 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/erikgeiser/promptkit/confirmation"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 	"github.com/vballestra/gobb-cli/sv"
@@ -34,6 +35,7 @@ type pullRequestView struct {
 	headings       [][]heading
 	currentHeading []int
 	bookmarks      map[string][]int
+	bookmarksData  map[int]interface{}
 }
 
 func (p *pullRequestView) addHeading(lev int, format string, args ...any) {
@@ -97,6 +99,15 @@ func (p *pullRequestView) MoveToPrevBookmark(b string) error {
 	return nil
 }
 
+func CurrentBookmark(p *pullRequestView, b string) (int, interface{}) {
+	for n, l := range p.bookmarks[b] {
+		if l == p.viewport.YOffset {
+			return n, p.bookmarksData[n]
+		}
+	}
+	return 0, nil
+}
+
 func (p pullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
@@ -124,6 +135,16 @@ func (p pullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			p.MoveToNextBookmark("COMMENT")
 		case "C":
 			p.MoveToPrevBookmark("COMMENT")
+		case "r":
+			if _, data := CurrentBookmark(&p, "COMMENT"); data != nil {
+				if comment, ok := data.(sv.Comment); ok {
+					input := confirmation.New(fmt.Sprintf("Whant to reply to comment by %s", comment.GetUser().GetDisplayName()), confirmation.Yes)
+					if ready, err := input.RunPrompt(); err != nil && ready {
+
+					}
+					return p, tea.ClearScrollArea
+				}
+			}
 		}
 
 	case tea.WindowSizeMsg:
@@ -227,7 +248,8 @@ func newView() *pullRequestView {
 		currentHeading: make([]int, HEADINGS),
 		bookmarks: map[string][]int{
 			"COMMENT": make([]int, 0),
-		}}
+		},
+		bookmarksData: make(map[int]interface{})}
 }
 
 // prShowCmd represents the prShow command
@@ -342,15 +364,12 @@ var prShowCmd = &cobra.Command{
 
 								prv.content.printf(style.Render(fmt.Sprintf("%05d %05d %s  %s", oldN, newN, ln.Op, ln.Line)))
 								if haveFileComments {
-
 									if commentsForLine, haveLineComments := commentsForFile[newN]; haveLineComments {
 										prv.PrintComments(commentsForLine)
-										prv.content.printf("-------")
 										delete(commentsForFile, newN)
 									} else if commentsForLine, haveLineComments := commentsForFile[-oldN]; haveLineComments {
 										prv.PrintComments(commentsForLine)
-										prv.content.printf("-------")
-										delete(commentsForFile, newN)
+										delete(commentsForFile, -oldN)
 									}
 								}
 
@@ -388,24 +407,41 @@ func (prv *pullRequestView) removeLastHeader(lev int) {
 	prv.headings[lev] = append(prv.headings[lev], heading{len(*prv.content), prv.headings[lev][len(prv.headings[lev])-2].text})
 }
 
+func ptr[T string | uint | int](s T) *T {
+	return &s
+}
+
 func (prv *pullRequestView) PrintComments(comments []sv.Comment) {
 	w, _, _ := term.GetSize(int(os.Stdout.Fd()))
-	/*
-		style := lipgloss.NewStyle().
-			Bold(true).
-			// Foreground(lipgloss.Color("#FAFAFA")).
-			// Background(lipgloss.Color("#7D56F4")).
-			PaddingTop(2).
-			PaddingLeft(4).
-			PaddingRight(4)
-	*/
+
+	bg := "#7D56F4"
+	fg := "#FAFAFA"
+	style := lipgloss.NewStyle().
+		Italic(true).
+		Foreground(lipgloss.Color(fg)).
+		Background(lipgloss.Color(bg)).
+		Align(lipgloss.Left).
+		Width(w)
+
+	style2 := style.Copy().
+		PaddingLeft(2).
+		PaddingRight(2).
+		Align(lipgloss.Left)
+
+	st := glamour.DraculaStyleConfig
+
+	st.Document.BackgroundColor = ptr(bg)
+	st.Document.Color = ptr(fg)
+	st.Document.Margin = ptr(uint(0))
+	st.Link.BackgroundColor = ptr(bg)
 
 	r, _ := glamour.NewTermRenderer(
 		// detect background color and pick either the default dark or light theme
-		glamour.WithAutoStyle(),
+		//glamour.WithAutoStyle(),
 		// wrap output at specific width
 		glamour.WithWordWrap(w),
 		glamour.WithEmoji(),
+		glamour.WithStyles(st),
 	)
 
 	for _, comment := range comments {
@@ -415,13 +451,22 @@ func (prv *pullRequestView) PrintComments(comments []sv.Comment) {
 			reply = fmt.Sprintf(" <- %d", id)
 		}
 
-		prv.bookmarks["COMMENT"] = append(prv.bookmarks["COMMENT"], len(*prv.content)+1)
-		prv.addHeading(COMMIT_LEVEL, "------- [%d%s] %s at %s ------", comment.GetId(), reply, comment.GetUser().GetDisplayName(), comment.GetCreatedOn())
+		prv.AddBookmark("COMMENT", comment)
+		prv.addHeading(COMMIT_LEVEL, style.Render(
+			fmt.Sprintf("------- [%d%s] %s at %s ------",
+				comment.GetId(), reply,
+				comment.GetUser().GetDisplayName(),
+				comment.GetCreatedOn())))
 
 		rawRendered, _ := r.Render(raw)
-		prv.content.printf(rawRendered)
+		prv.content.printf(style2.Render(rawRendered))
 		prv.removeLastHeader(COMMIT_LEVEL)
 	}
+}
+
+func (prv *pullRequestView) AddBookmark(b string, data interface{}) {
+	prv.bookmarksData[len(prv.bookmarks[b])] = data
+	prv.bookmarks[b] = append(prv.bookmarks[b], len(*prv.content)+1)
 }
 
 const (

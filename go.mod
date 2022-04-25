@@ -10,6 +10,7 @@ require (
 	github.com/charmbracelet/glamour v0.5.0
 	github.com/charmbracelet/lipgloss v0.5.0
 	github.com/cli/cli/v2 v2.8.0
+	github.com/erikgeiser/promptkit v0.6.0
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/google/go-github/v43 v43.0.0
 	github.com/pterm/pterm v0.12.40
@@ -26,6 +27,7 @@ require (
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/alecthomas/chroma v0.10.0 // indirect
 	github.com/atomicgo/cursor v0.0.1 // indirect
+	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/briandowns/spinner v1.18.1 // indirect
 	github.com/cli/safeexec v1.0.0 // indirect
