@@ -8,6 +8,7 @@ import (
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"github.com/cli/cli/v2/api"
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	gh "github.com/google/go-github/v43/github"
 	"github.com/pterm/pterm"
@@ -357,8 +358,12 @@ func (g GitHubPullRequest) GetDiff() ([]*gitdiff.File, error) {
 			fmt.Println(sig)
 		}
 
+		cfg, _ := ag.ClientConfig()
+		pterm.Info.Println("Client info is ", cfg, " MACS: ", cfg.MACs)
+		cfg.MACs = []string{"SHA-256"}
+
 		ag.HostKeyCallback = func(hostname string, remote net.Addr, key ssh2.PublicKey) error {
-			fmt.Printf("Hostname : %s, addr : %s, key : %s\n", hostname, remote, key)
+			fmt.Printf("Hostname : %s, addr : %s, key : %s\n", hostname, remote, key.Type())
 			return nil
 		}
 
@@ -369,17 +374,23 @@ func (g GitHubPullRequest) GetDiff() ([]*gitdiff.File, error) {
 		}
 	}
 
-	base, _ := rep.Branch(*g.Base.Ref)
-	br, _ := rep.Branch(*g.Head.Ref)
+	//base, _ := rep.Branch(*g.Base.Ref)
+	//br, _ := rep.Branch(*g.Head.Ref)
 
-	refBase, _ := rep.Reference(base.Merge, true)
-	refBr, _ := rep.Reference(br.Merge, true)
+	//refBase, _ := rep.Reference(base.Merge, true)
+	//refBr, _ := rep.Reference(br.Merge, true)
 
-	refBaseHash := refBase.Hash()
-	refBrHash := refBr.Hash()
+	refBaseHash := plumbing.NewHash(*g.Base.SHA)
+	refBrHash := plumbing.NewHash(*g.Head.SHA)
 
-	cBr, _ := rep.CommitObject(refBrHash)
-	cBase, _ := rep.CommitObject(refBaseHash)
+	cBr, err := rep.CommitObject(refBrHash)
+	if err != nil {
+		pterm.Fatal.Println("Cannot get the pr branch head commit, do you need to update your local repo ?", err)
+	}
+	cBase, err := rep.CommitObject(refBaseHash)
+	if err != nil {
+		pterm.Fatal.Println("Cannot get the base branch commit, do you need to update your local repo ?", err)
+	}
 
 	merge, err := cBr.MergeBase(cBase)
 	if err != nil {
