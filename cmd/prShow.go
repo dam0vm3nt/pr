@@ -39,7 +39,16 @@ type pullRequestView struct {
 }
 
 func (p *pullRequestView) addHeading(lev int, format string, args ...any) {
-	s := fmt.Sprintf(format, args...)
+	w, _, _ := term.GetSize(int(os.Stdout.Fd()))
+	var st lipgloss.Style
+	switch lev {
+	case FILE_LEVEL:
+		st = lipgloss.NewStyle().Background(lipgloss.Color("#d040d0")).Foreground(lipgloss.Color("#ffffff")).Bold(true).Width(w)
+	default:
+		st = lipgloss.NewStyle().Background(lipgloss.Color("#909090")).Foreground(lipgloss.Color("#ffffff")).Width(w)
+	}
+
+	s := st.Render(fmt.Sprintf(format, args...))
 	p.content.printf(s)
 	p.headings[lev] = append(p.headings[lev], heading{len(*p.content) + 1, s})
 }
@@ -362,7 +371,8 @@ var prShowCmd = &cobra.Command{
 									style = styleNorm
 								}
 
-								prv.content.printf(style.Render(fmt.Sprintf("%05d %05d %s  %s", oldN, newN, ln.Op, ln.Line)))
+								escaped := strings.ReplaceAll(ln.Line, "%", "%%")
+								prv.content.printf(style.Render(fmt.Sprintf("%05d %05d %s  %s", oldN, newN, ln.Op, escaped)))
 								if haveFileComments {
 									if commentsForLine, haveLineComments := commentsForFile[newN]; haveLineComments {
 										prv.PrintComments(commentsForLine)

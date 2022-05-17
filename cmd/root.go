@@ -141,7 +141,7 @@ func init() {
 	_password = rootCmd.PersistentFlags().StringP("password", "p", "", "Password")
 	rootCmd.PersistentFlags().StringVarP(&account, "account", "a", "", "Account (default value will be deduced from the local repo)")
 	rootCmd.PersistentFlags().StringVarP(&repoSlug, "repository", "r", "", "Repository (Account (default value will be deduced from the local repo)")
-	rootCmd.PersistentFlags().StringVarP(&githubToken, "token", "t", "", "Github token")
+	rootCmd.PersistentFlags().StringVarP(&githubToken, "token", "t", os.Getenv("GITHUB_TOKEN"), "Github token")
 	rootCmd.PersistentFlags().StringVarP(&localRepo, "workspace", "w", wd, "Local copy")
 	rootCmd.PersistentFlags().StringVar(&defaultOrigin, "remote", "origin", "Default origin to use")
 	// Cobra also supports local flags, which will only run
