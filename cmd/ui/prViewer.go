@@ -419,6 +419,8 @@ func (prv *PullRequestView) RenderPullRequest() {
 		}
 
 		commentsForFileOrig, haveFileComments := prv.commentMap[fn]
+
+		// Clone it
 		commentsForFile := make(map[int64][]sv.Comment)
 		for k, v := range commentsForFileOrig {
 			vv := make([]sv.Comment, len(v))
