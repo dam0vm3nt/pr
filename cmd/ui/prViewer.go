@@ -418,7 +418,15 @@ func (prv *PullRequestView) RenderPullRequest() {
 			prv.AddHeading(FILE_LEVEL, "%s:", file.NewName)
 		}
 
-		commentsForFile, haveFileComments := prv.commentMap[fn]
+		commentsForFileOrig, haveFileComments := prv.commentMap[fn]
+		commentsForFile := make(map[int64][]sv.Comment)
+		for k, v := range commentsForFileOrig {
+			vv := make([]sv.Comment, len(v))
+			for i, x := range v {
+				vv[i] = x
+			}
+			commentsForFile[k] = vv
+		}
 
 		if file.IsBinary {
 			prv.Content.Printf("\nBINARY FILE\n")
