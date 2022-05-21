@@ -31,6 +31,13 @@ type PullRequestView struct {
 	currentHeading []int
 	bookmarks      map[string][]int
 	bookmarksData  map[int]interface{}
+	checks         []sv.Check
+	reviews        []sv.Review
+	prComments     []sv.Comment
+	commentMap     map[string]map[int64][]sv.Comment
+	files          []*gitdiff.File
+	dirty          bool
+	xOffset        int
 }
 
 func ptr[T string | uint | int](s T) *T {
@@ -200,6 +207,8 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds []tea.Cmd
 	)
 
+	p.RenderPullRequest()
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch k := msg.String(); k {
@@ -209,6 +218,18 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return p, tea.Quit
 		case "esc":
 			return p, tea.Quit
+		case "right":
+			p.xOffset += 4
+			p.dirty = true
+			p.RenderPullRequest()
+			// return p, tea.ClearScrollArea
+		case "left":
+			if p.xOffset >= 4 {
+				p.xOffset -= 4
+				p.dirty = true
+			}
+			p.RenderPullRequest()
+			// return p, tea.ClearScrollArea
 		case "n":
 			p.MoveToNextHeading(COMMIT_LEVEL)
 		case "p":
@@ -292,6 +313,7 @@ func (p PullRequestView) View() string {
 	if !p.ready {
 		return "\n  Initializing..."
 	}
+
 	header := strings.Join(*p.Header, "\n")
 	// Find the first Header
 	heading := make([]string, len(p.currentHeading))
@@ -310,29 +332,39 @@ type lines []string
 
 func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 
-	h := make(lines, 0)
-	c := make(lines, 0)
-
 	headings := make([][]Heading, HEADINGS)
 	for l := 0; l < HEADINGS; l++ {
 		headings[l] = make([]Heading, 0)
 	}
 
-	prv := &PullRequestView{
-		Header:         &h,
-		Content:        &c,
-		pullRequest:    pr,
-		headings:       headings,
-		currentHeading: make([]int, HEADINGS),
-		bookmarks: map[string][]int{
-			"COMMENT": make([]int, 0),
-		},
-		bookmarksData: make(map[int]interface{})}
-
-	if err := prv.RenderPullRequest(0); err != nil {
+	if checks, err := pr.GetChecks(); err != nil {
+		pterm.Warning.Println("Couldn't read the checks ", err)
 		return nil, err
+	} else if reviews, err := pr.GetReviews(); err != nil {
+		pterm.Warning.Println("Couldn't read the checks ", err)
+		return nil, err
+	} else if prComments, commentMap, err := pr.GetCommentsByLine(); err != nil {
+		return nil, err
+	} else if files, err := pr.GetDiff(); err != nil {
+		return nil, err
+	} else {
+		prv := &PullRequestView{
+			pullRequest:    pr,
+			checks:         checks,
+			reviews:        reviews,
+			prComments:     prComments,
+			commentMap:     commentMap,
+			files:          files,
+			headings:       headings,
+			currentHeading: make([]int, HEADINGS),
+			bookmarks: map[string][]int{
+				"COMMENT": make([]int, 0),
+			},
+			bookmarksData: make(map[int]interface{}),
+			dirty:         true,
+			xOffset:       0}
+		return prv, nil
 	}
-	return prv, nil
 }
 
 const (
@@ -341,45 +373,35 @@ const (
 	HEADINGS
 )
 
-func (prv *PullRequestView) RenderPullRequest(offset int) error {
+func (prv *PullRequestView) RenderPullRequest() {
+	if !prv.dirty {
+		return
+	}
+	h := make(lines, 0)
+	c := make(lines, 0)
+	prv.Content = &c
+	prv.Header = &h
+
 	pr := prv.pullRequest
 	sourceBranch := pr.GetBranch().GetName()
 	destBranch := pr.GetBase().GetName()
 	prv.Header.Printf("#%d %s (%s)\n%s -> %s\tStatus: %s", pr.GetId(), pr.GetTitle(), pr.GetAuthor().GetDisplayName(),
 		sourceBranch, destBranch, pr.GetState())
 
-	if checks, err := pr.GetChecks(); err == nil {
-		for _, chk := range checks {
-			prv.Header.Printf("* %s : %s (%s)", chk.GetStatus(), chk.GetName(), chk.GetUrl())
-		}
-	} else {
-		pterm.Warning.Println("Couldn't read the checks ", err)
+	for _, chk := range prv.checks {
+		prv.Header.Printf("* %s : %s (%s)", chk.GetStatus(), chk.GetName(), chk.GetUrl())
 	}
 
-	if reviews, err := pr.GetReviews(); err == nil {
-		for _, rev := range reviews {
-			prv.Header.Printf("* %s : %s (%s)", rev.GetState(), rev.GetAuthor(), rev.GetSubmitedAt())
-		}
-	} else {
-		pterm.Warning.Println("Couldn't read the checks ", err)
+	for _, rev := range prv.reviews {
+		prv.Header.Printf("* %s : %s (%s)", rev.GetState(), rev.GetAuthor(), rev.GetSubmitedAt())
 	}
 
-	prComments, commentMap, err2 := pr.GetCommentsByLine()
-	if err2 != nil {
-		return err2
-	}
-
-	prv.PrintComments(prComments)
-
-	files, err3 := pr.GetDiff()
-	if err3 != nil {
-		return err3
-	}
+	prv.PrintComments(prv.prComments)
 
 	//fmt.Printf("Diff of %d files:\n\n", len(files))
 	//prv.header.printf("Diff of %d files:\n\n", len(files))
 
-	for _, file := range files {
+	for _, file := range prv.files {
 		fn := file.OldName
 		if file.IsRename {
 			prv.AddHeading(FILE_LEVEL, "%s -> %s:", file.OldName, file.NewName)
@@ -396,7 +418,7 @@ func (prv *PullRequestView) RenderPullRequest(offset int) error {
 			prv.AddHeading(FILE_LEVEL, "%s:", file.NewName)
 		}
 
-		commentsForFile, haveFileComments := commentMap[fn]
+		commentsForFile, haveFileComments := prv.commentMap[fn]
 
 		if file.IsBinary {
 			prv.Content.Printf("\nBINARY FILE\n")
@@ -435,6 +457,11 @@ func (prv *PullRequestView) RenderPullRequest(offset int) error {
 					}
 
 					escaped := strings.ReplaceAll(ln.Line, "%", "%%")
+					if len(escaped) >= prv.xOffset {
+						escaped = escaped[prv.xOffset:]
+					} else {
+						escaped = ""
+					}
 					prv.Content.Printf(style.Render(fmt.Sprintf("%05d %05d %s  %s", oldN, newN, ln.Op, escaped)))
 					if haveFileComments {
 						if commentsForLine, haveLineComments := commentsForFile[newN]; haveLineComments {
@@ -459,5 +486,8 @@ func (prv *PullRequestView) RenderPullRequest(offset int) error {
 		}
 	}
 
-	return nil
+	if prv.ready {
+		prv.viewport.SetContent(strings.Join(*prv.Content, "\n"))
+	}
+	prv.dirty = false
 }
