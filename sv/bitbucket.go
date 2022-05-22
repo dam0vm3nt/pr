@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/antihax/optional"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
-	"github.com/vballestra/gobb-cli/bitbucket"
+	"github.com/vballestra/sv/bitbucket"
 	"net/http"
 	"strconv"
 	"time"

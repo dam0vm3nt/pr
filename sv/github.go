@@ -14,6 +14,7 @@ import (
 	"github.com/pterm/pterm"
 	sshagent "github.com/xanzy/ssh-agent"
 	ssh2 "golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/oauth2"
 	"net"
 	"net/http"
@@ -351,26 +352,54 @@ func (g GitHubPullRequest) GetDiff() ([]*gitdiff.File, error) {
 	}
 
 	if sshagent.Available() {
-		ag, _ := ssh.NewSSHAgentAuth("git")
-		sshag, _, err := sshagent.New()
-		if err == nil {
-			sig, _ := sshag.Signers()
-			fmt.Println(sig)
-		}
 
-		cfg, _ := ag.ClientConfig()
-		pterm.Info.Println("Client info is ", cfg, " MACS: ", cfg.MACs)
-		cfg.MACs = []string{"SHA-256"}
+		if a, _, err := sshagent.New(); err != nil {
+			return nil, fmt.Errorf("error creating SSH agent: %q", err)
+		} else if sigs, err := a.Signers(); err != nil {
+			return nil, fmt.Errorf("While getting signers", err)
+		} else {
+			newSigs := make([]ssh2.Signer, 1)
+			found := false
+			for _, s := range sigs {
+				if k, ok := s.PublicKey().(*agent.Key); ok {
+					if k.Comment == "vittorioballestra@vittorioballestraMacBookPro11,4" {
+						newSigs[0] = s
+						found = true
+						break
+					}
+				}
+			}
 
-		ag.HostKeyCallback = func(hostname string, remote net.Addr, key ssh2.PublicKey) error {
-			fmt.Printf("Hostname : %s, addr : %s, key : %s\n", hostname, remote, key.Type())
-			return nil
-		}
+			if found {
 
-		err1 := rep.Fetch(&git.FetchOptions{RemoteName: "origin", Auth: ag})
-		if err1 != nil {
-			pterm.Warning.Println(err1)
-			// return nil, err1
+				ag := &ssh.PublicKeysCallback{
+					User: "git",
+					Callback: func() ([]ssh2.Signer, error) {
+						return newSigs, nil
+					},
+				}
+				//ag, _ := ssh.NewSSHAgentAuth("git")
+				//sshag, _, err := sshagent.New()
+				//if err == nil {
+				//	sig, _ := sshag.Signers()
+				//	fmt.Println(sig)
+				//}
+
+				//cfg, _ := ag.ClientConfig()
+				//pterm.Info.Println("Client info is ", cfg, " MACS: ", cfg.MACs)
+				//cfg.MACs = []string{"SHA-256"}
+
+				ag.HostKeyCallback = func(hostname string, remote net.Addr, key ssh2.PublicKey) error {
+					//fmt.Printf("Hostname : %s, addr : %s, key : %s\n", hostname, remote, key.Type())
+					return nil
+				}
+
+				err = rep.Fetch(&git.FetchOptions{RemoteName: "origin", Auth: ag})
+				if err != nil {
+					pterm.Warning.Println("While trying to fetch the repo", err)
+					// return nil, err1
+				}
+			}
 		}
 	}
 

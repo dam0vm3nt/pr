@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
-	"github.com/vballestra/gobb-cli/cmd/ui"
+	"github.com/vballestra/sv/cmd/ui"
 	"log"
 	"os"
 )

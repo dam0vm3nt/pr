@@ -9,8 +9,8 @@ import (
 	"github.com/antihax/optional"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
-	"github.com/vballestra/gobb-cli/bitbucket"
-	"github.com/vballestra/gobb-cli/sv"
+	"github.com/vballestra/sv/bitbucket"
+	"github.com/vballestra/sv/sv"
 )
 
 // listBranchesCmd represents the listBranches command

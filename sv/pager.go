@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/pterm/pterm"
-	"github.com/vballestra/gobb-cli/bitbucket"
+	"github.com/vballestra/sv/bitbucket"
 	"io/ioutil"
 	"net/http"
 )

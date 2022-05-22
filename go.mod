@@ -1,4 +1,4 @@
-module github.com/vballestra/gobb-cli
+module github.com/vballestra/sv
 
 go 1.18
 
