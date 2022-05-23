@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/erikgeiser/promptkit/confirmation"
 	"github.com/pterm/pterm"
+	boxer "github.com/treilik/bubbleboxer"
 	"github.com/vballestra/sv/sv"
 	"golang.org/x/term"
 	"os"
@@ -22,30 +23,31 @@ type Heading struct {
 }
 
 type PullRequestView struct {
-	header         *lines
-	content        *lines
-	pullRequest    sv.PullRequest
-	viewport       viewport.Model
-	ready          bool
-	headings       [][]Heading
-	currentHeading []int
-	bookmarks      map[string][]int
-	bookmarksData  map[int]interface{}
-	checks         []sv.Check
-	reviews        []sv.Review
-	prComments     []sv.Comment
-	commentMap     map[string]map[int64][]sv.Comment
-	files          []*gitdiff.File
-	dirty          bool
-	xOffset        int
+	layout boxer.Node
+	//header         *lines
+	content     *lines
+	pullRequest sv.PullRequest
+	viewport    viewport.Model
+	ready       bool
+	//headings       [][]Heading
+	//currentHeading []int
+	bookmarks     map[string][]int
+	bookmarksData map[int]interface{}
+	checks        []sv.Check
+	reviews       []sv.Review
+	prComments    []sv.Comment
+	commentMap    map[string]map[int64][]sv.Comment
+	files         []*gitdiff.File
+	dirty         bool
+	xOffset       int
+	header        pullRequestHeader
 }
 
 func ptr[T string | uint | int](s T) *T {
 	return &s
 }
 
-func (prv *PullRequestView) PrintComments(comments []sv.Comment) {
-	w, _, _ := term.GetSize(int(os.Stdout.Fd()))
+func (prv *PullRequestView) PrintComments(comments []sv.Comment, w int) {
 
 	bg := "#7D56F4"
 	fg := "#FAFAFA"
@@ -85,7 +87,7 @@ func (prv *PullRequestView) PrintComments(comments []sv.Comment) {
 		}
 
 		prv.addBookmark("COMMENT", comment)
-		prv.addHeading(COMMIT_LEVEL, style.Render(
+		prv.addHeading(w, COMMIT_LEVEL, style.Render(
 			fmt.Sprintf("------- [%d%s] %s at %s ------",
 				comment.GetId(), reply,
 				comment.GetUser().GetDisplayName(),
@@ -98,7 +100,7 @@ func (prv *PullRequestView) PrintComments(comments []sv.Comment) {
 }
 
 func (prv *PullRequestView) removeLastHeader(lev int) {
-	prv.headings[lev] = append(prv.headings[lev], Heading{len(*prv.content), prv.headings[lev][len(prv.headings[lev])-2].text})
+	prv.header.headings[lev] = append(prv.header.headings[lev], Heading{len(*prv.content), prv.header.headings[lev][len(prv.header.headings[lev])-2].text})
 }
 
 func (prv *PullRequestView) addBookmark(b string, data interface{}) {
@@ -106,8 +108,7 @@ func (prv *PullRequestView) addBookmark(b string, data interface{}) {
 	prv.bookmarks[b] = append(prv.bookmarks[b], len(*prv.content)+1)
 }
 
-func (p *PullRequestView) addHeading(lev int, format string, args ...any) {
-	w, _, _ := term.GetSize(int(os.Stdout.Fd()))
+func (p *PullRequestView) addHeading(w int, lev int, format string, args ...any) {
 	var st lipgloss.Style
 	switch lev {
 	case FILE_LEVEL:
@@ -125,7 +126,7 @@ func (p *PullRequestView) addHeading(lev int, format string, args ...any) {
 
 	s := st.Render(fmt.Sprintf(format, args...))
 	p.content.printf(s)
-	p.headings[lev] = append(p.headings[lev], Heading{len(*p.content) + 1, s})
+	p.header.headings[lev] = append(p.header.headings[lev], Heading{len(*p.content) + 1, s})
 }
 
 func (prv *lines) printf(format string, args ...any) {
@@ -142,22 +143,22 @@ func (p PullRequestView) Init() tea.Cmd {
 }
 
 func (p *PullRequestView) moveToNextHeading(L int) {
-	if p.currentHeading[L] >= 0 && p.currentHeading[L] < len(p.headings[L])-1 {
-		p.currentHeading[L] += 1
-		p.viewport.YOffset = p.headings[L][p.currentHeading[L]].line - 1
-	} else if len(p.headings[L]) > 0 {
-		p.currentHeading[L] = 0
-		p.viewport.YOffset = p.headings[L][p.currentHeading[L]].line - 1
+	if p.header.currentHeading[L] >= 0 && p.header.currentHeading[L] < len(p.header.headings[L])-1 {
+		p.header.currentHeading[L] += 1
+		p.viewport.YOffset = p.header.headings[L][p.header.currentHeading[L]].line - 1
+	} else if len(p.header.headings[L]) > 0 {
+		p.header.currentHeading[L] = 0
+		p.viewport.YOffset = p.header.headings[L][p.header.currentHeading[L]].line - 1
 	}
 }
 
 func (p *PullRequestView) moveToPrevHeading(L int) {
-	if len(p.headings[L]) > 0 && p.currentHeading[L] > 0 {
-		p.currentHeading[L] -= 1
-		p.viewport.YOffset = p.headings[L][p.currentHeading[L]].line - 1
-	} else if len(p.headings[L]) > 0 {
-		p.currentHeading[L] = len(p.headings[L]) - 1
-		p.viewport.YOffset = p.headings[L][p.currentHeading[L]].line - 1
+	if len(p.header.headings[L]) > 0 && p.header.currentHeading[L] > 0 {
+		p.header.currentHeading[L] -= 1
+		p.viewport.YOffset = p.header.headings[L][p.header.currentHeading[L]].line - 1
+	} else if len(p.header.headings[L]) > 0 {
+		p.header.currentHeading[L] = len(p.header.headings[L]) - 1
+		p.viewport.YOffset = p.header.headings[L][p.header.currentHeading[L]].line - 1
 	}
 }
 
@@ -255,20 +256,19 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		headerHeight := len(*p.header) + len(p.currentHeading)
+		headerHeight := len(*p.header.header) + len(p.header.currentHeading)
 		footerHeight := 0
 		verticalMarginHeight := headerHeight + footerHeight
 
-		const useHighPerformanceRenderer = false
 		if !p.ready {
 			// Since this program is using the full size of the viewport we
 			// need to wait until we've received the window dimensions before
 			// we can initialize the viewport. The initial dimensions come in
 			// quickly, though asynchronously, which is why we wait for them
 			// here.
-			p.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
+			//p.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
 			p.viewport.YPosition = headerHeight
-			p.viewport.HighPerformanceRendering = useHighPerformanceRenderer
+			p.viewport.HighPerformanceRendering = false
 			p.viewport.SetContent(strings.Join(*p.content, "\n"))
 			p.ready = true
 
@@ -280,14 +280,6 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			p.viewport.Width = msg.Width
 			p.viewport.Height = msg.Height - verticalMarginHeight
-		}
-
-		if useHighPerformanceRenderer {
-			// Render (or re-render) the whole viewport. Necessary both to
-			// initialize the viewport and when the window is resized.
-			//
-			// This is needed for high-performance rendering only.
-			cmds = append(cmds, viewport.Sync(p.viewport))
 		}
 	}
 
@@ -330,6 +322,35 @@ func (p PullRequestView) View() string {
 
 type lines []string
 
+type pullRequestHeader struct {
+	header         *lines
+	currentHeading []int
+	headings       [][]Heading
+}
+
+func (p pullRequestHeader) Init() tea.Cmd {
+	return nil
+}
+
+func (p pullRequestHeader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	return p, nil
+}
+
+func (p pullRequestHeader) View() string {
+	header := strings.Join(*p.header, "\n")
+	// Find the first Header
+	heading := make([]string, len(p.currentHeading))
+	for l := 0; l < len(p.currentHeading); l++ {
+		if p.currentHeading[l] >= 0 {
+			heading[l] = p.headings[l][p.currentHeading[l]].text
+		} else {
+			heading[l] = ""
+		}
+	}
+
+	return fmt.Sprintf("%s\n%s", header, strings.Join(heading, "\n"))
+}
+
 func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 
 	headings := make([][]Heading, HEADINGS)
@@ -348,21 +369,46 @@ func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 	} else if files, err := pr.GetDiff(); err != nil {
 		return nil, err
 	} else {
-		prv := &PullRequestView{
-			pullRequest:    pr,
-			checks:         checks,
-			reviews:        reviews,
-			prComments:     prComments,
-			commentMap:     commentMap,
-			files:          files,
+
+		box := boxer.Boxer{}
+
+		header := pullRequestHeader{
 			headings:       headings,
 			currentHeading: make([]int, HEADINGS),
+		}
+
+		prv := &PullRequestView{
+			pullRequest: pr,
+			checks:      checks,
+			reviews:     reviews,
+			prComments:  prComments,
+			commentMap:  commentMap,
+			files:       files,
+			//headings:       headings,
+			//currentHeading: make([]int, HEADINGS),
 			bookmarks: map[string][]int{
 				"COMMENT": make([]int, 0),
 			},
 			bookmarksData: make(map[int]interface{}),
 			dirty:         true,
 			xOffset:       0}
+
+		layout := boxer.Node{
+			VerticalStacked: true,
+			SizeFunc: func(_ boxer.Node, wh int) []int {
+				headerHeight := len(checks) + len(reviews) + 4
+				return []int{
+					headerHeight,
+					wh - headerHeight,
+				}
+			},
+			Children: []boxer.Node{
+				box.CreateLeaf("header", header),
+				box.CreateLeaf("view", prv),
+			},
+		}
+
+		prv.layout = layout
 		return prv, nil
 	}
 }
@@ -380,23 +426,23 @@ func (prv *PullRequestView) renderPullRequest() {
 	h := make(lines, 0)
 	c := make(lines, 0)
 	prv.content = &c
-	prv.header = &h
+	prv.header.header = &h
 
 	pr := prv.pullRequest
 	sourceBranch := pr.GetBranch().GetName()
 	destBranch := pr.GetBase().GetName()
-	prv.header.printf("#%d %s (%s)\n%s -> %s\tStatus: %s", pr.GetId(), pr.GetTitle(), pr.GetAuthor().GetDisplayName(),
+	prv.header.header.printf("#%d %s (%s)\n%s -> %s\tStatus: %s", pr.GetId(), pr.GetTitle(), pr.GetAuthor().GetDisplayName(),
 		sourceBranch, destBranch, pr.GetState())
 
 	for _, chk := range prv.checks {
-		prv.header.printf("* %s : %s (%s)", chk.GetStatus(), chk.GetName(), chk.GetUrl())
+		prv.header.header.printf("* %s : %s (%s)", chk.GetStatus(), chk.GetName(), chk.GetUrl())
 	}
 
 	for _, rev := range prv.reviews {
-		prv.header.printf("* %s : %s (%s)", rev.GetState(), rev.GetAuthor(), rev.GetSubmitedAt())
+		prv.header.header.printf("* %s : %s (%s)", rev.GetState(), rev.GetAuthor(), rev.GetSubmitedAt())
 	}
 
-	prv.PrintComments(prv.prComments)
+	prv.PrintComments(prv.prComments, prv.viewport.Width)
 
 	//fmt.Printf("Diff of %d files:\n\n", len(files))
 	//prv.header.printf("Diff of %d files:\n\n", len(files))
@@ -404,18 +450,18 @@ func (prv *PullRequestView) renderPullRequest() {
 	for _, file := range prv.files {
 		fn := file.OldName
 		if file.IsRename {
-			prv.addHeading(FILE_LEVEL, "%s -> %s:", file.OldName, file.NewName)
+			prv.addHeading(prv.viewport.Width, FILE_LEVEL, "%s -> %s:", file.OldName, file.NewName)
 			fn = file.NewName
 		} else if file.IsDelete {
-			prv.addHeading(FILE_LEVEL, "DELETED %s", file.OldName)
+			prv.addHeading(prv.viewport.Width, FILE_LEVEL, "DELETED %s", file.OldName)
 			continue
 		} else if file.IsNew {
-			prv.addHeading(FILE_LEVEL, "NEW %s:", file.NewName)
+			prv.addHeading(prv.viewport.Width, FILE_LEVEL, "NEW %s:", file.NewName)
 			fn = file.NewName
 		} else if file.IsCopy {
-			prv.addHeading(FILE_LEVEL, "COPY %s -> %s:", file.OldName, file.NewName)
+			prv.addHeading(prv.viewport.Width, FILE_LEVEL, "COPY %s -> %s:", file.OldName, file.NewName)
 		} else {
-			prv.addHeading(FILE_LEVEL, "%s:", file.NewName)
+			prv.addHeading(prv.viewport.Width, FILE_LEVEL, "%s:", file.NewName)
 		}
 
 		commentsForFileOrig, haveFileComments := prv.commentMap[fn]
@@ -450,7 +496,7 @@ func (prv *PullRequestView) renderPullRequest() {
 
 			for _, frag := range file.TextFragments {
 
-				prv.addHeading(COMMIT_LEVEL, "==O== ==N== (+%d, -%d,  O=%d, N=%d)", frag.LinesAdded, frag.LinesDeleted,
+				prv.addHeading(prv.viewport.Width, COMMIT_LEVEL, "==O== ==N== (+%d, -%d,  O=%d, N=%d)", frag.LinesAdded, frag.LinesDeleted,
 					frag.OldLines, frag.NewLines)
 				oldN := frag.OldPosition
 				newN := frag.NewPosition
@@ -475,10 +521,10 @@ func (prv *PullRequestView) renderPullRequest() {
 					prv.content.printf(style.Render(fmt.Sprintf("%05d %05d %s  %s", oldN, newN, ln.Op, escaped)))
 					if haveFileComments {
 						if commentsForLine, haveLineComments := commentsForFile[newN]; haveLineComments {
-							prv.PrintComments(commentsForLine)
+							prv.PrintComments(commentsForLine, prv.viewport.Width)
 							delete(commentsForFile, newN)
 						} else if commentsForLine, haveLineComments := commentsForFile[-oldN]; haveLineComments {
-							prv.PrintComments(commentsForLine)
+							prv.PrintComments(commentsForLine, prv.viewport.Width)
 							delete(commentsForFile, -oldN)
 						}
 					}

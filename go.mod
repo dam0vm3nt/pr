@@ -15,6 +15,7 @@ require (
 	github.com/google/go-github/v43 v43.0.0
 	github.com/pterm/pterm v0.12.40
 	github.com/spf13/cobra v1.4.0
+	github.com/treilik/bubbleboxer v0.1.0
 	github.com/xanzy/ssh-agent v0.3.0
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	golang.org/x/oauth2 v0.0.0-20220309155454-6242fa91716a
