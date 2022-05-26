@@ -104,6 +104,8 @@ var githubToken string
 
 var localRepo string
 
+var sshKeyComment string
+
 func GetClient() (*bitbucket.APIClient, context.Context) {
 	cfg := bitbucket.NewConfiguration()
 	cfg.HTTPClient = &http.Client{}
@@ -117,7 +119,7 @@ func GetSv() sv.Sv {
 		if originType != GitHubOriginType {
 			pterm.Warning.Println("Remote '%s' mismatches with origin url : %s", defaultOrigin, origin.Config().URLs[0])
 		}
-		return sv.NewGitHubSv(githubToken, localRepo)
+		return sv.NewGitHubSv(githubToken, localRepo, sshKeyComment)
 	} else {
 		if originType != BitbucketOriginType {
 			pterm.Warning.Println("Remote '%s' mismatches with origin url : %s", defaultOrigin, origin.Config().URLs[0])
@@ -144,6 +146,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&githubToken, "token", "t", os.Getenv("GITHUB_TOKEN"), "Github token")
 	rootCmd.PersistentFlags().StringVarP(&localRepo, "workspace", "w", wd, "Local copy")
 	rootCmd.PersistentFlags().StringVar(&defaultOrigin, "remote", "origin", "Default origin to use")
+	rootCmd.PersistentFlags().StringVar(&sshKeyComment, "ssh-key-comment", ".*", "REGEXP that should match with the SSH key to be used")
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 

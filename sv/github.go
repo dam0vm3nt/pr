@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
+	"github.com/briandowns/spinner"
 	"github.com/cli/cli/v2/api"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -18,19 +19,21 @@ import (
 	"golang.org/x/oauth2"
 	"net"
 	"net/http"
+	"regexp"
 	"strconv"
 	"time"
 )
 
 type GitHubSv struct {
-	ctx       context.Context
-	client    *gh.Client
-	gqlClient *api.Client
-	owner     string
-	repo      string
-	tc        *http.Client
-	localRepo string
-	host      string
+	ctx            context.Context
+	client         *gh.Client
+	gqlClient      *api.Client
+	owner          string
+	repo           string
+	tc             *http.Client
+	localRepo      string
+	host           string
+	sshKeySelector *regexp.Regexp
 }
 
 const githubDefaultHost = "github.com"
@@ -45,7 +48,7 @@ func (g *GitHubSv) GetPullRequest(id string) (PullRequest, error) {
 	return GitHubPullRequest{pr, g}, nil
 }
 
-func NewGitHubSv(token string, repo string) Sv {
+func NewGitHubSv(token string, repo string, sshKeyComment string) Sv {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
@@ -53,15 +56,23 @@ func NewGitHubSv(token string, repo string) Sv {
 	tc := oauth2.NewClient(ctx, ts)
 
 	cl := gh.NewClient(tc)
-	return &GitHubSv{
-		ctx:       ctx,
-		client:    cl,
-		owner:     "Latch",
-		repo:      "latch-cortex",
-		tc:        tc,
-		localRepo: repo,
-		gqlClient: api.NewClientFromHTTP(tc),
-		host:      githubDefaultHost,
+
+	if re, err := regexp.Compile(sshKeyComment); err == nil {
+
+		return &GitHubSv{
+			ctx:            ctx,
+			client:         cl,
+			owner:          "Latch",
+			repo:           "latch-cortex",
+			tc:             tc,
+			localRepo:      repo,
+			gqlClient:      api.NewClientFromHTTP(tc),
+			host:           githubDefaultHost,
+			sshKeySelector: re,
+		}
+	} else {
+		pterm.Fatal.Println("Error while compiling selector re '", sshKeyComment, "'", err)
+		panic(err)
 	}
 }
 
@@ -358,56 +369,41 @@ func (g GitHubPullRequest) GetDiff() ([]*gitdiff.File, error) {
 		} else if sigs, err := a.Signers(); err != nil {
 			return nil, fmt.Errorf("While getting signers", err)
 		} else {
-			newSigs := make([]ssh2.Signer, 1)
-			found := false
+			newSigs := make([]ssh2.Signer, 0)
 			for _, s := range sigs {
 				if k, ok := s.PublicKey().(*agent.Key); ok {
-					if k.Comment == "vittorio@sepolcride.lan" {
-						newSigs[0] = s
-						found = true
-						break
+					if g.sv.sshKeySelector.MatchString(k.Comment) {
+						newSigs = append(newSigs, s)
 					}
 				}
 			}
 
-			if found {
-
+			if len(newSigs) > 0 {
 				ag := &ssh.PublicKeysCallback{
 					User: "git",
 					Callback: func() ([]ssh2.Signer, error) {
 						return newSigs, nil
 					},
 				}
-				//ag, _ := ssh.NewSSHAgentAuth("git")
-				//sshag, _, err := sshagent.New()
-				//if err == nil {
-				//	sig, _ := sshag.Signers()
-				//	fmt.Println(sig)
-				//}
-
-				//cfg, _ := ag.ClientConfig()
-				//pterm.Info.Println("Client info is ", cfg, " MACS: ", cfg.MACs)
-				//cfg.MACs = []string{"SHA-256"}
 
 				ag.HostKeyCallback = func(hostname string, remote net.Addr, key ssh2.PublicKey) error {
-					//fmt.Printf("Hostname : %s, addr : %s, key : %s\n", hostname, remote, key.Type())
 					return nil
 				}
 
+				sp := spinner.New(spinner.CharSets[55], time.Millisecond*50, spinner.WithSuffix(fmt.Sprintf(" Updating repository")))
+				sp.Start()
 				err = rep.Fetch(&git.FetchOptions{RemoteName: "origin", Auth: ag})
+				sp.Stop()
 				if err != nil {
+
 					pterm.Warning.Println("While trying to fetch the repo", err)
 					// return nil, err1
 				}
+			} else {
+				pterm.Warning.Println("Couldn't find any suitable keys, won't try to fetch the repo")
 			}
 		}
 	}
-
-	//base, _ := rep.Branch(*g.Base.Ref)
-	//br, _ := rep.Branch(*g.Head.Ref)
-
-	//refBase, _ := rep.Reference(base.Merge, true)
-	//refBr, _ := rep.Reference(br.Merge, true)
 
 	refBaseHash := plumbing.NewHash(*g.Base.SHA)
 	refBrHash := plumbing.NewHash(*g.Head.SHA)
