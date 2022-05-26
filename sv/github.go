@@ -362,7 +362,7 @@ func (g GitHubPullRequest) GetDiff() ([]*gitdiff.File, error) {
 			found := false
 			for _, s := range sigs {
 				if k, ok := s.PublicKey().(*agent.Key); ok {
-					if k.Comment == "vittorioballestra@vittorioballestraMacBookPro11,4" {
+					if k.Comment == "vittorio@sepolcride.lan" {
 						newSigs[0] = s
 						found = true
 						break

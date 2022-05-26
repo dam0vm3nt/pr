@@ -370,7 +370,8 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		p.content.viewport.Width = msg.Width
 		p.content.viewport.Height = msg.Height - verticalMarginHeight
-
+		p.dirty = true
+		p.renderPullRequest()
 	}
 
 	// Handle keyboard and mouse events in the viewport
@@ -531,7 +532,7 @@ func (prv *PullRequestView) renderPullRequest() {
 	pr := prv.pullRequest
 	sourceBranch := pr.GetBranch().GetName()
 	destBranch := pr.GetBase().GetName()
-	prv.header.header.printf("#%d %s (%s)\n%s -> %s\tStatus: %s", pr.GetId(), pr.GetTitle(), pr.GetAuthor().GetDisplayName(),
+	prv.header.header.printf("#%d %s (%s)\n%s -> %s Status: %s", pr.GetId(), pr.GetTitle(), pr.GetAuthor().GetDisplayName(),
 		sourceBranch, destBranch, pr.GetState())
 
 	for _, chk := range prv.pullRequest.checks {
