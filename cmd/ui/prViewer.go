@@ -12,8 +12,11 @@ import (
 	"github.com/pterm/pterm"
 	boxer "github.com/treilik/bubbleboxer"
 	"github.com/vballestra/sv/sv"
+	"math"
 	"strings"
 )
+
+const COMMENT_CATEGORY = "COMMENT"
 
 type Heading struct {
 	line int
@@ -84,6 +87,8 @@ func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 			data:           data,
 			headings:       headings,
 			currentHeading: make([]int, HEADINGS),
+			maxReviews:     4,
+			maxChecks:      2,
 		}
 
 		content := contentView{
@@ -92,7 +97,7 @@ func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 
 		mode := newLayoutMode()
 
-		fileView := fileList{data}
+		fileView := fileList{data, 0, 0}
 
 		if layout, err := initWidgetsLayout(&box, header, content, fileView, mode); err != nil {
 			pterm.Fatal.Print(err)
@@ -108,7 +113,7 @@ func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 				header:      header,
 				fileList:    fileView,
 				bookmarks: map[string][]int{
-					"COMMENT": make([]int, 0),
+					COMMENT_CATEGORY: make([]int, 0),
 				},
 				bookmarksData: make(map[int]interface{}),
 				dirty:         true,
@@ -121,6 +126,8 @@ func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 
 type fileList struct {
 	pullRequestData *pullRequestData
+	w               int
+	h               int
 }
 
 func (f fileList) Init() tea.Cmd {
@@ -128,11 +135,33 @@ func (f fileList) Init() tea.Cmd {
 }
 
 func (f fileList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch m := msg.(type) {
+	case tea.WindowSizeMsg:
+		f.w = m.Width
+		f.h = m.Height
+	}
 	return f, nil
 }
 
+func fillLine(s string, w int) string {
+	l := min1(w, len(s))
+	s = s[0:l]
+	for len(s) < w {
+		s = s + " "
+	}
+	return s
+}
+
 func (f fileList) View() string {
-	return "Hello"
+	s := lipgloss.NewStyle().Width(f.w).Inline(true)
+	l := make([]string, 0)
+	for _, fn := range f.pullRequestData.files {
+		l = append(l, s.Render(fillLine(fn.NewName, f.w)))
+		if len(l) >= f.h {
+			break
+		}
+	}
+	return strings.Join(l, "\n")
 }
 
 func getModel[T tea.Model](box *boxer.Boxer, name viewAddress) (T, bool) {
@@ -272,7 +301,7 @@ func (prv *PullRequestView) PrintComments(comments []sv.Comment, w int) {
 			reply = fmt.Sprintf(" <- %d", id)
 		}
 
-		prv.addBookmark("COMMENT", comment)
+		prv.addBookmark(COMMENT_CATEGORY, comment)
 		prv.addHeading(w, COMMIT_LEVEL, style.Render(
 			fmt.Sprintf("------- [%d%s] %s at %s ------",
 				comment.GetId(), reply,
@@ -411,7 +440,7 @@ func (p *PullRequestView) getNode(name viewAddress) *boxer.Node {
 	return getNodeRecur(p.boxer.LayoutTree.Children, name)
 }
 
-func RefreshSize() tea.Msg {
+func RefreshSizeCmd() tea.Msg {
 	if w, h, err := pterm.GetTerminalSize(); err == nil {
 		return tea.WindowSizeMsg{
 			Width: w, Height: h,
@@ -424,7 +453,7 @@ func RefreshSize() tea.Msg {
 type renderPrMsg struct {
 }
 
-func renderPr() tea.Msg {
+func renderPrCmd() tea.Msg {
 	return renderPrMsg{}
 }
 
@@ -434,14 +463,14 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds []tea.Cmd
 	)
 
-	p.renderPullRequest()
-
 	switch msg := msg.(type) {
 	case renderPrMsg:
 		p.dirty = true
+		p.ready = true
 		p.renderPullRequest()
 
 	case tea.KeyMsg:
+
 		switch k := msg.String(); k {
 		case "ctrl+c":
 			return p, tea.Quit
@@ -454,21 +483,18 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if tree, err := layoutWidgets(&p.boxer, newMode); err == nil {
 				p.boxer.LayoutTree = tree
 				p.layoutMode = newMode
-				p.dirty = true
-				cmds = append(cmds, RefreshSize, tea.ClearScrollArea, renderPr)
+				p.ready = false
+				cmds = append(cmds, tea.ClearScrollArea, RefreshSizeCmd)
 			}
 		case "right":
 			p.xOffset += 4
-			p.dirty = true
-			p.renderPullRequest()
-			// return p, tea.ClearScrollArea
+			cmds = append(cmds, renderPrCmd)
+
 		case "left":
 			if p.xOffset >= 4 {
 				p.xOffset -= 4
-				p.dirty = true
+				cmds = append(cmds, renderPrCmd)
 			}
-			p.renderPullRequest()
-			// return p, tea.ClearScrollArea
 		case "n":
 			p.moveToNextHeading(COMMIT_LEVEL)
 		case "p":
@@ -478,11 +504,11 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "P":
 			p.moveToPrevHeading(FILE_LEVEL)
 		case "c":
-			p.moveToNextBookmark("COMMENT")
+			p.moveToNextBookmark(COMMENT_CATEGORY)
 		case "C":
-			p.moveToPrevBookmark("COMMENT")
+			p.moveToPrevBookmark(COMMENT_CATEGORY)
 		case "r":
-			if _, data := currentBookmark(&p, "COMMENT"); data != nil {
+			if _, data := currentBookmark(&p, COMMENT_CATEGORY); data != nil {
 				if comment, ok := data.(sv.Comment); ok {
 					input := confirmation.New(fmt.Sprintf("Whant to reply to comment by %s", comment.GetUser().GetDisplayName()), confirmation.Yes)
 					if ready, err := input.RunPrompt(); err != nil && ready {
@@ -491,43 +517,25 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return p, tea.ClearScrollArea
 				}
 			}
+		default:
+			p.content.viewport, cmd = p.content.viewport.Update(msg)
+			cmds = append(cmds, cmd)
 		}
 
 	case tea.WindowSizeMsg:
-		p, cmds = p.propagateEvent(msg, cmds)
+		newBox, cmd := p.boxer.Update(msg)
+		// Update from model
+		p.updateFromModels()
+		p.boxer = newBox.(boxer.Boxer)
+		cmds = append(cmds, cmd, renderPrCmd)
+	//p, cmds = p.propagateEvent(msg, cmds)
+	default:
+		p.content.viewport, cmd = p.content.viewport.Update(msg)
+		cmds = append(cmds, cmd)
 
-		contentNode := p.getNode(CONTENT_ADDRESS)
-
-		headerHeight := p.header.measureHeight()
-		footerHeight := 0
-		verticalMarginHeight := headerHeight + footerHeight + 1
-
-		if !p.ready {
-			// Since this program is using the full size of the viewport we
-			// need to wait until we've received the window dimensions before
-			// we can initialize the viewport. The initial dimensions come in
-			// quickly, though asynchronously, which is why we wait for them
-			// here.
-			//p.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
-			p.content.viewport.YPosition = headerHeight
-			p.content.viewport.HighPerformanceRendering = false
-			p.content.updateViewportWithContent()
-			p.ready = true
-
-			// This is only necessary for high performance rendering, which in
-			// most cases you won't need.
-			//
-			// Render the viewport one line below the Header.
-			//p.content.viewport.YPosition = headerHeight + 1
-		}
-		p.content.viewport.Width = contentNode.GetWidth() //msg.Width
-		p.content.viewport.Height = msg.Height - verticalMarginHeight
-		p.dirty = true
-		p.renderPullRequest()
 	}
 
 	// Handle keyboard and mouse events in the viewport
-	p.content.viewport, cmd = p.content.viewport.Update(msg)
 
 	// Update last headings
 	for l := 0; l < len(p.header.currentHeading); l++ {
@@ -538,8 +546,6 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	}
-
-	cmds = append(cmds, cmd)
 
 	p.updateModels()
 
@@ -569,7 +575,13 @@ func (p PullRequestView) propagateEvent(msg tea.Msg, cmds []tea.Cmd) (PullReques
 func (p *PullRequestView) updateModels() {
 	p.boxer.ModelMap[string(HEADER_ADDRESS)] = p.header
 	p.boxer.ModelMap[string(CONTENT_ADDRESS)] = p.content
+	p.boxer.ModelMap[string(FILEVIEW_ADDRESS)] = p.fileList
+}
 
+func (p *PullRequestView) updateFromModels() {
+	p.header, _ = getModel[pullRequestHeader](&p.boxer, HEADER_ADDRESS)
+	p.content, _ = getModel[contentView](&p.boxer, CONTENT_ADDRESS)
+	p.fileList, _ = getModel[fileList](&p.boxer, FILEVIEW_ADDRESS)
 }
 
 func (p PullRequestView) View() string {
@@ -589,10 +601,29 @@ type pullRequestHeader struct {
 	headings       [][]Heading
 	width          int
 	height         int
+	maxReviews     int
+	maxChecks      int
+}
+
+func min(a ...int) (int, int) {
+	m := math.MaxInt
+	p := -1
+	for i, x := range a {
+		if x < m {
+			m = x
+			p = i
+		}
+	}
+	return m, p
+}
+
+func min1(a ...int) int {
+	m, _ := min(a...)
+	return m
 }
 
 func (p pullRequestHeader) measureHeight() int {
-	return len(p.data.checks) + len(p.data.reviews) + 4
+	return min1(p.maxChecks, len(p.data.checks)) + min1(len(p.data.reviews), p.maxReviews) + 4
 }
 
 func (p pullRequestHeader) Init() tea.Cmd {
@@ -603,7 +634,7 @@ func (p pullRequestHeader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		p.width = msg.Width
-		p.height = p.measureHeight()
+		p.height = msg.Height
 	}
 
 	return p, nil
@@ -664,6 +695,12 @@ func (c contentView) Init() tea.Cmd {
 }
 
 func (c contentView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		c.viewport.Width = msg.Width
+		c.viewport.Height = msg.Height
+		return c, renderPrCmd
+	}
 	return c, nil
 }
 
@@ -691,12 +728,18 @@ func (prv *PullRequestView) renderPullRequest() {
 	prv.header.header.printf("#%d %s (%s)\n%s -> %s Status: %s", pr.GetId(), pr.GetTitle(), pr.GetAuthor().GetDisplayName(),
 		sourceBranch, destBranch, pr.GetState())
 
-	for _, chk := range prv.pullRequest.checks {
+	for n, chk := range prv.pullRequest.checks {
 		prv.header.header.printf("* %s : %s (%s)", chk.GetStatus(), chk.GetName(), chk.GetUrl())
+		if n >= prv.header.maxChecks-1 {
+			break
+		}
 	}
 
-	for _, rev := range prv.pullRequest.reviews {
+	for n, rev := range prv.pullRequest.reviews {
 		prv.header.header.printf("* %s : %s (%s)", rev.GetState(), rev.GetAuthor(), rev.GetSubmitedAt())
+		if n >= prv.header.maxReviews-1 {
+			break
+		}
 	}
 
 	prv.PrintComments(prv.pullRequest.prComments, prv.content.viewport.Width)
@@ -727,9 +770,8 @@ func (prv *PullRequestView) renderPullRequest() {
 		commentsForFile := make(map[int64][]sv.Comment)
 		for k, v := range commentsForFileOrig {
 			vv := make([]sv.Comment, len(v))
-			for i, x := range v {
-				vv[i] = x
-			}
+			copy(vv, v)
+
 			commentsForFile[k] = vv
 		}
 

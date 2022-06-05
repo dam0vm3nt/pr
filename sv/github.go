@@ -169,7 +169,9 @@ query GetRepos($name: String!, $owner: String!, $number: Int!) {
 
 		if rollups != nil && rollups.Commit != nil && rollups.Commit.StatusCheckRollup != nil && rollups.Commit.StatusCheckRollup.Contexts != nil {
 			for _, checks := range rollups.Commit.StatusCheckRollup.Contexts.Nodes {
-				result = append(result, GitHubCheck{checks})
+				if checks.State != "" && checks.Name != "" {
+					result = append(result, GitHubCheck{checks})
+				}
 			}
 		}
 
