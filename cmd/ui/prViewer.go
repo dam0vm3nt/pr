@@ -51,13 +51,12 @@ func loadPullRequestData(pr sv.PullRequest) (*pullRequestData, error) {
 }
 
 type PullRequestView struct {
-	boxer boxer.Boxer
-	//header         *lines
-	content     contentView
-	pullRequest *pullRequestData
-	ready       bool
-	//headings       [][]Heading
-	//currentHeading []int
+	boxer         boxer.Boxer
+	layoutMode    layoutMode
+	content       contentView
+	fileList      fileList
+	pullRequest   *pullRequestData
+	ready         bool
 	bookmarks     map[string][]int
 	bookmarksData map[int]interface{}
 
@@ -91,42 +90,144 @@ func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 			data: data,
 		}
 
-		layout := layoutWidgets(&box, header, content)
+		mode := newLayoutMode()
 
-		box.LayoutTree = layout
+		fileView := fileList{data}
 
-		prv := &PullRequestView{
-			boxer:       box,
-			pullRequest: data,
-			content:     content,
-			header:      header,
-			bookmarks: map[string][]int{
-				"COMMENT": make([]int, 0),
-			},
-			bookmarksData: make(map[int]interface{}),
-			dirty:         true,
-			xOffset:       0}
+		if layout, err := initWidgetsLayout(&box, header, content, fileView, mode); err != nil {
+			pterm.Fatal.Print(err)
+			return nil, err
+		} else {
+			box.LayoutTree = layout
 
-		return prv, nil
+			prv := &PullRequestView{
+				boxer:       box,
+				layoutMode:  mode,
+				pullRequest: data,
+				content:     content,
+				header:      header,
+				fileList:    fileView,
+				bookmarks: map[string][]int{
+					"COMMENT": make([]int, 0),
+				},
+				bookmarksData: make(map[int]interface{}),
+				dirty:         true,
+				xOffset:       0}
+
+			return prv, nil
+		}
 	}
 }
 
-func layoutWidgets(box *boxer.Boxer, header pullRequestHeader, content contentView) boxer.Node {
-	layout := boxer.Node{
-		VerticalStacked: true,
-		SizeFunc: func(node boxer.Node, height int) []int {
-			headerHeight := header.measureHeight()
-			return []int{
-				headerHeight,
-				height - headerHeight,
-			}
-		},
-		Children: []boxer.Node{
-			box.CreateLeaf("header", header),
-			box.CreateLeaf("view", content),
-		},
+type fileList struct {
+	pullRequestData *pullRequestData
+}
+
+func (f fileList) Init() tea.Cmd {
+	return nil
+}
+
+func (f fileList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	return f, nil
+}
+
+func (f fileList) View() string {
+	return "Hello"
+}
+
+func getModel[T tea.Model](box *boxer.Boxer, name viewAddress) (T, bool) {
+	model, ok := box.ModelMap[string(name)]
+	return model.(T), ok
+}
+
+func getModelAndNode[T tea.Model](box *boxer.Boxer, name viewAddress) (T, *boxer.Node, bool) {
+	if model, ok := getModel[T](box, name); ok {
+		node := box.CreateLeaf(string(name), model)
+		return model, &node, true
+	} else {
+		return model, nil, false
 	}
-	return layout
+}
+
+type viewAddress string
+
+const (
+	HEADER_ADDRESS   viewAddress = "header"
+	CONTENT_ADDRESS  viewAddress = "view"
+	FILEVIEW_ADDRESS viewAddress = "files"
+)
+
+type layoutMode struct {
+	showFileView bool
+}
+
+func newLayoutMode() layoutMode {
+	return layoutMode{
+		showFileView: false,
+	}
+}
+
+func (mode layoutMode) withFileView(visible bool) layoutMode {
+	return layoutMode{
+		showFileView: visible,
+	}
+}
+
+func initWidgetsLayout(box *boxer.Boxer, header pullRequestHeader, content contentView, fileView fileList, mode layoutMode) (boxer.Node, error) {
+
+	box.ModelMap = make(map[string]tea.Model)
+
+	box.ModelMap[string(HEADER_ADDRESS)] = header
+	box.ModelMap[string(CONTENT_ADDRESS)] = content
+	box.ModelMap[string(FILEVIEW_ADDRESS)] = fileView
+
+	return layoutWidgets(box, mode)
+}
+
+func layoutWidgets(box *boxer.Boxer, mode layoutMode) (boxer.Node, error) {
+
+	if header, headerNode, ok := getModelAndNode[pullRequestHeader](box, HEADER_ADDRESS); ok {
+		if _, contentNode, ok := getModelAndNode[contentView](box, CONTENT_ADDRESS); ok {
+			if _, listNode, ok := getModelAndNode[fileList](box, FILEVIEW_ADDRESS); ok {
+				var bottomNode boxer.Node
+
+				if mode.showFileView {
+					bottomNode = boxer.Node{
+						VerticalStacked: false,
+						Children: []boxer.Node{
+							*listNode, *contentNode,
+						},
+						SizeFunc: func(node boxer.Node, width int) []int {
+							return []int{
+								width / 3,
+								width - (width / 3),
+							}
+						},
+					}
+				} else {
+					bottomNode = *contentNode
+				}
+
+				layout := boxer.Node{
+					VerticalStacked: true,
+					SizeFunc: func(node boxer.Node, height int) []int {
+						headerHeight := header.measureHeight()
+						return []int{
+							headerHeight,
+							height - headerHeight,
+						}
+					},
+					Children: []boxer.Node{
+						*headerNode,
+						bottomNode,
+					},
+				}
+				return layout, nil
+			}
+		}
+	}
+
+	return *new(boxer.Node), errors.New("Something's not ok")
 }
 
 func ptr[T string | uint | int](s T) *T {
@@ -291,6 +392,42 @@ func currentBookmark(p *PullRequestView, b string) (int, interface{}) {
 	return 0, nil
 }
 
+func getNodeRecur(nodes []boxer.Node, name viewAddress) *boxer.Node {
+	for _, nd := range nodes {
+		if nd.IsLeaf() {
+			if nd.GetAddress() == string(name) {
+				return &nd
+			}
+		} else {
+			if res := getNodeRecur(nd.Children, name); res != nil {
+				return res
+			}
+		}
+	}
+	return nil
+}
+
+func (p *PullRequestView) getNode(name viewAddress) *boxer.Node {
+	return getNodeRecur(p.boxer.LayoutTree.Children, name)
+}
+
+func RefreshSize() tea.Msg {
+	if w, h, err := pterm.GetTerminalSize(); err == nil {
+		return tea.WindowSizeMsg{
+			Width: w, Height: h,
+		}
+	} else {
+		return nil
+	}
+}
+
+type renderPrMsg struct {
+}
+
+func renderPr() tea.Msg {
+	return renderPrMsg{}
+}
+
 func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
@@ -300,6 +437,10 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	p.renderPullRequest()
 
 	switch msg := msg.(type) {
+	case renderPrMsg:
+		p.dirty = true
+		p.renderPullRequest()
+
 	case tea.KeyMsg:
 		switch k := msg.String(); k {
 		case "ctrl+c":
@@ -308,6 +449,14 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return p, tea.Quit
 		case "esc":
 			return p, tea.Quit
+		case "v":
+			newMode := p.layoutMode.withFileView(!p.layoutMode.showFileView)
+			if tree, err := layoutWidgets(&p.boxer, newMode); err == nil {
+				p.boxer.LayoutTree = tree
+				p.layoutMode = newMode
+				p.dirty = true
+				cmds = append(cmds, RefreshSize, tea.ClearScrollArea, renderPr)
+			}
 		case "right":
 			p.xOffset += 4
 			p.dirty = true
@@ -345,7 +494,10 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		p, cmds = p.propagateEvent(msg, cmd, cmds)
+		p, cmds = p.propagateEvent(msg, cmds)
+
+		contentNode := p.getNode(CONTENT_ADDRESS)
+
 		headerHeight := p.header.measureHeight()
 		footerHeight := 0
 		verticalMarginHeight := headerHeight + footerHeight + 1
@@ -368,7 +520,7 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Render the viewport one line below the Header.
 			//p.content.viewport.YPosition = headerHeight + 1
 		}
-		p.content.viewport.Width = msg.Width
+		p.content.viewport.Width = contentNode.GetWidth() //msg.Width
 		p.content.viewport.Height = msg.Height - verticalMarginHeight
 		p.dirty = true
 		p.renderPullRequest()
@@ -394,8 +546,12 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return p, tea.Batch(cmds...)
 }
 
-func (p PullRequestView) propagateEvent(msg tea.Msg, cmd tea.Cmd, cmds []tea.Cmd) (PullRequestView, []tea.Cmd) {
+func (p PullRequestView) propagateEvent(msg tea.Msg, cmds []tea.Cmd) (PullRequestView, []tea.Cmd) {
 	// Recursively update the sub-widgets
+	newFile, cmd := p.fileList.Update(msg)
+	p.fileList = newFile.(fileList)
+	cmds = append(cmds, cmd)
+
 	newContent, cmd := p.content.Update(msg)
 	p.content = newContent.(contentView)
 	cmds = append(cmds, cmd)
@@ -411,8 +567,8 @@ func (p PullRequestView) propagateEvent(msg tea.Msg, cmd tea.Cmd, cmds []tea.Cmd
 }
 
 func (p *PullRequestView) updateModels() {
-	p.boxer.ModelMap["header"] = p.header
-	p.boxer.ModelMap["view"] = p.content
+	p.boxer.ModelMap[string(HEADER_ADDRESS)] = p.header
+	p.boxer.ModelMap[string(CONTENT_ADDRESS)] = p.content
 
 }
 
