@@ -56,8 +56,6 @@ func loadPullRequestData(pr sv.PullRequest) (*pullRequestData, error) {
 type PullRequestView struct {
 	boxer         boxer.Boxer
 	layoutMode    layoutMode
-	content       contentView
-	fileList      fileList
 	pullRequest   *pullRequestData
 	ready         bool
 	bookmarks     map[string][]int
@@ -65,7 +63,6 @@ type PullRequestView struct {
 
 	dirty   bool
 	xOffset int
-	header  pullRequestHeader
 }
 
 func NewView(pr sv.PullRequest) (*PullRequestView, error) {
@@ -109,9 +106,6 @@ func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 				boxer:       box,
 				layoutMode:  mode,
 				pullRequest: data,
-				content:     content,
-				header:      header,
-				fileList:    fileView,
 				bookmarks: map[string][]int{
 					COMMENT_CATEGORY: make([]int, 0),
 				},
@@ -176,6 +170,95 @@ func getModelAndNode[T tea.Model](box *boxer.Boxer, name viewAddress) (T, *boxer
 	} else {
 		return model, nil, false
 	}
+}
+
+func (p *PullRequestView) getHeaderView() (pullRequestHeader, bool) {
+	return getModel[pullRequestHeader](&p.boxer, HEADER_ADDRESS)
+}
+
+func (p *PullRequestView) getContentView() (contentView, bool) {
+	return getModel[contentView](&p.boxer, CONTENT_ADDRESS)
+}
+
+func (p *PullRequestView) getFileListView() (fileList, bool) {
+	return getModel[fileList](&p.boxer, FILEVIEW_ADDRESS)
+}
+
+func withView[T tea.Model](p *PullRequestView, address viewAddress, action func(T) (T, error)) error {
+	if m, ok := getModel[T](&p.boxer, address); ok {
+		if m, err := action(m); err != nil {
+			return err
+		} else {
+			p.boxer.ModelMap[string(address)] = m
+			return nil
+		}
+	} else {
+		return errors.New(fmt.Sprintf("Cannot find view %s", address))
+	}
+}
+
+type usage struct {
+	value interface{}
+	count int
+}
+
+var viewGuards = make(map[viewAddress]usage)
+
+func removeGuard(address viewAddress) {
+	if u, ok := viewGuards[address]; ok {
+		u.count--
+		if u.count > 0 {
+			viewGuards[address] = u
+		} else {
+			delete(viewGuards, address)
+		}
+	}
+}
+
+func withViewPtr[T tea.Model](p *PullRequestView, address viewAddress, action func(*T) error) error {
+	if u, ok := viewGuards[address]; ok {
+		u.count += 1
+		viewGuards[address] = u
+		defer removeGuard(address)
+		return action(u.value.(*T))
+	}
+
+	if m, ok := getModel[T](&p.boxer, address); ok {
+		viewGuards[address] = usage{value: &m, count: 0}
+		defer removeGuard(address)
+		if err := action(&m); err != nil {
+			return err
+		} else {
+			p.boxer.ModelMap[string(address)] = m
+			return nil
+		}
+	} else {
+		return fmt.Errorf("Cannot find view '%s'", address)
+	}
+}
+
+func (p *PullRequestView) withHeaderView(action func(pullRequestHeader) (pullRequestHeader, error)) error {
+	return withView(p, HEADER_ADDRESS, action)
+}
+
+func (p *PullRequestView) withContentView(action func(view contentView) (contentView, error)) error {
+	return withView(p, CONTENT_ADDRESS, action)
+}
+
+func (p *PullRequestView) withFileListView(action func(view fileList) (fileList, error)) error {
+	return withView(p, FILEVIEW_ADDRESS, action)
+}
+
+func (p *PullRequestView) withHeaderViewPtr(action func(*pullRequestHeader) error) error {
+	return withViewPtr(p, HEADER_ADDRESS, action)
+}
+
+func (p *PullRequestView) withContentViewPtr(action func(*contentView) error) error {
+	return withViewPtr(p, CONTENT_ADDRESS, action)
+}
+
+func (p *PullRequestView) withFileListViewPtr(action func(*fileList) error) error {
+	return withViewPtr(p, FILEVIEW_ADDRESS, action)
 }
 
 type viewAddress string
@@ -263,7 +346,7 @@ func ptr[T string | uint | int](s T) *T {
 	return &s
 }
 
-func (prv *PullRequestView) PrintComments(comments []sv.Comment, w int) {
+func (prv *PullRequestView) PrintComments(content *contentView, header *pullRequestHeader, comments []sv.Comment, w int) {
 	bg := "#7D56F4"
 	fg := "#FAFAFA"
 	style := lipgloss.NewStyle().
@@ -301,16 +384,16 @@ func (prv *PullRequestView) PrintComments(comments []sv.Comment, w int) {
 			reply = fmt.Sprintf(" <- %d", id)
 		}
 
-		prv.addBookmark(COMMENT_CATEGORY, comment)
-		prv.addHeading(w, COMMIT_LEVEL, style.Render(
+		prv.addBookmark(content, COMMENT_CATEGORY, comment)
+		addHeading(content, header, w, COMMIT_LEVEL, style.Render(
 			fmt.Sprintf("------- [%d%s] %s at %s ------",
 				comment.GetId(), reply,
 				comment.GetUser().GetDisplayName(),
 				comment.GetCreatedOn())))
 
 		rawRendered, _ := r.Render(raw)
-		prv.content.printf(style2.Render(rawRendered))
-		prv.removeLastHeader(COMMIT_LEVEL)
+		content.printf(style2.Render(rawRendered))
+		prv.removeLastHeader(header, content, COMMIT_LEVEL)
 	}
 }
 
@@ -318,16 +401,16 @@ func (c *contentView) currentLine() int {
 	return len(*c.content)
 }
 
-func (prv *PullRequestView) removeLastHeader(lev int) {
-	prv.header.headings[lev] = append(prv.header.headings[lev], Heading{prv.content.currentLine(), prv.header.headings[lev][len(prv.header.headings[lev])-2].text})
+func (prv *PullRequestView) removeLastHeader(header *pullRequestHeader, contentView *contentView, lev int) {
+	header.headings[lev] = append(header.headings[lev], Heading{contentView.currentLine(), header.headings[lev][len(header.headings[lev])-2].text})
 }
 
-func (prv *PullRequestView) addBookmark(b string, data interface{}) {
+func (prv *PullRequestView) addBookmark(contentView *contentView, b string, data interface{}) {
 	prv.bookmarksData[len(prv.bookmarks[b])] = data
-	prv.bookmarks[b] = append(prv.bookmarks[b], prv.content.currentLine()+1)
+	prv.bookmarks[b] = append(prv.bookmarks[b], contentView.currentLine()+1)
 }
 
-func (p *PullRequestView) addHeading(w int, lev int, format string, args ...any) {
+func addHeading(content *contentView, header *pullRequestHeader, w int, lev int, format string, args ...any) {
 	var st lipgloss.Style
 	switch lev {
 	case FILE_LEVEL:
@@ -344,8 +427,8 @@ func (p *PullRequestView) addHeading(w int, lev int, format string, args ...any)
 	}
 
 	s := st.Render(fmt.Sprintf(format, args...))
-	p.content.printf(s)
-	p.header.headings[lev] = append(p.header.headings[lev], Heading{p.content.currentLine() + 1, s})
+	content.printf(s)
+	header.headings[lev] = append(header.headings[lev], Heading{content.currentLine() + 1, s})
 }
 
 func (prv *lines) printf(format string, args ...any) {
@@ -362,59 +445,75 @@ func (p PullRequestView) Init() tea.Cmd {
 }
 
 func (p *PullRequestView) moveToNextHeading(L int) {
-	if p.header.currentHeading[L] >= 0 && p.header.currentHeading[L] < len(p.header.headings[L])-1 {
-		p.header.currentHeading[L] += 1
-		p.content.viewport.YOffset = p.header.headings[L][p.header.currentHeading[L]].line - 1
-	} else if len(p.header.headings[L]) > 0 {
-		p.header.currentHeading[L] = 0
-		p.content.viewport.YOffset = p.header.headings[L][p.header.currentHeading[L]].line - 1
-	}
+	p.withContentViewPtr(func(content *contentView) error {
+		return p.withHeaderViewPtr(func(header *pullRequestHeader) error {
+			if header.currentHeading[L] >= 0 && header.currentHeading[L] < len(header.headings[L])-1 {
+				header.currentHeading[L] += 1
+				content.viewport.YOffset = header.headings[L][header.currentHeading[L]].line - 1
+			} else if len(header.headings[L]) > 0 {
+				header.currentHeading[L] = 0
+				content.viewport.YOffset = header.headings[L][header.currentHeading[L]].line - 1
+			}
+			return nil
+		})
+	})
 }
 
 func (p *PullRequestView) moveToPrevHeading(L int) {
-	if len(p.header.headings[L]) > 0 && p.header.currentHeading[L] > 0 {
-		p.header.currentHeading[L] -= 1
-		p.content.viewport.YOffset = p.header.headings[L][p.header.currentHeading[L]].line - 1
-	} else if len(p.header.headings[L]) > 0 {
-		p.header.currentHeading[L] = len(p.header.headings[L]) - 1
-		p.content.viewport.YOffset = p.header.headings[L][p.header.currentHeading[L]].line - 1
-	}
+	p.withContentViewPtr(func(content *contentView) error {
+		return p.withHeaderViewPtr(func(header *pullRequestHeader) error {
+			if len(header.headings[L]) > 0 && header.currentHeading[L] > 0 {
+				header.currentHeading[L] -= 1
+				content.viewport.YOffset = header.headings[L][header.currentHeading[L]].line - 1
+			} else if len(header.headings[L]) > 0 {
+				header.currentHeading[L] = len(header.headings[L]) - 1
+				content.viewport.YOffset = header.headings[L][header.currentHeading[L]].line - 1
+			}
+			return nil
+		})
+	})
 }
 
 func (p *PullRequestView) moveToNextBookmark(b string) error {
-	bookmarks := p.bookmarks[b]
-	if len(bookmarks) == 0 {
-		return errors.New("No bookmarks")
-	}
-	for _, l := range bookmarks {
-		if l > p.content.viewport.YOffset {
-			p.content.viewport.YOffset = l
-			return nil
+	return p.withContentViewPtr(func(content *contentView) error {
+		bookmarks := p.bookmarks[b]
+		if len(bookmarks) == 0 {
+			return errors.New("No bookmarks")
 		}
-	}
-	p.content.viewport.YOffset = bookmarks[0]
-	return nil
+		for _, l := range bookmarks {
+			if l > content.viewport.YOffset {
+				content.viewport.YOffset = l
+				return nil
+			}
+		}
+		content.viewport.YOffset = bookmarks[0]
+		return nil
+	})
 }
 
 func (p *PullRequestView) moveToPrevBookmark(b string) error {
-	bookmarks := p.bookmarks[b]
-	if len(bookmarks) == 0 {
-		return errors.New("No bookmarks")
-	}
-	for i := len(bookmarks) - 1; i >= 0; i-- {
-		l := bookmarks[i]
-		if l < p.content.viewport.YOffset {
-			p.content.viewport.YOffset = l
-			return nil
+	return p.withContentViewPtr(func(content *contentView) error {
+
+		bookmarks := p.bookmarks[b]
+		if len(bookmarks) == 0 {
+			return errors.New("No bookmarks")
 		}
-	}
-	p.content.viewport.YOffset = bookmarks[len(bookmarks)-1]
-	return nil
+		for i := len(bookmarks) - 1; i >= 0; i-- {
+			l := bookmarks[i]
+			if l < content.viewport.YOffset {
+				content.viewport.YOffset = l
+				return nil
+			}
+		}
+		content.viewport.YOffset = bookmarks[len(bookmarks)-1]
+		return nil
+	})
 }
 
 func currentBookmark(p *PullRequestView, b string) (int, interface{}) {
 	for n, l := range p.bookmarks[b] {
-		if l == p.content.viewport.YOffset {
+		content, _ := p.getContentView()
+		if l == content.viewport.YOffset {
 			return n, p.bookmarksData[n]
 		}
 	}
@@ -518,8 +617,11 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		default:
-			p.content.viewport, cmd = p.content.viewport.Update(msg)
-			cmds = append(cmds, cmd)
+			p.withContentViewPtr(func(content *contentView) error {
+				content.viewport, cmd = content.viewport.Update(msg)
+				cmds = append(cmds, cmd)
+				return nil
+			})
 		}
 
 	case tea.WindowSizeMsg:
@@ -530,22 +632,29 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd, renderPrCmd)
 	//p, cmds = p.propagateEvent(msg, cmds)
 	default:
-		p.content.viewport, cmd = p.content.viewport.Update(msg)
-		cmds = append(cmds, cmd)
+		p.withContentViewPtr(func(content *contentView) error {
+			content.viewport, cmd = content.viewport.Update(msg)
+			cmds = append(cmds, cmd)
+			return nil
+		})
 
 	}
 
 	// Handle keyboard and mouse events in the viewport
 
 	// Update last headings
-	for l := 0; l < len(p.header.currentHeading); l++ {
-		p.header.currentHeading[l] = -1
-		for n, h := range p.header.headings[l] {
-			if h.line <= p.content.viewport.YOffset+1 {
-				p.header.currentHeading[l] = n
+	p.withHeaderViewPtr(func(header *pullRequestHeader) error {
+		content, _ := p.getContentView()
+		for l := 0; l < len(header.currentHeading); l++ {
+			header.currentHeading[l] = -1
+			for n, h := range header.headings[l] {
+				if h.line <= content.viewport.YOffset+1 {
+					header.currentHeading[l] = n
+				}
 			}
 		}
-	}
+		return nil
+	})
 
 	p.updateModels()
 
@@ -554,17 +663,26 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (p PullRequestView) propagateEvent(msg tea.Msg, cmds []tea.Cmd) (PullRequestView, []tea.Cmd) {
 	// Recursively update the sub-widgets
-	newFile, cmd := p.fileList.Update(msg)
-	p.fileList = newFile.(fileList)
-	cmds = append(cmds, cmd)
+	p.withFileListView(func(view fileList) (fileList, error) {
+		newFile, cmd := view.Update(msg)
+		view = newFile.(fileList)
+		cmds = append(cmds, cmd)
+		return view, nil
+	})
 
-	newContent, cmd := p.content.Update(msg)
-	p.content = newContent.(contentView)
-	cmds = append(cmds, cmd)
+	p.withContentView(func(view contentView) (contentView, error) {
+		newFile, cmd := view.Update(msg)
+		view = newFile.(contentView)
+		cmds = append(cmds, cmd)
+		return view, nil
+	})
 
-	newHeader, cmd := p.header.Update(msg)
-	p.header = newHeader.(pullRequestHeader)
-	cmds = append(cmds, cmd)
+	p.withHeaderView(func(view pullRequestHeader) (pullRequestHeader, error) {
+		newFile, cmd := view.Update(msg)
+		view = newFile.(pullRequestHeader)
+		cmds = append(cmds, cmd)
+		return view, nil
+	})
 
 	newBox, cmd := p.boxer.Update(msg)
 	p.boxer = newBox.(boxer.Boxer)
@@ -573,15 +691,9 @@ func (p PullRequestView) propagateEvent(msg tea.Msg, cmds []tea.Cmd) (PullReques
 }
 
 func (p *PullRequestView) updateModels() {
-	p.boxer.ModelMap[string(HEADER_ADDRESS)] = p.header
-	p.boxer.ModelMap[string(CONTENT_ADDRESS)] = p.content
-	p.boxer.ModelMap[string(FILEVIEW_ADDRESS)] = p.fileList
 }
 
 func (p *PullRequestView) updateFromModels() {
-	p.header, _ = getModel[pullRequestHeader](&p.boxer, HEADER_ADDRESS)
-	p.content, _ = getModel[contentView](&p.boxer, CONTENT_ADDRESS)
-	p.fileList, _ = getModel[fileList](&p.boxer, FILEVIEW_ADDRESS)
 }
 
 func (p PullRequestView) View() string {
@@ -684,10 +796,9 @@ func (cv *contentView) printf(line string, args ...any) {
 	cv.content.printf(line, args...)
 }
 
-func (cv contentView) clear() contentView {
+func (cv *contentView) clear() {
 	c := make(lines, 0)
 	cv.content = &c
-	return cv
 }
 
 func (c contentView) Init() tea.Cmd {
@@ -718,134 +829,140 @@ func (prv *PullRequestView) renderPullRequest() {
 	if !prv.dirty {
 		return
 	}
-	h := make(lines, 0)
-	prv.content = prv.content.clear()
-	prv.header.header = &h
+	prv.withContentViewPtr(func(content *contentView) error {
+		return prv.withHeaderViewPtr(func(header *pullRequestHeader) error {
+			h := make(lines, 0)
+			content.clear()
+			header.header = &h
 
-	pr := prv.pullRequest
-	sourceBranch := pr.GetBranch().GetName()
-	destBranch := pr.GetBase().GetName()
-	prv.header.header.printf("#%d %s (%s)\n%s -> %s Status: %s", pr.GetId(), pr.GetTitle(), pr.GetAuthor().GetDisplayName(),
-		sourceBranch, destBranch, pr.GetState())
+			pr := prv.pullRequest
+			sourceBranch := pr.GetBranch().GetName()
+			destBranch := pr.GetBase().GetName()
+			header.header.printf("#%d %s (%s)\n%s -> %s Status: %s", pr.GetId(), pr.GetTitle(), pr.GetAuthor().GetDisplayName(),
+				sourceBranch, destBranch, pr.GetState())
 
-	for n, chk := range prv.pullRequest.checks {
-		prv.header.header.printf("* %s : %s (%s)", chk.GetStatus(), chk.GetName(), chk.GetUrl())
-		if n >= prv.header.maxChecks-1 {
-			break
-		}
-	}
-
-	for n, rev := range prv.pullRequest.reviews {
-		prv.header.header.printf("* %s : %s (%s)", rev.GetState(), rev.GetAuthor(), rev.GetSubmitedAt())
-		if n >= prv.header.maxReviews-1 {
-			break
-		}
-	}
-
-	prv.PrintComments(prv.pullRequest.prComments, prv.content.viewport.Width)
-
-	//fmt.Printf("Diff of %d files:\n\n", len(files))
-	//prv.header.printf("Diff of %d files:\n\n", len(files))
-
-	for _, file := range prv.pullRequest.files {
-		fn := file.OldName
-		if file.IsRename {
-			prv.addHeading(prv.content.viewport.Width, FILE_LEVEL, "%s -> %s:", file.OldName, file.NewName)
-			fn = file.NewName
-		} else if file.IsDelete {
-			prv.addHeading(prv.content.viewport.Width, FILE_LEVEL, "DELETED %s", file.OldName)
-			continue
-		} else if file.IsNew {
-			prv.addHeading(prv.content.viewport.Width, FILE_LEVEL, "NEW %s:", file.NewName)
-			fn = file.NewName
-		} else if file.IsCopy {
-			prv.addHeading(prv.content.viewport.Width, FILE_LEVEL, "COPY %s -> %s:", file.OldName, file.NewName)
-		} else {
-			prv.addHeading(prv.content.viewport.Width, FILE_LEVEL, "%s:", file.NewName)
-		}
-
-		commentsForFileOrig, haveFileComments := prv.pullRequest.commentMap[fn]
-
-		// Clone it
-		commentsForFile := make(map[int64][]sv.Comment)
-		for k, v := range commentsForFileOrig {
-			vv := make([]sv.Comment, len(v))
-			copy(vv, v)
-
-			commentsForFile[k] = vv
-		}
-
-		if file.IsBinary {
-			prv.content.printf("\nBINARY FILE\n")
-		} else {
-			w := prv.content.viewport.Width
-			styleAdd := lipgloss.NewStyle().
-				Bold(true).
-				Foreground(lipgloss.Color("#ffffff")).
-				Background(lipgloss.Color("#005E00e0")).
-				Width(w).MaxHeight(1)
-			styleNorm := lipgloss.NewStyle().Width(w).MaxHeight(1)
-			styleDel := lipgloss.NewStyle().
-				Bold(true).
-				Foreground(lipgloss.Color("#ffffff")).
-				Background(lipgloss.Color("#5e0000e0")).
-				Width(w).MaxHeight(1)
-
-			for _, frag := range file.TextFragments {
-
-				prv.addHeading(prv.content.viewport.Width, COMMIT_LEVEL, "==O== ==N== (+%d, -%d,  O=%d, N=%d)", frag.LinesAdded, frag.LinesDeleted,
-					frag.OldLines, frag.NewLines)
-				oldN := frag.OldPosition
-				newN := frag.NewPosition
-
-				for _, ln := range frag.Lines {
-					var style lipgloss.Style
-					switch ln.Op {
-					case gitdiff.OpAdd:
-						style = styleAdd
-					case gitdiff.OpDelete:
-						style = styleDel
-					default:
-						style = styleNorm
-					}
-
-					escaped := strings.ReplaceAll(ln.Line, "%", "%%")
-					if len(escaped) >= prv.xOffset {
-						escaped = escaped[prv.xOffset:]
-					} else {
-						escaped = ""
-					}
-
-					rendered := style.Render(fmt.Sprintf("%05d %05d %s  %s", oldN, newN, ln.Op, escaped))
-
-					prv.content.printf(rendered)
-					if haveFileComments {
-						if commentsForLine, haveLineComments := commentsForFile[newN]; haveLineComments {
-							prv.PrintComments(commentsForLine, prv.content.viewport.Width)
-							delete(commentsForFile, newN)
-						} else if commentsForLine, haveLineComments := commentsForFile[-oldN]; haveLineComments {
-							prv.PrintComments(commentsForLine, prv.content.viewport.Width)
-							delete(commentsForFile, -oldN)
-						}
-					}
-
-					if ln.Op == gitdiff.OpAdd {
-						oldN -= 1
-					}
-					if ln.Op == gitdiff.OpDelete {
-						newN -= 1
-					}
-					newN += 1
-					oldN += 1
+			for n, chk := range prv.pullRequest.checks {
+				header.header.printf("* %s : %s (%s)", chk.GetStatus(), chk.GetName(), chk.GetUrl())
+				if n >= header.maxChecks-1 {
+					break
 				}
 			}
-		}
-	}
 
-	if prv.ready {
-		prv.content.updateViewportWithContent()
-	}
-	prv.dirty = false
+			for n, rev := range prv.pullRequest.reviews {
+				header.header.printf("* %s : %s (%s)", rev.GetState(), rev.GetAuthor(), rev.GetSubmitedAt())
+				if n >= header.maxReviews-1 {
+					break
+				}
+			}
+
+			prv.PrintComments(content, header, prv.pullRequest.prComments, content.viewport.Width)
+
+			//fmt.Printf("Diff of %d files:\n\n", len(files))
+			//header.printf("Diff of %d files:\n\n", len(files))
+
+			for _, file := range prv.pullRequest.files {
+				fn := file.OldName
+				if file.IsRename {
+					addHeading(content, header, content.viewport.Width, FILE_LEVEL, "%s -> %s:", file.OldName, file.NewName)
+					fn = file.NewName
+				} else if file.IsDelete {
+					addHeading(content, header, content.viewport.Width, FILE_LEVEL, "DELETED %s", file.OldName)
+					continue
+				} else if file.IsNew {
+					addHeading(content, header, content.viewport.Width, FILE_LEVEL, "NEW %s:", file.NewName)
+					fn = file.NewName
+				} else if file.IsCopy {
+					addHeading(content, header, content.viewport.Width, FILE_LEVEL, "COPY %s -> %s:", file.OldName, file.NewName)
+				} else {
+					addHeading(content, header, content.viewport.Width, FILE_LEVEL, "%s:", file.NewName)
+				}
+
+				commentsForFileOrig, haveFileComments := prv.pullRequest.commentMap[fn]
+
+				// Clone it
+				commentsForFile := make(map[int64][]sv.Comment)
+				for k, v := range commentsForFileOrig {
+					vv := make([]sv.Comment, len(v))
+					copy(vv, v)
+
+					commentsForFile[k] = vv
+				}
+
+				if file.IsBinary {
+					content.printf("\nBINARY FILE\n")
+				} else {
+					w := content.viewport.Width
+					styleAdd := lipgloss.NewStyle().
+						Bold(true).
+						Foreground(lipgloss.Color("#ffffff")).
+						Background(lipgloss.Color("#005E00e0")).
+						Width(w).MaxHeight(1)
+					styleNorm := lipgloss.NewStyle().Width(w).MaxHeight(1)
+					styleDel := lipgloss.NewStyle().
+						Bold(true).
+						Foreground(lipgloss.Color("#ffffff")).
+						Background(lipgloss.Color("#5e0000e0")).
+						Width(w).MaxHeight(1)
+
+					for _, frag := range file.TextFragments {
+
+						addHeading(content, header, content.viewport.Width, COMMIT_LEVEL, "==O== ==N== (+%d, -%d,  O=%d, N=%d)", frag.LinesAdded, frag.LinesDeleted,
+							frag.OldLines, frag.NewLines)
+						oldN := frag.OldPosition
+						newN := frag.NewPosition
+
+						for _, ln := range frag.Lines {
+							var style lipgloss.Style
+							switch ln.Op {
+							case gitdiff.OpAdd:
+								style = styleAdd
+							case gitdiff.OpDelete:
+								style = styleDel
+							default:
+								style = styleNorm
+							}
+
+							escaped := strings.ReplaceAll(ln.Line, "%", "%%")
+							if len(escaped) >= prv.xOffset {
+								escaped = escaped[prv.xOffset:]
+							} else {
+								escaped = ""
+							}
+
+							rendered := style.Render(fmt.Sprintf("%05d %05d %s  %s", oldN, newN, ln.Op, escaped))
+
+							content.printf(rendered)
+							if haveFileComments {
+								if commentsForLine, haveLineComments := commentsForFile[newN]; haveLineComments {
+									prv.PrintComments(content, header, commentsForLine, content.viewport.Width)
+									delete(commentsForFile, newN)
+								} else if commentsForLine, haveLineComments := commentsForFile[-oldN]; haveLineComments {
+									prv.PrintComments(content, header, commentsForLine, content.viewport.Width)
+									delete(commentsForFile, -oldN)
+								}
+							}
+
+							if ln.Op == gitdiff.OpAdd {
+								oldN -= 1
+							}
+							if ln.Op == gitdiff.OpDelete {
+								newN -= 1
+							}
+							newN += 1
+							oldN += 1
+						}
+					}
+				}
+			}
+
+			if prv.ready {
+				content.updateViewportWithContent()
+			}
+			prv.dirty = false
+			return nil
+		})
+	})
+
 }
 
 func (c *contentView) updateViewportWithContent() {
