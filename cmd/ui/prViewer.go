@@ -627,7 +627,6 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		newBox, cmd := p.boxer.Update(msg)
 		// Update from model
-		p.updateFromModels()
 		p.boxer = newBox.(boxer.Boxer)
 		cmds = append(cmds, cmd, renderPrCmd)
 	//p, cmds = p.propagateEvent(msg, cmds)
@@ -655,8 +654,6 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return nil
 	})
-
-	p.updateModels()
 
 	return p, tea.Batch(cmds...)
 }
@@ -688,12 +685,6 @@ func (p PullRequestView) propagateEvent(msg tea.Msg, cmds []tea.Cmd) (PullReques
 	p.boxer = newBox.(boxer.Boxer)
 	cmds = append(cmds, cmd)
 	return p, cmds
-}
-
-func (p *PullRequestView) updateModels() {
-}
-
-func (p *PullRequestView) updateFromModels() {
 }
 
 func (p PullRequestView) View() string {
