@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
-	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
@@ -122,25 +121,6 @@ func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 	}
 }
 
-type fileList struct {
-	pullRequestData *pullRequestData
-	w               int
-	h               int
-}
-
-func (f fileList) Init() tea.Cmd {
-	return nil
-}
-
-func (f fileList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch m := msg.(type) {
-	case tea.WindowSizeMsg:
-		f.w = m.Width
-		f.h = m.Height
-	}
-	return f, nil
-}
-
 func fillLine(s string, w int) string {
 	l := min1(w, len(s))
 	s = s[0:l]
@@ -148,18 +128,6 @@ func fillLine(s string, w int) string {
 		s = s + " "
 	}
 	return s
-}
-
-func (f fileList) View() string {
-	s := lipgloss.NewStyle().Width(f.w).Inline(true)
-	l := make([]string, 0)
-	for _, fn := range f.pullRequestData.files {
-		l = append(l, s.Render(fillLine(fn.NewName, f.w)))
-		if len(l) >= f.h {
-			break
-		}
-	}
-	return strings.Join(l, "\n")
 }
 
 func getModel[T tea.Model](box *boxer.Boxer, name viewAddress) (T, bool) {
@@ -739,17 +707,6 @@ func (p PullRequestView) View() string {
 
 type lines []string
 
-type pullRequestHeader struct {
-	data           *pullRequestData
-	header         *lines
-	currentHeading []int
-	headings       [][]Heading
-	width          int
-	height         int
-	maxReviews     int
-	maxChecks      int
-}
-
 func min(a ...int) (int, int) {
 	m := math.MaxInt
 	p := -1
@@ -765,91 +722,6 @@ func min(a ...int) (int, int) {
 func min1(a ...int) int {
 	m, _ := min(a...)
 	return m
-}
-
-func (p pullRequestHeader) measureHeight() int {
-	return min1(p.maxChecks, len(p.data.checks)) + min1(len(p.data.reviews), p.maxReviews) + 4
-}
-
-func (p pullRequestHeader) Init() tea.Cmd {
-	return nil
-}
-
-func (p pullRequestHeader) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		p.width = msg.Width
-		p.height = msg.Height
-	}
-
-	return p, nil
-}
-
-func (p pullRequestHeader) View() string {
-
-	linesCh := make(chan string)
-	go func() {
-		for _, l := range *p.header {
-			linesCh <- l
-		}
-
-		for l := 0; l < len(p.currentHeading); l++ {
-			if p.currentHeading[l] >= 0 {
-				linesCh <- p.headings[l][p.currentHeading[l]].text
-			} else {
-				linesCh <- ""
-			}
-		}
-
-		close(linesCh)
-	}()
-
-	style := lipgloss.
-		NewStyle().
-		Width(p.width).Height(1).
-		Background(lipgloss.Color("#fefefe")).Foreground(lipgloss.Color("#000000"))
-
-	lines := make([]string, 0)
-	for l := range linesCh {
-		l = style.Render(l)
-		l := strings.Split(l, "\n")[0]
-		lines = append(lines, l)
-	}
-
-	return strings.Join(lines, "\n")
-}
-
-type contentView struct {
-	data     *pullRequestData
-	viewport viewport.Model
-	content  *lines
-}
-
-func (cv *contentView) printf(line string, args ...any) {
-	cv.content.printf(line, args...)
-}
-
-func (cv *contentView) clear() {
-	c := make(lines, 0)
-	cv.content = &c
-}
-
-func (c contentView) Init() tea.Cmd {
-	return nil
-}
-
-func (c contentView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		c.viewport.Width = msg.Width
-		c.viewport.Height = msg.Height
-		return c, renderPrCmd
-	}
-	return c, nil
-}
-
-func (c contentView) View() string {
-	return c.viewport.View()
 }
 
 const (
@@ -996,8 +868,4 @@ func (prv *PullRequestView) renderPullRequest() {
 		})
 	})
 
-}
-
-func (c *contentView) updateViewportWithContent() {
-	c.viewport.SetContent(strings.Join(*c.content, "\n"))
 }
