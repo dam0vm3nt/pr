@@ -96,7 +96,7 @@ func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 
 		mode := newLayoutMode()
 
-		fileView := fileList{data, 0, 0}
+		fileView := fileList{data, 0, 0, false, 0, 0}
 
 		if layout, err := initWidgetsLayout(&box, header, content, fileView, mode); err != nil {
 			pterm.Fatal.Print(err)
@@ -548,6 +548,16 @@ func renderPrCmd() tea.Msg {
 	return renderPrMsg{}
 }
 
+type focusChangedMsg struct {
+	newFocus viewAddress
+}
+
+func focusChanged(address viewAddress) func() tea.Msg {
+	return func() tea.Msg {
+		return focusChangedMsg{address}
+	}
+}
+
 func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
@@ -565,6 +575,7 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch k := msg.String(); k {
 		case "tab":
 			p.nextFocus()
+			cmds = append(cmds, focusChanged(p.currentFocus()))
 		case "ctrl+c":
 			return p, tea.Quit
 		case "q":
@@ -640,6 +651,8 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		p.boxer = newBox.(boxer.Boxer)
 		cmds = append(cmds, cmd, renderPrCmd)
 	//p, cmds = p.propagateEvent(msg, cmds)
+	case focusChangedMsg:
+		p, cmds = p.propagateEvent(msg, cmds)
 	default:
 		p.withContentViewPtr(func(content *contentView) error {
 			content.viewport, cmd = content.viewport.Update(msg)
