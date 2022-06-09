@@ -36,6 +36,55 @@ type GitHubSv struct {
 	sshKeySelector *regexp.Regexp
 }
 
+func (g *GitHubSv) Fetch() error {
+	rep, giterr := git.PlainOpen(g.localRepo)
+	if giterr != nil {
+		return giterr
+	}
+	if sshagent.Available() {
+
+		if a, _, err := sshagent.New(); err != nil {
+			return fmt.Errorf("error creating SSH agent: %q", err)
+		} else if sigs, err := a.Signers(); err != nil {
+			return fmt.Errorf("While getting signers", err)
+		} else {
+			newSigs := make([]ssh2.Signer, 0)
+			for _, s := range sigs {
+				if k, ok := s.PublicKey().(*agent.Key); ok {
+					if g.sshKeySelector.MatchString(k.Comment) {
+						newSigs = append(newSigs, s)
+					}
+				}
+			}
+
+			if len(newSigs) > 0 {
+				ag := &ssh.PublicKeysCallback{
+					User: "git",
+					Callback: func() ([]ssh2.Signer, error) {
+						return newSigs, nil
+					},
+				}
+
+				ag.HostKeyCallback = func(hostname string, remote net.Addr, key ssh2.PublicKey) error {
+					return nil
+				}
+
+				sp := spinner.New(spinner.CharSets[55], time.Millisecond*50, spinner.WithSuffix(fmt.Sprintf(" Updating repository")))
+				sp.Start()
+				err = rep.Fetch(&git.FetchOptions{RemoteName: "origin", Auth: ag})
+				sp.Stop()
+
+				return err
+
+			} else {
+				return fmt.Errorf("Couldn't find any suitable keys, won't try to fetch the repo '%s'", g.localRepo)
+			}
+		}
+	} else {
+		return errors.New("Please use ssh agent")
+	}
+}
+
 const githubDefaultHost = "github.com"
 
 func (g *GitHubSv) GetPullRequest(id string) (PullRequest, error) {
@@ -362,49 +411,6 @@ func (g GitHubPullRequest) GetDiff() ([]*gitdiff.File, error) {
 	rep, giterr := git.PlainOpen(g.sv.localRepo)
 	if giterr != nil {
 		return nil, giterr
-	}
-
-	if sshagent.Available() {
-
-		if a, _, err := sshagent.New(); err != nil {
-			return nil, fmt.Errorf("error creating SSH agent: %q", err)
-		} else if sigs, err := a.Signers(); err != nil {
-			return nil, fmt.Errorf("While getting signers", err)
-		} else {
-			newSigs := make([]ssh2.Signer, 0)
-			for _, s := range sigs {
-				if k, ok := s.PublicKey().(*agent.Key); ok {
-					if g.sv.sshKeySelector.MatchString(k.Comment) {
-						newSigs = append(newSigs, s)
-					}
-				}
-			}
-
-			if len(newSigs) > 0 {
-				ag := &ssh.PublicKeysCallback{
-					User: "git",
-					Callback: func() ([]ssh2.Signer, error) {
-						return newSigs, nil
-					},
-				}
-
-				ag.HostKeyCallback = func(hostname string, remote net.Addr, key ssh2.PublicKey) error {
-					return nil
-				}
-
-				sp := spinner.New(spinner.CharSets[55], time.Millisecond*50, spinner.WithSuffix(fmt.Sprintf(" Updating repository")))
-				sp.Start()
-				err = rep.Fetch(&git.FetchOptions{RemoteName: "origin", Auth: ag})
-				sp.Stop()
-				if err != nil {
-
-					pterm.Warning.Println("While trying to fetch the repo", err)
-					// return nil, err1
-				}
-			} else {
-				pterm.Warning.Println("Couldn't find any suitable keys, won't try to fetch the repo")
-			}
-		}
 	}
 
 	refBaseHash := plumbing.NewHash(*g.Base.SHA)

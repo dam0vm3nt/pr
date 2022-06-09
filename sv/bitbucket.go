@@ -7,7 +7,14 @@ import (
 	"fmt"
 	"github.com/antihax/optional"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
+	"github.com/briandowns/spinner"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/vballestra/sv/bitbucket"
+	sshagent "github.com/xanzy/ssh-agent"
+	ssh2 "golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
+	"net"
 	"net/http"
 	"strconv"
 	"time"
@@ -19,6 +26,57 @@ type BitBucketSv struct {
 	repoSlug  string
 	workspace string
 	localRepo string
+}
+
+func (b *BitBucketSv) Fetch() error {
+	rep, giterr := git.PlainOpen(b.localRepo)
+	if giterr != nil {
+		return giterr
+	}
+	if sshagent.Available() {
+
+		if a, _, err := sshagent.New(); err != nil {
+			return fmt.Errorf("error creating SSH agent: %q", err)
+		} else if sigs, err := a.Signers(); err != nil {
+			return fmt.Errorf("While getting signers", err)
+		} else {
+			newSigs := make([]ssh2.Signer, 0)
+			for _, s := range sigs {
+				if k, ok := s.PublicKey().(*agent.Key); ok {
+					// We don't use selector for now in BB (just because I'm lazy and don't want to spend
+					// time on it)
+					if k != nil /*b.sshKeySelector.MatchString(k.Comment)*/ {
+						newSigs = append(newSigs, s)
+					}
+				}
+			}
+
+			if len(newSigs) > 0 {
+				ag := &ssh.PublicKeysCallback{
+					User: "git",
+					Callback: func() ([]ssh2.Signer, error) {
+						return newSigs, nil
+					},
+				}
+
+				ag.HostKeyCallback = func(hostname string, remote net.Addr, key ssh2.PublicKey) error {
+					return nil
+				}
+
+				sp := spinner.New(spinner.CharSets[55], time.Millisecond*50, spinner.WithSuffix(fmt.Sprintf(" Updating repository")))
+				sp.Start()
+				err = rep.Fetch(&git.FetchOptions{RemoteName: "origin", Auth: ag})
+				sp.Stop()
+
+				return err
+
+			} else {
+				return fmt.Errorf("Couldn't find any suitable keys, won't try to fetch the repo '%s'", b.localRepo)
+			}
+		}
+	} else {
+		return errors.New("Please use ssh agent")
+	}
 }
 
 func (b *BitBucketSv) GetPullRequest(id string) (PullRequest, error) {

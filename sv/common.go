@@ -54,4 +54,5 @@ type Branch interface {
 type Sv interface {
 	ListPullRequests(query string) (<-chan PullRequest, error)
 	GetPullRequest(id string) (PullRequest, error)
+	Fetch() error
 }

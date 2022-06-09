@@ -60,10 +60,13 @@ type PullRequestView struct {
 	ready         bool
 	bookmarks     map[string][]int
 	bookmarksData map[int]interface{}
+	mainFocus     int
 
 	dirty   bool
 	xOffset int
 }
+
+var focusOrder = [...]viewAddress{CONTENT_ADDRESS, FILEVIEW_ADDRESS}
 
 func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 
@@ -109,6 +112,7 @@ func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 				bookmarks: map[string][]int{
 					COMMENT_CATEGORY: make([]int, 0),
 				},
+				mainFocus:     0,
 				bookmarksData: make(map[int]interface{}),
 				dirty:         true,
 				xOffset:       0}
@@ -182,6 +186,26 @@ func (p *PullRequestView) getContentView() (contentView, bool) {
 
 func (p *PullRequestView) getFileListView() (fileList, bool) {
 	return getModel[fileList](&p.boxer, FILEVIEW_ADDRESS)
+}
+
+func (p *PullRequestView) nextFocus() {
+	var i int
+	for i = (p.mainFocus + 1) % len(focusOrder); !p.isVisible(focusOrder[i]); i = (i + 1) % len(focusOrder) {
+	}
+	p.mainFocus = i
+}
+
+func (p *PullRequestView) isVisible(view viewAddress) bool {
+	switch view {
+	case FILEVIEW_ADDRESS:
+		return p.layoutMode.showFileView
+	default:
+		return true
+	}
+}
+
+func (p *PullRequestView) currentFocus() viewAddress {
+	return focusOrder[p.mainFocus]
 }
 
 func withView[T tea.Model](p *PullRequestView, address viewAddress, action func(T) (T, error)) error {
@@ -571,6 +595,8 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 
 		switch k := msg.String(); k {
+		case "tab":
+			p.nextFocus()
 		case "ctrl+c":
 			return p, tea.Quit
 		case "q":
@@ -585,14 +611,21 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				p.ready = false
 				cmds = append(cmds, tea.ClearScrollArea, RefreshSizeCmd)
 			}
+			if !p.isVisible(p.currentFocus()) {
+				p.nextFocus()
+			}
 		case "right":
-			p.xOffset += 4
-			cmds = append(cmds, renderPrCmd)
+			if p.currentFocus() == CONTENT_ADDRESS {
+				p.xOffset += 4
+				cmds = append(cmds, renderPrCmd)
+			}
 
 		case "left":
-			if p.xOffset >= 4 {
-				p.xOffset -= 4
-				cmds = append(cmds, renderPrCmd)
+			if p.currentFocus() == CONTENT_ADDRESS {
+				if p.xOffset >= 4 {
+					p.xOffset -= 4
+					cmds = append(cmds, renderPrCmd)
+				}
 			}
 		case "n":
 			p.moveToNextHeading(COMMIT_LEVEL)
@@ -611,17 +644,26 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if comment, ok := data.(sv.Comment); ok {
 					input := confirmation.New(fmt.Sprintf("Whant to reply to comment by %s", comment.GetUser().GetDisplayName()), confirmation.Yes)
 					if ready, err := input.RunPrompt(); err != nil && ready {
-
+						// Do nothing for now
 					}
 					return p, tea.ClearScrollArea
 				}
 			}
 		default:
-			p.withContentViewPtr(func(content *contentView) error {
-				content.viewport, cmd = content.viewport.Update(msg)
-				cmds = append(cmds, cmd)
-				return nil
-			})
+			switch p.currentFocus() {
+			case CONTENT_ADDRESS:
+				p.withContentViewPtr(func(content *contentView) error {
+					content.viewport, cmd = content.viewport.Update(msg)
+					cmds = append(cmds, cmd)
+					return nil
+				})
+			case FILEVIEW_ADDRESS:
+				p.withFileListView(func(view fileList) (fileList, error) {
+					newView, cmd := view.Update(msg)
+					cmds = append(cmds, cmd)
+					return newView.(fileList), nil
+				})
+			}
 		}
 
 	case tea.WindowSizeMsg:

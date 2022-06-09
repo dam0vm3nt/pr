@@ -26,6 +26,12 @@ var prShowCmd = &cobra.Command{
 
 		sv := GetSv()
 
+		if forcePrCheck {
+			if err := sv.Fetch(); err != nil {
+				pterm.Warning.Println("An issue occurred while fetching the repository: ", err)
+			}
+		}
+
 		for _, id := range args {
 
 			if pr, err := sv.GetPullRequest(id); err != nil {
@@ -50,11 +56,14 @@ var prShowCmd = &cobra.Command{
 	},
 }
 
+var forcePrCheck bool
+
 func init() {
 	prCmd.AddCommand(prShowCmd)
 
 	// Here you will define your flags and configuration settings.
 
+	prCmd.PersistentFlags().BoolVarP(&forcePrCheck, "fetch", "f", false, "Force repository fetch")
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
 	// prShowCmd.PersistentFlags().String("foo", "", "A help for foo")
