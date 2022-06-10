@@ -15,7 +15,10 @@ import (
 	"strings"
 )
 
-const COMMENT_CATEGORY = "COMMENT"
+const (
+	COMMENT_CATEGORY = bookmarkCategory("COMMENT")
+	FILE_CATEGORY    = bookmarkCategory("FILE")
+)
 
 type Heading struct {
 	line int
@@ -52,12 +55,14 @@ func loadPullRequestData(pr sv.PullRequest) (*pullRequestData, error) {
 	}
 }
 
+type bookmarkCategory string
+
 type PullRequestView struct {
 	boxer         boxer.Boxer
 	layoutMode    layoutMode
 	pullRequest   *pullRequestData
 	ready         bool
-	bookmarks     map[string][]int
+	bookmarks     map[bookmarkCategory][]int
 	bookmarksData map[int]interface{}
 	mainFocus     int
 
@@ -108,7 +113,7 @@ func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 				boxer:       box,
 				layoutMode:  mode,
 				pullRequest: data,
-				bookmarks: map[string][]int{
+				bookmarks: map[bookmarkCategory][]int{
 					COMMENT_CATEGORY: make([]int, 0),
 				},
 				mainFocus:     0,
@@ -397,7 +402,7 @@ func (prv *PullRequestView) removeLastHeader(header *pullRequestHeader, contentV
 	header.headings[lev] = append(header.headings[lev], Heading{contentView.currentLine(), header.headings[lev][len(header.headings[lev])-2].text})
 }
 
-func (prv *PullRequestView) addBookmark(contentView *contentView, b string, data interface{}) {
+func (prv *PullRequestView) addBookmark(contentView *contentView, b bookmarkCategory, data interface{}) {
 	prv.bookmarksData[len(prv.bookmarks[b])] = data
 	prv.bookmarks[b] = append(prv.bookmarks[b], contentView.currentLine()+1)
 }
@@ -466,7 +471,7 @@ func (p *PullRequestView) moveToPrevHeading(L int) {
 	})
 }
 
-func (p *PullRequestView) moveToNextBookmark(b string) error {
+func (p *PullRequestView) moveToNextBookmark(b bookmarkCategory) error {
 	return p.withContentViewPtr(func(content *contentView) error {
 		bookmarks := p.bookmarks[b]
 		if len(bookmarks) == 0 {
@@ -483,7 +488,18 @@ func (p *PullRequestView) moveToNextBookmark(b string) error {
 	})
 }
 
-func (p *PullRequestView) moveToPrevBookmark(b string) error {
+func (p *PullRequestView) moveToBookmark(b bookmarkCategory, ordinal int) error {
+	return p.withContentViewPtr(func(content *contentView) error {
+		bookmarks := p.bookmarks[b]
+		if len(bookmarks) == 0 || ordinal >= len(bookmarks) {
+			return errors.New("No bookmarks")
+		}
+		content.viewport.YOffset = bookmarks[ordinal]
+		return nil
+	})
+}
+
+func (p *PullRequestView) moveToPrevBookmark(b bookmarkCategory) error {
 	return p.withContentViewPtr(func(content *contentView) error {
 
 		bookmarks := p.bookmarks[b]
@@ -502,10 +518,25 @@ func (p *PullRequestView) moveToPrevBookmark(b string) error {
 	})
 }
 
-func currentBookmark(p *PullRequestView, b string) (int, interface{}) {
+func currentBookmark(p *PullRequestView, b bookmarkCategory) (int, interface{}) {
 	for n, l := range p.bookmarks[b] {
 		content, _ := p.getContentView()
 		if l == content.viewport.YOffset {
+			return n, p.bookmarksData[n]
+		}
+	}
+	return 0, nil
+}
+
+func currentBookmark2(p *PullRequestView, b bookmarkCategory) (int, interface{}) {
+	bookmarks := p.bookmarks[b]
+	for n, l := range bookmarks {
+		content, _ := p.getContentView()
+		l1 := math.MaxInt
+		if n+1 < len(bookmarks) {
+			l1 = bookmarks[n+1]
+		}
+		if l <= content.viewport.YOffset && content.viewport.YOffset < l1 {
 			return n, p.bookmarksData[n]
 		}
 	}
@@ -653,6 +684,9 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	//p, cmds = p.propagateEvent(msg, cmds)
 	case focusChangedMsg:
 		p, cmds = p.propagateEvent(msg, cmds)
+	case fileSelectedMsg:
+		p.moveToBookmark(FILE_CATEGORY, msg.ordinal)
+		p, cmds = p.propagateEvent(msg, cmds)
 	default:
 		p.withContentViewPtr(func(content *contentView) error {
 			content.viewport, cmd = content.viewport.Update(msg)
@@ -677,6 +711,13 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return nil
 	})
+
+	// Eventually send a file selected event
+	if flv, ok := p.getFileListView(); ok {
+		if ord, val := currentBookmark2(&p, FILE_CATEGORY); val != nil && ord != flv.selectedLine {
+			cmds = append(cmds, fileSelected(ord))
+		}
+	}
 
 	return p, tea.Batch(cmds...)
 }
@@ -743,6 +784,17 @@ const (
 	HEADINGS
 )
 
+func getFileName(file *gitdiff.File) string {
+	fn := file.OldName
+	if file.IsRename {
+		fn = file.NewName
+	} else if file.IsNew {
+		fn = file.NewName
+	}
+
+	return fn
+}
+
 func (prv *PullRequestView) renderPullRequest() {
 	if !prv.dirty {
 		return
@@ -751,6 +803,8 @@ func (prv *PullRequestView) renderPullRequest() {
 		return prv.withHeaderViewPtr(func(header *pullRequestHeader) error {
 			h := make(lines, 0)
 			content.clear()
+
+			prv.bookmarks[FILE_CATEGORY] = make([]int, 0)
 			header.header = &h
 
 			pr := prv.pullRequest
@@ -794,6 +848,8 @@ func (prv *PullRequestView) renderPullRequest() {
 				} else {
 					addHeading(content, header, content.viewport.Width, FILE_LEVEL, "%s:", file.NewName)
 				}
+
+				prv.addBookmark(content, FILE_CATEGORY, file)
 
 				commentsForFileOrig, haveFileComments := prv.pullRequest.commentMap[fn]
 
