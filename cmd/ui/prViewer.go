@@ -11,7 +11,10 @@ import (
 	"github.com/pterm/pterm"
 	boxer "github.com/treilik/bubbleboxer"
 	"github.com/vballestra/sv/sv"
+	"io/ioutil"
 	"math"
+	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -96,7 +99,8 @@ func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 		}
 
 		content := contentView{
-			data: data,
+			data:         data,
+			selectedLine: -1,
 		}
 
 		mode := newLayoutMode()
@@ -653,8 +657,14 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if _, data := currentBookmark(&p, COMMENT_CATEGORY); data != nil {
 				if comment, ok := data.(sv.Comment); ok {
 					input := confirmation.New(fmt.Sprintf("Whant to reply to comment by %s", comment.GetUser().GetDisplayName()), confirmation.Yes)
-					if ready, err := input.RunPrompt(); err != nil && ready {
+					if yes, err := input.RunPrompt(); yes && err == nil {
 						// Do nothing for now
+						if replyText, err := launchEditor(""); err == nil {
+							if _, err := p.pullRequest.ReplyToComment(comment, replyText); err != nil {
+								pterm.Warning.Println("Couldn't reply: ", err)
+							}
+						}
+
 					}
 					return p, tea.ClearScrollArea
 				}
@@ -663,8 +673,23 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch p.currentFocus() {
 			case CONTENT_ADDRESS:
 				p.withContentViewPtr(func(content *contentView) error {
-					content.viewport, cmd = content.viewport.Update(msg)
-					cmds = append(cmds, cmd)
+
+					if !content.isLineSelected() {
+						if msg.String() == " " {
+							content.selectLine(content.viewport.YOffset)
+						} else {
+							content.viewport, cmd = content.viewport.Update(msg)
+							cmds = append(cmds, cmd)
+						}
+					} else {
+						if msg.String() == "up" {
+							content.selectUp()
+						} else if msg.String() == "down" {
+							content.selectDown()
+						} else if msg.String() == " " {
+							content.selectLine(-1)
+						}
+					}
 					return nil
 				})
 			case FILEVIEW_ADDRESS:
@@ -722,6 +747,42 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return p, tea.Batch(cmds...)
+}
+
+func launchEditor(initialText string) (string, error) {
+	if file, err := ioutil.TempFile(os.TempDir(), "comment-"); err == nil {
+		if _, err = file.WriteString(initialText); err != nil {
+			return "", err
+		}
+		file.Close()
+		defer os.Remove(file.Name())
+
+		// Run editor
+		var editorPath string
+		if editorPath = os.Getenv("EDITOR"); editorPath != "" {
+			editorPath = "vim"
+		}
+
+		cmd := exec.Command(editorPath, file.Name())
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		if err = cmd.Start(); err != nil {
+			return "", err
+		}
+		if err = cmd.Wait(); err != nil {
+			return "", err
+		}
+
+		// Read back the file and write it
+		if content, err := ioutil.ReadFile(file.Name()); err == nil {
+			return string(content[:]), nil
+		} else {
+			return "", err
+		}
+
+	} else {
+		return "", err
+	}
 }
 
 func (p PullRequestView) propagateEvent(msg tea.Msg, cmds []tea.Cmd) (PullRequestView, []tea.Cmd) {

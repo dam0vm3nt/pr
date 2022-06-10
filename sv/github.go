@@ -1,5 +1,6 @@
 package sv
 
+import "C"
 import (
 	"bytes"
 	"context"
@@ -154,6 +155,21 @@ func (g *GitHubSv) ListPullRequests(query string) (<-chan PullRequest, error) {
 type GitHubPullRequest struct {
 	*gh.PullRequest
 	sv *GitHubSv
+}
+
+func (g GitHubPullRequest) ReplyToComment(comment Comment, replyText string) (Comment, error) {
+	if c, ok := comment.(GitHubCommentWrapper); ok {
+		if cmt, _, err := g.sv.client.PullRequests.CreateComment(g.sv.ctx, g.sv.owner, g.sv.repo, g.GetNumber(), &gh.PullRequestComment{
+			InReplyTo: c.ID,
+			Body:      &replyText,
+		}); err == nil {
+			return GitHubCommentWrapper{cmt}, nil
+		} else {
+			return nil, err
+		}
+	} else {
+		return nil, fmt.Errorf("Illegal argument: not a github comment")
+	}
 }
 
 func (g GitHubPullRequest) GetChecks() ([]Check, error) {

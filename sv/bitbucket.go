@@ -132,6 +132,11 @@ type BitbucketPullRequestWrapper struct {
 	client *BitBucketSv
 }
 
+func (b BitbucketPullRequestWrapper) ReplyToComment(comment Comment, replyText string) (Comment, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (b BitbucketPullRequestWrapper) GetReviews() ([]Review, error) {
 	//TODO implement me
 	panic("implement me")

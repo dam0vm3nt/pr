@@ -17,6 +17,7 @@ type PullRequest interface {
 	GetBase() Branch
 	GetChecks() ([]Check, error)
 	GetReviews() ([]Review, error)
+	ReplyToComment(comment Comment, replyText string) (Comment, error)
 }
 
 type Comment interface {
