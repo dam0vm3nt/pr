@@ -685,7 +685,9 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case focusChangedMsg:
 		p, cmds = p.propagateEvent(msg, cmds)
 	case fileSelectedMsg:
-		p.moveToBookmark(FILE_CATEGORY, msg.ordinal)
+		if msg.move {
+			p.moveToBookmark(FILE_CATEGORY, msg.ordinal)
+		}
 		p, cmds = p.propagateEvent(msg, cmds)
 	default:
 		p.withContentViewPtr(func(content *contentView) error {
@@ -715,7 +717,7 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Eventually send a file selected event
 	if flv, ok := p.getFileListView(); ok {
 		if ord, val := currentBookmark2(&p, FILE_CATEGORY); val != nil && ord != flv.selectedLine {
-			cmds = append(cmds, fileSelected(ord))
+			cmds = append(cmds, fileSelected(ord, false))
 		}
 	}
 
@@ -833,6 +835,8 @@ func (prv *PullRequestView) renderPullRequest() {
 			//header.printf("Diff of %d files:\n\n", len(files))
 
 			for _, file := range prv.pullRequest.files {
+				prv.addBookmark(content, FILE_CATEGORY, file)
+
 				fn := file.OldName
 				if file.IsRename {
 					addHeading(content, header, content.viewport.Width, FILE_LEVEL, "%s -> %s:", file.OldName, file.NewName)
@@ -848,8 +852,6 @@ func (prv *PullRequestView) renderPullRequest() {
 				} else {
 					addHeading(content, header, content.viewport.Width, FILE_LEVEL, "%s:", file.NewName)
 				}
-
-				prv.addBookmark(content, FILE_CATEGORY, file)
 
 				commentsForFileOrig, haveFileComments := prv.pullRequest.commentMap[fn]
 

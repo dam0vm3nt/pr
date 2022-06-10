@@ -22,11 +22,12 @@ func (f fileList) Init() tea.Cmd {
 
 type fileSelectedMsg struct {
 	ordinal int
+	move    bool
 }
 
-func fileSelected(file int) tea.Cmd {
+func fileSelected(file int, move bool) tea.Cmd {
 	return func() tea.Msg {
-		return fileSelectedMsg{file}
+		return fileSelectedMsg{file, move}
 	}
 }
 
@@ -41,7 +42,7 @@ func (f fileList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "down":
 			if f.selectedLine < len(f.pullRequestData.files)-1 {
 				f.selectedLine += 1
-				cmd = fileSelected(f.selectedLine)
+				cmd = fileSelected(f.selectedLine, true)
 			}
 			for (f.selectedLine - f.firstLine) >= f.h {
 				f.firstLine++
@@ -49,7 +50,7 @@ func (f fileList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "up":
 			if f.selectedLine > 0 {
 				f.selectedLine -= 1
-				cmd = fileSelected(f.selectedLine)
+				cmd = fileSelected(f.selectedLine, true)
 			}
 			for f.selectedLine < f.firstLine {
 				f.firstLine--
@@ -58,7 +59,7 @@ func (f fileList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case fileSelectedMsg:
 		if f.selectedLine != m.ordinal {
 			f.selectedLine = m.ordinal
-			f.firstLine = min1(-min1(-(f.firstLine-f.h), -f.firstLine), f.selectedLine)
+			f.firstLine = min1(-min1(-(m.ordinal-(f.h-1)), -f.firstLine), f.selectedLine)
 		}
 	case focusChangedMsg:
 		f.active = m.newFocus == FILEVIEW_ADDRESS
