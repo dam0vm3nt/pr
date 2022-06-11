@@ -630,16 +630,6 @@ func focusChanged(address viewAddress) func() tea.Msg {
 	}
 }
 
-type showErrMsg struct {
-	err error
-}
-
-func showErr(err error) func() tea.Msg {
-	return func() tea.Msg {
-		return showErrMsg{err}
-	}
-}
-
 func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
@@ -647,7 +637,7 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 	)
 
 	switch msg := m.(type) {
-	case showErrMsg:
+	case clearStatusMsg:
 		p.withStatusBarView(func(sb statusBar) (statusBar, error) {
 			newBar, cmd := sb.Update(m)
 			cmds = append(cmds, cmd)
@@ -1096,6 +1086,10 @@ var asyncMsg chan tea.Msg
 
 func sendAsyncMsg(msg tea.Msg) {
 	asyncMsg <- msg
+}
+
+func sendAsyncCmd(cmd tea.Cmd) {
+	sendAsyncMsg(cmd())
 }
 
 func ShowPr(pr sv.PullRequest) error {

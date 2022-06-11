@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/pterm/pterm"
@@ -16,39 +15,67 @@ const (
 )
 
 type statusBar struct {
-	width   int
-	mode    messageMode
-	message string
+	width     int
+	mode      messageMode
+	message   string
+	messageId int64
 }
 
 func newStatusBar() statusBar {
-	return statusBar{-1, normalMode, ""}
+	return statusBar{-1, normalMode, "", 0}
 }
 
 func (s statusBar) Init() tea.Cmd {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 type showStatusMsg struct {
 	mode    messageMode
 	message string
+	timeout time.Duration
+}
+
+type clearStatusMsg struct {
+	messageId int64
+}
+
+func clearStatus(messageId int64) tea.Cmd {
+	return func() tea.Msg {
+		return clearStatusMsg{messageId: messageId}
+	}
+}
+
+func showStatus(mode messageMode, message string, timeout time.Duration) tea.Cmd {
+	return func() tea.Msg {
+		return showStatusMsg{mode, message, timeout}
+	}
+}
+
+func showErr(err error) tea.Cmd {
+	return showStatus(severeMode, err.Error(), 3*time.Second)
 }
 
 func (s statusBar) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		s.width = msg.Width
-	case showErrMsg:
-		s.message = fmt.Sprintf("%s", msg.err)
-		s.mode = severeMode
-		go func() {
-			time.Sleep(2 * time.Second)
-			sendAsyncMsg(showStatusMsg{normalMode, ""})
-		}()
+	case clearStatusMsg:
+		if s.messageId == msg.messageId {
+			s.message = ""
+			s.mode = normalMode
+			s.messageId++
+		}
 	case showStatusMsg:
 		s.message = msg.message
 		s.mode = msg.mode
+		s.messageId++
+
+		if msg.timeout > 0 {
+			go func(id int64) {
+				time.Sleep(msg.timeout)
+				sendAsyncCmd(clearStatus(id))
+			}(s.messageId)
+		}
 	}
 
 	return s, nil
