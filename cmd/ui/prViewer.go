@@ -345,21 +345,20 @@ func layoutWidgets(box *boxer.Boxer, mode layoutMode) (boxer.Node, error) {
 						bottomNode = *contentNode
 					}
 
-					layout := boxer.Node{
-						VerticalStacked: true,
-						SizeFunc: func(node boxer.Node, height int) []int {
-							headerHeight := header.measureHeight()
-							return []int{
-								headerHeight,
-								height - 2 - headerHeight,
-								2,
-							}
-						},
-						Children: []boxer.Node{
-							*headerNode,
-							bottomNode,
-							*statusNode,
-						},
+					layout := boxer.CreateNoBorderNode()
+					layout.VerticalStacked = true
+					layout.SizeFunc = func(node boxer.Node, height int) []int {
+						headerHeight := header.measureHeight()
+						return []int{
+							headerHeight,
+							height - 1 - headerHeight,
+							1,
+						}
+					}
+					layout.Children = []boxer.Node{
+						*headerNode,
+						bottomNode,
+						*statusNode,
 					}
 					return layout, nil
 				}
