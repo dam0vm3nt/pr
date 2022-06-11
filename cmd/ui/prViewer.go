@@ -267,6 +267,10 @@ func (p *PullRequestView) withContentView(action func(view contentView) (content
 	return withView(p, CONTENT_ADDRESS, action)
 }
 
+func (p *PullRequestView) withStatusBarView(action func(view statusBar) (statusBar, error)) error {
+	return withView(p, STATUSBAR_ADDRESS, action)
+}
+
 func (p *PullRequestView) withFileListView(action func(view fileList) (fileList, error)) error {
 	return withView(p, FILEVIEW_ADDRESS, action)
 }
@@ -326,10 +330,10 @@ func layoutWidgets(box *boxer.Boxer, mode layoutMode) (boxer.Node, error) {
 		if _, contentNode, ok := getModelAndNode[contentView](box, CONTENT_ADDRESS); ok {
 			if _, listNode, ok := getModelAndNode[fileList](box, FILEVIEW_ADDRESS); ok {
 				if _, statusNode, ok := getModelAndNode[statusBar](box, STATUSBAR_ADDRESS); ok {
-					var bottomNode boxer.Node
+					var bottomNode *boxer.Node
 
 					if mode.showFileView {
-						bottomNode = boxer.Node{
+						bottomNode = &boxer.Node{
 							VerticalStacked: false,
 							Children: []boxer.Node{
 								*listNode, *contentNode,
@@ -342,7 +346,7 @@ func layoutWidgets(box *boxer.Boxer, mode layoutMode) (boxer.Node, error) {
 							},
 						}
 					} else {
-						bottomNode = *contentNode
+						bottomNode = contentNode
 					}
 
 					layout := boxer.CreateNoBorderNode()
@@ -357,7 +361,7 @@ func layoutWidgets(box *boxer.Boxer, mode layoutMode) (boxer.Node, error) {
 					}
 					layout.Children = []boxer.Node{
 						*headerNode,
-						bottomNode,
+						*bottomNode,
 						*statusNode,
 					}
 					return layout, nil
@@ -636,13 +640,25 @@ func showErr(err error) func() tea.Msg {
 	}
 }
 
-func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
 		cmds []tea.Cmd
 	)
 
-	switch msg := msg.(type) {
+	switch msg := m.(type) {
+	case showErrMsg:
+		p.withStatusBarView(func(sb statusBar) (statusBar, error) {
+			newBar, cmd := sb.Update(m)
+			cmds = append(cmds, cmd)
+			return newBar.(statusBar), nil
+		})
+	case showStatusMsg:
+		p.withStatusBarView(func(sb statusBar) (statusBar, error) {
+			newBar, cmd := sb.Update(m)
+			cmds = append(cmds, cmd)
+			return newBar.(statusBar), nil
+		})
 	case renderPrMsg:
 		p.dirty = true
 		p.ready = true
@@ -700,6 +716,8 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					return p, tea.ClearScrollArea
 				}
+			} else {
+				return p, showErr(fmt.Errorf("No comments found at line %d", msg.line))
 			}
 		}
 
