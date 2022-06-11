@@ -286,9 +286,10 @@ func (p *PullRequestView) withFileListViewPtr(action func(*fileList) error) erro
 type viewAddress string
 
 const (
-	HEADER_ADDRESS   viewAddress = "header"
-	CONTENT_ADDRESS  viewAddress = "view"
-	FILEVIEW_ADDRESS viewAddress = "files"
+	HEADER_ADDRESS    viewAddress = "header"
+	CONTENT_ADDRESS   viewAddress = "view"
+	FILEVIEW_ADDRESS  viewAddress = "files"
+	STATUSBAR_ADDRESS viewAddress = "statusBar"
 )
 
 type layoutMode struct {
@@ -314,6 +315,7 @@ func initWidgetsLayout(box *boxer.Boxer, header pullRequestHeader, content conte
 	box.ModelMap[string(HEADER_ADDRESS)] = header
 	box.ModelMap[string(CONTENT_ADDRESS)] = content
 	box.ModelMap[string(FILEVIEW_ADDRESS)] = fileView
+	box.ModelMap[string(STATUSBAR_ADDRESS)] = newStatusBar()
 
 	return layoutWidgets(box, mode)
 }
@@ -323,40 +325,44 @@ func layoutWidgets(box *boxer.Boxer, mode layoutMode) (boxer.Node, error) {
 	if header, headerNode, ok := getModelAndNode[pullRequestHeader](box, HEADER_ADDRESS); ok {
 		if _, contentNode, ok := getModelAndNode[contentView](box, CONTENT_ADDRESS); ok {
 			if _, listNode, ok := getModelAndNode[fileList](box, FILEVIEW_ADDRESS); ok {
-				var bottomNode boxer.Node
+				if _, statusNode, ok := getModelAndNode[statusBar](box, STATUSBAR_ADDRESS); ok {
+					var bottomNode boxer.Node
 
-				if mode.showFileView {
-					bottomNode = boxer.Node{
-						VerticalStacked: false,
-						Children: []boxer.Node{
-							*listNode, *contentNode,
-						},
-						SizeFunc: func(node boxer.Node, width int) []int {
+					if mode.showFileView {
+						bottomNode = boxer.Node{
+							VerticalStacked: false,
+							Children: []boxer.Node{
+								*listNode, *contentNode,
+							},
+							SizeFunc: func(node boxer.Node, width int) []int {
+								return []int{
+									width / 3,
+									width - (width / 3),
+								}
+							},
+						}
+					} else {
+						bottomNode = *contentNode
+					}
+
+					layout := boxer.Node{
+						VerticalStacked: true,
+						SizeFunc: func(node boxer.Node, height int) []int {
+							headerHeight := header.measureHeight()
 							return []int{
-								width / 3,
-								width - (width / 3),
+								headerHeight,
+								height - 2 - headerHeight,
+								2,
 							}
 						},
+						Children: []boxer.Node{
+							*headerNode,
+							bottomNode,
+							*statusNode,
+						},
 					}
-				} else {
-					bottomNode = *contentNode
+					return layout, nil
 				}
-
-				layout := boxer.Node{
-					VerticalStacked: true,
-					SizeFunc: func(node boxer.Node, height int) []int {
-						headerHeight := header.measureHeight()
-						return []int{
-							headerHeight,
-							height - headerHeight,
-						}
-					},
-					Children: []boxer.Node{
-						*headerNode,
-						bottomNode,
-					},
-				}
-				return layout, nil
 			}
 		}
 	}
@@ -544,9 +550,16 @@ func (p *PullRequestView) moveToPrevBookmark(b bookmarkCategory) error {
 }
 
 func currentBookmark(p *PullRequestView, b bookmarkCategory) (int, interface{}) {
+	if content, ok := p.getContentView(); ok {
+		return bookmarkAt(p, b, content.viewport.YOffset)
+	} else {
+		return 0, nil
+	}
+}
+
+func bookmarkAt(p *PullRequestView, b bookmarkCategory, line int) (int, interface{}) {
 	for n, l := range p.bookmarks[b] {
-		content, _ := p.getContentView()
-		if l == content.viewport.YOffset {
+		if l == line {
 			return n, p.bookmarksData[n]
 		}
 	}
@@ -614,6 +627,16 @@ func focusChanged(address viewAddress) func() tea.Msg {
 	}
 }
 
+type showErrMsg struct {
+	err error
+}
+
+func showErr(err error) func() tea.Msg {
+	return func() tea.Msg {
+		return showErrMsg{err}
+	}
+}
+
 func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
@@ -628,7 +651,7 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case lineCommandMsg:
 		switch msg.cmd {
 		case newComment:
-			input := confirmation.New(fmt.Sprintf("Whant to comment line %05d/%05d", msg.code.old, msg.code.new), confirmation.Yes)
+			input := confirmation.New(fmt.Sprintf("Want to comment line %05d/%05d", msg.code.old, msg.code.new), confirmation.Yes)
 			if yes, err := input.RunPrompt(); yes && err == nil {
 				// Do nothing for now
 				if comment, err := launchEditor(""); err == nil && comment != "" {
@@ -644,6 +667,41 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			}
 			return p, tea.ClearScrollArea
+		case replyComment:
+			if _, data := bookmarkAt(&p, COMMENT_CATEGORY, msg.line); data != nil {
+				if comment, ok := data.(sv.Comment); ok {
+					input := confirmation.New(fmt.Sprintf("Whant to reply to comment by %s", comment.GetUser().GetDisplayName()), confirmation.Yes)
+					if yes, err := input.RunPrompt(); yes && err == nil {
+						// Do nothing for now
+						if replyText, err := launchEditor(""); err == nil {
+							if _, err := p.pullRequest.ReplyToComment(comment, replyText); err != nil {
+								pterm.Warning.Println("Couldn't reply: ", err)
+							} else {
+								if pr, err := loadPullRequestData(p.pullRequest.PullRequest); err == nil {
+									p.pullRequest = pr
+									p.withContentViewPtr(func(view *contentView) error {
+										view.data = pr
+										return nil
+									})
+									p.withHeaderViewPtr(func(header *pullRequestHeader) error {
+										header.data = pr
+										return nil
+									})
+									p.withFileListViewPtr(func(list *fileList) error {
+										list.pullRequestData = pr
+										return nil
+									})
+									return p, tea.Batch(tea.ClearScrollArea, renderPrCmd)
+								} else {
+									return p, showErr(err)
+								}
+							}
+						}
+
+					}
+					return p, tea.ClearScrollArea
+				}
+			}
 		}
 
 	case tea.KeyMsg:
@@ -695,20 +753,8 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "C":
 			p.moveToPrevBookmark(COMMENT_CATEGORY)
 		case "r":
-			if _, data := currentBookmark(&p, COMMENT_CATEGORY); data != nil {
-				if comment, ok := data.(sv.Comment); ok {
-					input := confirmation.New(fmt.Sprintf("Whant to reply to comment by %s", comment.GetUser().GetDisplayName()), confirmation.Yes)
-					if yes, err := input.RunPrompt(); yes && err == nil {
-						// Do nothing for now
-						if replyText, err := launchEditor(""); err == nil {
-							if _, err := p.pullRequest.ReplyToComment(comment, replyText); err != nil {
-								pterm.Warning.Println("Couldn't reply: ", err)
-							}
-						}
-
-					}
-					return p, tea.ClearScrollArea
-				}
+			if cv, ok := p.getContentView(); ok {
+				return p, lineCommand(replyComment, cv.viewport.YOffset, nil)
 			}
 		default:
 			switch p.currentFocus() {
@@ -1027,4 +1073,39 @@ func (prv *PullRequestView) renderPullRequest() {
 		})
 	})
 
+}
+
+var asyncMsg chan tea.Msg
+
+func sendAsyncMsg(msg tea.Msg) {
+	asyncMsg <- msg
+}
+
+func ShowPr(pr sv.PullRequest) error {
+	asyncMsg = make(chan tea.Msg)
+	defer close(asyncMsg)
+
+	if prv, err := NewView(pr); err != nil {
+		return err
+	} else {
+		// Show Pr
+		p := tea.NewProgram(
+			prv,
+			tea.WithAltScreen(),       // use the full size of the terminal in its "alternate screen buffer"
+			tea.WithMouseCellMotion(), // turn on mouse support so we can track the mouse wheel
+		)
+
+		// Start processing any async msg
+		go func() {
+			for msg := range asyncMsg {
+				p.Send(msg)
+			}
+		}()
+
+		if err := p.Start(); err != nil {
+			fmt.Println("could not run program:", err)
+			os.Exit(1)
+		}
+		return nil
+	}
 }

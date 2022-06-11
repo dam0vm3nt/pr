@@ -37,6 +37,7 @@ type lineCmd int
 
 const (
 	newComment lineCmd = iota
+	replyComment
 	editComment
 	deleteComment
 )

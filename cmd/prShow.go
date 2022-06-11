@@ -5,13 +5,10 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 	"github.com/vballestra/sv/cmd/ui"
 	"log"
-	"os"
 )
 
 // prShowCmd represents the prShow command
@@ -33,24 +30,10 @@ var prShowCmd = &cobra.Command{
 		}
 
 		for _, id := range args {
-
 			if pr, err := sv.GetPullRequest(id); err != nil {
 				pterm.Error.Println(err)
-			} else if prv, err := ui.NewView(pr); err != nil {
+			} else if err = ui.ShowPr(pr); err != nil {
 				pterm.Warning.Println("Cannot render pr ", pr.GetId(), " because ", err)
-				continue
-			} else {
-				// Show Pr
-				p := tea.NewProgram(
-					prv,
-					tea.WithAltScreen(),       // use the full size of the terminal in its "alternate screen buffer"
-					tea.WithMouseCellMotion(), // turn on mouse support so we can track the mouse wheel
-				)
-
-				if err := p.Start(); err != nil {
-					fmt.Println("could not run program:", err)
-					os.Exit(1)
-				}
 			}
 		}
 	},
