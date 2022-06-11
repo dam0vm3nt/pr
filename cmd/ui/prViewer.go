@@ -81,14 +81,18 @@ func loadPullRequestData(pr sv.PullRequest) (*pullRequestData, error) {
 
 type bookmarkCategory string
 
+type bookmark struct {
+	line int
+	data interface{}
+}
+
 type PullRequestView struct {
-	boxer         boxer.Boxer
-	layoutMode    layoutMode
-	pullRequest   *pullRequestData
-	ready         bool
-	bookmarks     map[bookmarkCategory][]int
-	bookmarksData map[int]interface{}
-	mainFocus     int
+	boxer       boxer.Boxer
+	layoutMode  layoutMode
+	pullRequest *pullRequestData
+	ready       bool
+	bookmarks   map[bookmarkCategory][]bookmark
+	mainFocus   int
 
 	dirty   bool
 	xOffset int
@@ -138,13 +142,12 @@ func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 				boxer:       box,
 				layoutMode:  mode,
 				pullRequest: data,
-				bookmarks: map[bookmarkCategory][]int{
-					COMMENT_CATEGORY: make([]int, 0),
+				bookmarks: map[bookmarkCategory][]bookmark{
+					COMMENT_CATEGORY: make([]bookmark, 0),
 				},
-				mainFocus:     0,
-				bookmarksData: make(map[int]interface{}),
-				dirty:         true,
-				xOffset:       0}
+				mainFocus: 0,
+				dirty:     true,
+				xOffset:   0}
 
 			return prv, nil
 		}
@@ -437,8 +440,7 @@ func (prv *PullRequestView) removeLastHeader(header *pullRequestHeader, contentV
 }
 
 func (prv *PullRequestView) addBookmark(contentView *contentView, b bookmarkCategory, data interface{}) {
-	prv.bookmarksData[len(prv.bookmarks[b])] = data
-	prv.bookmarks[b] = append(prv.bookmarks[b], contentView.currentLine()+1)
+	prv.bookmarks[b] = append(prv.bookmarks[b], bookmark{contentView.currentLine() + 1, data})
 }
 
 func addHeading(content *contentView, header *pullRequestHeader, w int, lev int, format string, args ...any) {
@@ -512,12 +514,12 @@ func (p *PullRequestView) moveToNextBookmark(b bookmarkCategory) error {
 			return errors.New("No bookmarks")
 		}
 		for _, l := range bookmarks {
-			if l > content.viewport.YOffset {
-				content.viewport.YOffset = l
+			if l.line > content.viewport.YOffset {
+				content.viewport.YOffset = l.line
 				return nil
 			}
 		}
-		content.viewport.YOffset = bookmarks[0]
+		content.viewport.YOffset = bookmarks[0].line
 		return nil
 	})
 }
@@ -528,7 +530,7 @@ func (p *PullRequestView) moveToBookmark(b bookmarkCategory, ordinal int) error 
 		if len(bookmarks) == 0 || ordinal >= len(bookmarks) {
 			return errors.New("No bookmarks")
 		}
-		content.viewport.YOffset = bookmarks[ordinal]
+		content.viewport.YOffset = bookmarks[ordinal].line
 		return nil
 	})
 }
@@ -542,12 +544,12 @@ func (p *PullRequestView) moveToPrevBookmark(b bookmarkCategory) error {
 		}
 		for i := len(bookmarks) - 1; i >= 0; i-- {
 			l := bookmarks[i]
-			if l < content.viewport.YOffset {
-				content.viewport.YOffset = l
+			if l.line < content.viewport.YOffset {
+				content.viewport.YOffset = l.line
 				return nil
 			}
 		}
-		content.viewport.YOffset = bookmarks[len(bookmarks)-1]
+		content.viewport.YOffset = bookmarks[len(bookmarks)-1].line
 		return nil
 	})
 }
@@ -562,8 +564,8 @@ func currentBookmark(p *PullRequestView, b bookmarkCategory) (int, interface{}) 
 
 func bookmarkAt(p *PullRequestView, b bookmarkCategory, line int) (int, interface{}) {
 	for n, l := range p.bookmarks[b] {
-		if l == line {
-			return n, p.bookmarksData[n]
+		if l.line == line {
+			return n, l.data
 		}
 	}
 	return 0, nil
@@ -575,10 +577,10 @@ func currentBookmark2(p *PullRequestView, b bookmarkCategory) (int, interface{})
 		content, _ := p.getContentView()
 		l1 := math.MaxInt
 		if n+1 < len(bookmarks) {
-			l1 = bookmarks[n+1]
+			l1 = bookmarks[n+1].line
 		}
-		if l <= content.viewport.YOffset && content.viewport.YOffset < l1 {
-			return n, p.bookmarksData[n]
+		if l.line <= content.viewport.YOffset && content.viewport.YOffset < l1 {
+			return n, l.data
 		}
 	}
 	return 0, nil
@@ -637,18 +639,16 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 	)
 
 	switch msg := m.(type) {
-	case clearStatusMsg:
-		p.withStatusBarView(func(sb statusBar) (statusBar, error) {
+	case clearStatusMsg,
+		showStatusMsg:
+		if err := p.withStatusBarView(func(sb statusBar) (statusBar, error) {
 			newBar, cmd := sb.Update(m)
 			cmds = append(cmds, cmd)
 			return newBar.(statusBar), nil
-		})
-	case showStatusMsg:
-		p.withStatusBarView(func(sb statusBar) (statusBar, error) {
-			newBar, cmd := sb.Update(m)
-			cmds = append(cmds, cmd)
-			return newBar.(statusBar), nil
-		})
+		}); err != nil {
+			pterm.Warning.Println("Coudln't process a message to status bar: ", err)
+		}
+
 	case renderPrMsg:
 		p.dirty = true
 		p.ready = true
@@ -946,7 +946,7 @@ func (prv *PullRequestView) renderPullRequest() {
 			h := make(lines, 0)
 			content.clear()
 
-			prv.bookmarks[FILE_CATEGORY] = make([]int, 0)
+			prv.bookmarks[FILE_CATEGORY] = make([]bookmark, 0)
 			header.header = &h
 
 			pr := prv.pullRequest
