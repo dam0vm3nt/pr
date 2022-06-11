@@ -30,11 +30,31 @@ type Heading struct {
 
 type pullRequestData struct {
 	sv.PullRequest
-	checks     []sv.Check
-	reviews    []sv.Review
-	prComments []sv.Comment
-	commentMap map[string]map[int64][]sv.Comment
-	files      []*gitdiff.File
+	checks       []sv.Check
+	reviews      []sv.Review
+	prComments   []sv.Comment
+	commentMap   map[string]map[int64][]sv.Comment
+	files        []*gitdiff.File
+	lastCommitId string
+}
+
+func (d *pullRequestData) addComment(path string, old int64, new int64, isNew bool, comment sv.Comment) {
+	n := new
+	if !isNew {
+		n = -old
+	}
+	fileComments, ok := d.commentMap[path]
+	if !ok {
+		fileComments = make(map[int64][]sv.Comment)
+	}
+	lineComments, ok := fileComments[n]
+	if !ok {
+		lineComments = make([]sv.Comment, 0)
+	}
+
+	lineComments = append(lineComments, comment)
+	fileComments[n] = lineComments
+	d.commentMap[path] = fileComments
 }
 
 func loadPullRequestData(pr sv.PullRequest) (*pullRequestData, error) {
@@ -54,7 +74,8 @@ func loadPullRequestData(pr sv.PullRequest) (*pullRequestData, error) {
 			reviews,
 			prComments,
 			commentMap,
-			files}, nil
+			files,
+			pr.GetLastCommitId()}, nil
 	}
 }
 
@@ -604,6 +625,26 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		p.dirty = true
 		p.ready = true
 		p.renderPullRequest()
+	case lineCommandMsg:
+		switch msg.cmd {
+		case newComment:
+			input := confirmation.New(fmt.Sprintf("Whant to comment line %05d/%05d", msg.code.old, msg.code.new), confirmation.Yes)
+			if yes, err := input.RunPrompt(); yes && err == nil {
+				// Do nothing for now
+				if comment, err := launchEditor(""); err == nil && comment != "" {
+					isNew := msg.code.code.New()
+					fn := getFileName(msg.code.file)
+					if newComment, err := p.pullRequest.CreateComment(fn, msg.code.commitId, msg.code.position, isNew, comment); err != nil {
+						pterm.Warning.Println("Couldn't add: ", err)
+					} else {
+						p.pullRequest.addComment(fn, msg.code.new, msg.code.old, isNew, newComment)
+						return p, tea.Batch(tea.ClearScrollArea, renderPrCmd)
+					}
+				}
+
+			}
+			return p, tea.ClearScrollArea
+		}
 
 	case tea.KeyMsg:
 
@@ -672,25 +713,10 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		default:
 			switch p.currentFocus() {
 			case CONTENT_ADDRESS:
-				p.withContentViewPtr(func(content *contentView) error {
-
-					if !content.isLineSelected() {
-						if msg.String() == " " {
-							content.selectLine(content.viewport.YOffset)
-						} else {
-							content.viewport, cmd = content.viewport.Update(msg)
-							cmds = append(cmds, cmd)
-						}
-					} else {
-						if msg.String() == "up" {
-							content.selectUp()
-						} else if msg.String() == "down" {
-							content.selectDown()
-						} else if msg.String() == " " {
-							content.selectLine(-1)
-						}
-					}
-					return nil
+				p.withContentView(func(content contentView) (contentView, error) {
+					newView, cmd := content.Update(msg)
+					cmds = append(cmds, cmd)
+					return newView.(contentView), nil
 				})
 			case FILEVIEW_ADDRESS:
 				p.withFileListView(func(view fileList) (fileList, error) {
@@ -948,7 +974,8 @@ func (prv *PullRequestView) renderPullRequest() {
 						oldN := frag.OldPosition
 						newN := frag.NewPosition
 
-						for _, ln := range frag.Lines {
+						for pos, ln := range frag.Lines {
+							content.saveLine(prv.pullRequest.GetLastCommitId(), oldN, newN, pos+1, file, ln)
 							var style lipgloss.Style
 							switch ln.Op {
 							case gitdiff.OpAdd:

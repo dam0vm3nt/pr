@@ -157,6 +157,32 @@ type GitHubPullRequest struct {
 	sv *GitHubSv
 }
 
+func (g GitHubPullRequest) GetLastCommitId() string {
+	return g.Head.GetSHA()
+}
+
+func (g GitHubPullRequest) CreateComment(path string, commitId string, line int, isNew bool, body string) (Comment, error) {
+	side := "LEFT"
+	if isNew {
+		side = "RIGHT"
+	}
+	if comment, _, err := g.sv.client.PullRequests.CreateComment(g.sv.ctx,
+		g.sv.owner,
+		g.sv.repo,
+		g.GetNumber(),
+		&gh.PullRequestComment{
+			Path:     &path,
+			CommitID: &commitId,
+			Side:     &side,
+			Position: &line,
+			Body:     &body,
+		}); err == nil {
+		return GitHubCommentWrapper{comment}, nil
+	} else {
+		return nil, err
+	}
+}
+
 func (g GitHubPullRequest) ReplyToComment(comment Comment, replyText string) (Comment, error) {
 	if c, ok := comment.(GitHubCommentWrapper); ok {
 		if cmt, _, err := g.sv.client.PullRequests.CreateComment(g.sv.ctx, g.sv.owner, g.sv.repo, g.GetNumber(), &gh.PullRequestComment{
