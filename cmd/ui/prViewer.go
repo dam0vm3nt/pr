@@ -626,6 +626,27 @@ type focusChangedMsg struct {
 	newFocus viewAddress
 }
 
+func (p *PullRequestView) reloadPullRequest() tea.Cmd {
+	if pr, err := loadPullRequestData(p.pullRequest.PullRequest); err == nil {
+		p.pullRequest = pr
+		p.withContentViewPtr(func(view *contentView) error {
+			view.data = pr
+			return nil
+		})
+		p.withHeaderViewPtr(func(header *pullRequestHeader) error {
+			header.data = pr
+			return nil
+		})
+		p.withFileListViewPtr(func(list *fileList) error {
+			list.pullRequestData = pr
+			return nil
+		})
+		return tea.Batch(tea.ClearScrollArea, renderPrCmd)
+	} else {
+		return showErr(err)
+	}
+}
+
 func focusChanged(address viewAddress) func() tea.Msg {
 	return func() tea.Msg {
 		return focusChangedMsg{address}
@@ -680,29 +701,11 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 						// Do nothing for now
 						if replyText, err := launchEditor(""); err == nil {
 							if _, err := p.pullRequest.ReplyToComment(comment, replyText); err != nil {
-								pterm.Warning.Println("Couldn't reply: ", err)
+								return p, showErr(err)
 							} else {
-								if pr, err := loadPullRequestData(p.pullRequest.PullRequest); err == nil {
-									p.pullRequest = pr
-									p.withContentViewPtr(func(view *contentView) error {
-										view.data = pr
-										return nil
-									})
-									p.withHeaderViewPtr(func(header *pullRequestHeader) error {
-										header.data = pr
-										return nil
-									})
-									p.withFileListViewPtr(func(list *fileList) error {
-										list.pullRequestData = pr
-										return nil
-									})
-									return p, tea.Batch(tea.ClearScrollArea, renderPrCmd)
-								} else {
-									return p, showErr(err)
-								}
+								return p, p.reloadPullRequest()
 							}
 						}
-
 					}
 					return p, tea.ClearScrollArea
 				}

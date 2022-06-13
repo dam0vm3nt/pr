@@ -185,9 +185,66 @@ func (g GitHubPullRequest) CreateComment(path string, commitId string, line int,
 
 func (g GitHubPullRequest) ReplyToComment(comment Comment, replyText string) (Comment, error) {
 	if c, ok := comment.(GitHubCommentWrapper); ok {
+		getDiscussion := `
+query discussionId($commentId: ID!) {
+    nodes(ids:[$commentId]) {
+        ... on PullRequestReviewComment {
+            pullRequest {
+                id
+            }
+            pullRequestReview {
+                id
+            }
+        }
+    }
+}`
+		var getDiscussionResponse struct {
+			Nodes []struct {
+				PullRequest struct {
+					Id string
+				}
+				PullRequestReview struct {
+					Id string
+				}
+			}
+		}
+
+		if err := g.sv.gqlClient.GraphQL(g.sv.host, getDiscussion, map[string]interface{}{"commentId": c.GetNodeID()}, &getDiscussionResponse); err != nil {
+			return nil, err
+		}
+
+		mutation := `
+mutation replyTo($commentId: ID!, $body: String!) {
+    addPullRequestReviewComment(input: {inReplyTo: $commentId, body: $body}) {
+        comment {
+            id
+        }
+    }
+}`
+		var resp1 struct {
+			Comment struct {
+				Id string
+			}
+		}
+
+		if err := g.sv.gqlClient.GraphQL(g.sv.host, mutation, map[string]interface{}{
+			"commentId":           c.GetNodeID(),
+			"pullRequestId":       getDiscussionResponse.Nodes[0].PullRequest.Id,
+			"pullRequestReviewId": getDiscussionResponse.Nodes[0].PullRequestReview.Id,
+			"body":                replyText}, &resp1); err != nil {
+			return nil, err
+		} else {
+			return nil, nil
+		}
+	}
+
+	if c, ok := comment.(GitHubCommentWrapper); ok {
 		if cmt, _, err := g.sv.client.PullRequests.CreateComment(g.sv.ctx, g.sv.owner, g.sv.repo, g.GetNumber(), &gh.PullRequestComment{
 			InReplyTo: c.ID,
-			Body:      &replyText,
+			Position:  c.Position,
+			// Path:      c.Path,
+			Body: &replyText,
+			// CommitID:  c.CommitID,
 		}); err == nil {
 			return GitHubCommentWrapper{cmt}, nil
 		} else {
