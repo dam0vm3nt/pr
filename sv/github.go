@@ -97,7 +97,7 @@ func (g *GitHubSv) GetPullRequest(id string) (PullRequest, error) {
 	return GitHubPullRequest{pr, g}, nil
 }
 
-func NewGitHubSv(token string, repo string, sshKeyComment string) Sv {
+func NewGitHubSv(token string, repo string, sshKeyComment string, owner string, name string) Sv {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
@@ -106,13 +106,15 @@ func NewGitHubSv(token string, repo string, sshKeyComment string) Sv {
 
 	cl := gh.NewClient(tc)
 
+	// Reading owner and repo from local workspace remote
+
 	if re, err := regexp.Compile(sshKeyComment); err == nil {
 
 		return &GitHubSv{
 			ctx:            ctx,
 			client:         cl,
-			owner:          "Latch",
-			repo:           "latch-cortex",
+			owner:          owner,
+			repo:           name,
 			tc:             tc,
 			localRepo:      repo,
 			gqlClient:      api.NewClientFromHTTP(tc),

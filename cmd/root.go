@@ -119,7 +119,7 @@ func GetSv() sv.Sv {
 		if originType != GitHubOriginType {
 			pterm.Warning.Println("Remote '%s' mismatches with origin url : %s", defaultOrigin, origin.Config().URLs[0])
 		}
-		return sv.NewGitHubSv(githubToken, localRepo, sshKeyComment)
+		return sv.NewGitHubSv(githubToken, localRepo, sshKeyComment, account, repoSlug)
 	} else {
 		if originType != BitbucketOriginType {
 			pterm.Warning.Println("Remote '%s' mismatches with origin url : %s", defaultOrigin, origin.Config().URLs[0])
