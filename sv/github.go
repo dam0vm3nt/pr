@@ -1,5 +1,6 @@
 package sv
 
+import "C"
 import (
 	"bytes"
 	"context"
@@ -156,6 +157,120 @@ type GitHubPullRequest struct {
 	sv *GitHubSv
 }
 
+func (g GitHubPullRequest) GetLastCommitId() string {
+	return g.Head.GetSHA()
+}
+
+func (g GitHubPullRequest) CreateComment(path string, commitId string, line int, isNew bool, body string) (Comment, error) {
+	side := "LEFT"
+	if isNew {
+		side = "RIGHT"
+	}
+	if comment, _, err := g.sv.client.PullRequests.CreateComment(g.sv.ctx,
+		g.sv.owner,
+		g.sv.repo,
+		g.GetNumber(),
+		&gh.PullRequestComment{
+			Path:     &path,
+			CommitID: &commitId,
+			Side:     &side,
+			Position: &line,
+			Body:     &body,
+		}); err == nil {
+		return GitHubCommentWrapper{comment}, nil
+	} else {
+		return nil, err
+	}
+}
+
+func (g GitHubPullRequest) ReplyToComment(comment Comment, replyText string) (Comment, error) {
+	if c, ok := comment.(GitHubCommentWrapper); ok {
+		newDiscussionMutation := `
+mutation newReview($prId: ID!) {
+  addPullRequestReview(input: {pullRequestId: $prId}) { 
+    pullRequestReview {
+      id
+    }
+  }
+}
+`
+		var newDiscussionMutationResponse struct {
+			AddPullRequestReview struct {
+				PullRequestReview struct {
+					Id string
+				}
+			}
+		}
+
+		if err := g.sv.gqlClient.GraphQL(g.sv.host, newDiscussionMutation, map[string]interface{}{"prId": g.GetNodeID()}, &newDiscussionMutationResponse); err != nil {
+			return nil, err
+		}
+
+		mutation := `
+mutation replyTo($revId: ID!, $commentId: ID!, $body: String!) {
+  addPullRequestReviewComment(
+    input: {pullRequestReviewId: $revId, inReplyTo: $commentId, body: $body}
+  ) { 
+    comment {
+      id
+    }
+  }
+}`
+		var resp1 struct {
+			AddPullRequestReviewComment struct {
+				Comment struct {
+					Id string
+				}
+			}
+		}
+
+		if err := g.sv.gqlClient.GraphQL(g.sv.host, mutation, map[string]interface{}{
+			"commentId": c.GetNodeID(),
+			"revId":     newDiscussionMutationResponse.AddPullRequestReview.PullRequestReview.Id,
+			"body":      replyText}, &resp1); err != nil {
+			return nil, err
+		}
+
+		// Finally close the review and return
+
+		closeReviewMutation := `
+mutation closeReview($revId: ID!) {
+  submitPullRequestReview(input: {pullRequestReviewId: $revId, event: COMMENT}) {
+    clientMutationId
+  }
+}`
+		var closeReviewMutationResponse struct {
+			SubmitPullRequestReview struct {
+				ClientMutationId *string
+			}
+		}
+
+		if err := g.sv.gqlClient.GraphQL(g.sv.host, closeReviewMutation, map[string]interface{}{
+			"revId": newDiscussionMutationResponse.AddPullRequestReview.PullRequestReview.Id,
+		}, &closeReviewMutationResponse); err != nil {
+			return nil, err
+		}
+
+		return nil, nil
+	}
+
+	if c, ok := comment.(GitHubCommentWrapper); ok {
+		if cmt, _, err := g.sv.client.PullRequests.CreateComment(g.sv.ctx, g.sv.owner, g.sv.repo, g.GetNumber(), &gh.PullRequestComment{
+			InReplyTo: c.ID,
+			Position:  c.Position,
+			// Path:      c.Path,
+			Body: &replyText,
+			// CommitID:  c.CommitID,
+		}); err == nil {
+			return GitHubCommentWrapper{cmt}, nil
+		} else {
+			return nil, err
+		}
+	} else {
+		return nil, fmt.Errorf("Illegal argument: not a github comment")
+	}
+}
+
 func (g GitHubPullRequest) GetChecks() ([]Check, error) {
 	type response struct {
 		Repository *struct {
@@ -304,7 +419,11 @@ func (g GitHubReview) GetAuthor() string {
 }
 
 func (g GitHubReview) GetSubmitedAt() time.Time {
-	return *g.SubmittedAt
+	if ok := g.SubmittedAt; ok != nil {
+		return *ok
+	} else {
+		return time.Now()
+	}
 }
 
 func (g GitHubPullRequest) GetCommentsByLine() ([]Comment, map[string]map[int64][]Comment, error) {

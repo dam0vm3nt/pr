@@ -11,7 +11,10 @@ import (
 	"github.com/pterm/pterm"
 	boxer "github.com/treilik/bubbleboxer"
 	"github.com/vballestra/sv/sv"
+	"io/ioutil"
 	"math"
+	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -21,17 +24,38 @@ const (
 )
 
 type Heading struct {
-	line int
-	text string
+	line    int
+	text    string
+	lineEnd int
 }
 
 type pullRequestData struct {
 	sv.PullRequest
-	checks     []sv.Check
-	reviews    []sv.Review
-	prComments []sv.Comment
-	commentMap map[string]map[int64][]sv.Comment
-	files      []*gitdiff.File
+	checks       []sv.Check
+	reviews      []sv.Review
+	prComments   []sv.Comment
+	commentMap   map[string]map[int64][]sv.Comment
+	files        []*gitdiff.File
+	lastCommitId string
+}
+
+func (d *pullRequestData) addComment(path string, old int64, new int64, isNew bool, comment sv.Comment) {
+	n := new
+	if !isNew {
+		n = -old
+	}
+	fileComments, ok := d.commentMap[path]
+	if !ok {
+		fileComments = make(map[int64][]sv.Comment)
+	}
+	lineComments, ok := fileComments[n]
+	if !ok {
+		lineComments = make([]sv.Comment, 0)
+	}
+
+	lineComments = append(lineComments, comment)
+	fileComments[n] = lineComments
+	d.commentMap[path] = fileComments
 }
 
 func loadPullRequestData(pr sv.PullRequest) (*pullRequestData, error) {
@@ -51,20 +75,25 @@ func loadPullRequestData(pr sv.PullRequest) (*pullRequestData, error) {
 			reviews,
 			prComments,
 			commentMap,
-			files}, nil
+			files,
+			pr.GetLastCommitId()}, nil
 	}
 }
 
 type bookmarkCategory string
 
+type bookmark struct {
+	line int
+	data interface{}
+}
+
 type PullRequestView struct {
-	boxer         boxer.Boxer
-	layoutMode    layoutMode
-	pullRequest   *pullRequestData
-	ready         bool
-	bookmarks     map[bookmarkCategory][]int
-	bookmarksData map[int]interface{}
-	mainFocus     int
+	boxer       boxer.Boxer
+	layoutMode  layoutMode
+	pullRequest *pullRequestData
+	ready       bool
+	bookmarks   map[bookmarkCategory][]bookmark
+	mainFocus   int
 
 	dirty   bool
 	xOffset int
@@ -96,7 +125,8 @@ func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 		}
 
 		content := contentView{
-			data: data,
+			data:         data,
+			selectedLine: -1,
 		}
 
 		mode := newLayoutMode()
@@ -113,13 +143,13 @@ func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 				boxer:       box,
 				layoutMode:  mode,
 				pullRequest: data,
-				bookmarks: map[bookmarkCategory][]int{
-					COMMENT_CATEGORY: make([]int, 0),
+				bookmarks: map[bookmarkCategory][]bookmark{
+					COMMENT_CATEGORY: make([]bookmark, 0),
+					FILE_CATEGORY:    make([]bookmark, 0),
 				},
-				mainFocus:     0,
-				bookmarksData: make(map[int]interface{}),
-				dirty:         true,
-				xOffset:       0}
+				mainFocus: 0,
+				dirty:     true,
+				xOffset:   0}
 
 			return prv, nil
 		}
@@ -127,10 +157,12 @@ func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 }
 
 func fillLine(s string, w int) string {
+	r := strings.NewReplacer("\n", "", "\r", "", "\t", "    ")
+	s = r.Replace(s)
 	l := min1(w, len(s))
 	s = s[0:l]
 	for len(s) < w {
-		s = s + " "
+		s = s + strings.Repeat(" ", w-len(s))
 	}
 	return s
 }
@@ -242,6 +274,10 @@ func (p *PullRequestView) withContentView(action func(view contentView) (content
 	return withView(p, CONTENT_ADDRESS, action)
 }
 
+func (p *PullRequestView) withStatusBarView(action func(view statusBar) (statusBar, error)) error {
+	return withView(p, STATUSBAR_ADDRESS, action)
+}
+
 func (p *PullRequestView) withFileListView(action func(view fileList) (fileList, error)) error {
 	return withView(p, FILEVIEW_ADDRESS, action)
 }
@@ -261,9 +297,10 @@ func (p *PullRequestView) withFileListViewPtr(action func(*fileList) error) erro
 type viewAddress string
 
 const (
-	HEADER_ADDRESS   viewAddress = "header"
-	CONTENT_ADDRESS  viewAddress = "view"
-	FILEVIEW_ADDRESS viewAddress = "files"
+	HEADER_ADDRESS    viewAddress = "header"
+	CONTENT_ADDRESS   viewAddress = "view"
+	FILEVIEW_ADDRESS  viewAddress = "files"
+	STATUSBAR_ADDRESS viewAddress = "statusBar"
 )
 
 type layoutMode struct {
@@ -289,6 +326,7 @@ func initWidgetsLayout(box *boxer.Boxer, header pullRequestHeader, content conte
 	box.ModelMap[string(HEADER_ADDRESS)] = header
 	box.ModelMap[string(CONTENT_ADDRESS)] = content
 	box.ModelMap[string(FILEVIEW_ADDRESS)] = fileView
+	box.ModelMap[string(STATUSBAR_ADDRESS)] = newStatusBar()
 
 	return layoutWidgets(box, mode)
 }
@@ -298,40 +336,43 @@ func layoutWidgets(box *boxer.Boxer, mode layoutMode) (boxer.Node, error) {
 	if header, headerNode, ok := getModelAndNode[pullRequestHeader](box, HEADER_ADDRESS); ok {
 		if _, contentNode, ok := getModelAndNode[contentView](box, CONTENT_ADDRESS); ok {
 			if _, listNode, ok := getModelAndNode[fileList](box, FILEVIEW_ADDRESS); ok {
-				var bottomNode boxer.Node
+				if _, statusNode, ok := getModelAndNode[statusBar](box, STATUSBAR_ADDRESS); ok {
+					var bottomNode *boxer.Node
 
-				if mode.showFileView {
-					bottomNode = boxer.Node{
-						VerticalStacked: false,
-						Children: []boxer.Node{
-							*listNode, *contentNode,
-						},
-						SizeFunc: func(node boxer.Node, width int) []int {
-							return []int{
-								width / 3,
-								width - (width / 3),
-							}
-						},
+					if mode.showFileView {
+						bottomNode = &boxer.Node{
+							VerticalStacked: false,
+							Children: []boxer.Node{
+								*listNode, *contentNode,
+							},
+							SizeFunc: func(node boxer.Node, width int) []int {
+								return []int{
+									width / 3,
+									width - (width / 3),
+								}
+							},
+						}
+					} else {
+						bottomNode = contentNode
 					}
-				} else {
-					bottomNode = *contentNode
-				}
 
-				layout := boxer.Node{
-					VerticalStacked: true,
-					SizeFunc: func(node boxer.Node, height int) []int {
+					layout := boxer.CreateNoBorderNode()
+					layout.VerticalStacked = true
+					layout.SizeFunc = func(node boxer.Node, height int) []int {
 						headerHeight := header.measureHeight()
 						return []int{
 							headerHeight,
-							height - headerHeight,
+							height - 1 - headerHeight,
+							1,
 						}
-					},
-					Children: []boxer.Node{
+					}
+					layout.Children = []boxer.Node{
 						*headerNode,
-						bottomNode,
-					},
+						*bottomNode,
+						*statusNode,
+					}
+					return layout, nil
 				}
-				return layout, nil
 			}
 		}
 	}
@@ -389,8 +430,8 @@ func (prv *PullRequestView) PrintComments(content *contentView, header *pullRequ
 				comment.GetCreatedOn())))
 
 		rawRendered, _ := r.Render(raw)
-		content.printf(style2.Render(rawRendered))
-		prv.removeLastHeader(header, content, COMMIT_LEVEL)
+		content.printf(style2.Render(strings.ReplaceAll(rawRendered, "\t", "    ")))
+		prv.closeLastHeader(header, content, COMMIT_LEVEL)
 	}
 }
 
@@ -398,16 +439,16 @@ func (c *contentView) currentLine() int {
 	return len(*c.content)
 }
 
-func (prv *PullRequestView) removeLastHeader(header *pullRequestHeader, contentView *contentView, lev int) {
-	header.headings[lev] = append(header.headings[lev], Heading{contentView.currentLine(), header.headings[lev][len(header.headings[lev])-2].text})
+func (prv *PullRequestView) closeLastHeader(header *pullRequestHeader, contentView *contentView, lev int) {
+	header.headings[lev][len(header.headings[lev])-1].lineEnd = contentView.currentLine()
+	//header.headings[lev] = append(header.headings[lev], Heading{contentView.currentLine(), header.headings[lev][len(header.headings[lev])-2].text, -1})
 }
 
 func (prv *PullRequestView) addBookmark(contentView *contentView, b bookmarkCategory, data interface{}) {
-	prv.bookmarksData[len(prv.bookmarks[b])] = data
-	prv.bookmarks[b] = append(prv.bookmarks[b], contentView.currentLine()+1)
+	prv.bookmarks[b] = append(prv.bookmarks[b], bookmark{contentView.currentLine() + 1, data})
 }
 
-func addHeading(content *contentView, header *pullRequestHeader, w int, lev int, format string, args ...any) {
+func addHeading(content *contentView, header *pullRequestHeader, w int, lev int, format string, args ...any) int {
 	var st lipgloss.Style
 	switch lev {
 	case FILE_LEVEL:
@@ -425,7 +466,9 @@ func addHeading(content *contentView, header *pullRequestHeader, w int, lev int,
 
 	s := st.Render(fmt.Sprintf(format, args...))
 	content.printf(s)
-	header.headings[lev] = append(header.headings[lev], Heading{content.currentLine() + 1, s})
+	h := Heading{content.currentLine() + 1, s, -1}
+	header.headings[lev] = append(header.headings[lev], h)
+	return len(header.headings[lev]) - 1
 }
 
 func (prv *lines) printf(format string, args ...any) {
@@ -478,12 +521,12 @@ func (p *PullRequestView) moveToNextBookmark(b bookmarkCategory) error {
 			return errors.New("No bookmarks")
 		}
 		for _, l := range bookmarks {
-			if l > content.viewport.YOffset {
-				content.viewport.YOffset = l
+			if l.line > content.viewport.YOffset {
+				content.viewport.YOffset = l.line
 				return nil
 			}
 		}
-		content.viewport.YOffset = bookmarks[0]
+		content.viewport.YOffset = bookmarks[0].line
 		return nil
 	})
 }
@@ -494,7 +537,7 @@ func (p *PullRequestView) moveToBookmark(b bookmarkCategory, ordinal int) error 
 		if len(bookmarks) == 0 || ordinal >= len(bookmarks) {
 			return errors.New("No bookmarks")
 		}
-		content.viewport.YOffset = bookmarks[ordinal]
+		content.viewport.YOffset = bookmarks[ordinal].line
 		return nil
 	})
 }
@@ -508,21 +551,28 @@ func (p *PullRequestView) moveToPrevBookmark(b bookmarkCategory) error {
 		}
 		for i := len(bookmarks) - 1; i >= 0; i-- {
 			l := bookmarks[i]
-			if l < content.viewport.YOffset {
-				content.viewport.YOffset = l
+			if l.line < content.viewport.YOffset {
+				content.viewport.YOffset = l.line
 				return nil
 			}
 		}
-		content.viewport.YOffset = bookmarks[len(bookmarks)-1]
+		content.viewport.YOffset = bookmarks[len(bookmarks)-1].line
 		return nil
 	})
 }
 
 func currentBookmark(p *PullRequestView, b bookmarkCategory) (int, interface{}) {
+	if content, ok := p.getContentView(); ok {
+		return bookmarkAt(p, b, content.viewport.YOffset)
+	} else {
+		return 0, nil
+	}
+}
+
+func bookmarkAt(p *PullRequestView, b bookmarkCategory, line int) (int, interface{}) {
 	for n, l := range p.bookmarks[b] {
-		content, _ := p.getContentView()
-		if l == content.viewport.YOffset {
-			return n, p.bookmarksData[n]
+		if l.line == line {
+			return n, l.data
 		}
 	}
 	return 0, nil
@@ -534,10 +584,10 @@ func currentBookmark2(p *PullRequestView, b bookmarkCategory) (int, interface{})
 		content, _ := p.getContentView()
 		l1 := math.MaxInt
 		if n+1 < len(bookmarks) {
-			l1 = bookmarks[n+1]
+			l1 = bookmarks[n+1].line
 		}
-		if l <= content.viewport.YOffset && content.viewport.YOffset < l1 {
-			return n, p.bookmarksData[n]
+		if l.line <= content.viewport.YOffset && content.viewport.YOffset < l1 {
+			return n, l.data
 		}
 	}
 	return 0, nil
@@ -583,23 +633,93 @@ type focusChangedMsg struct {
 	newFocus viewAddress
 }
 
+func (p *PullRequestView) reloadPullRequest() tea.Cmd {
+	if pr, err := loadPullRequestData(p.pullRequest.PullRequest); err == nil {
+		p.pullRequest = pr
+		p.withContentViewPtr(func(view *contentView) error {
+			view.data = pr
+			return nil
+		})
+		p.withHeaderViewPtr(func(header *pullRequestHeader) error {
+			header.data = pr
+			return nil
+		})
+		p.withFileListViewPtr(func(list *fileList) error {
+			list.pullRequestData = pr
+			return nil
+		})
+		return tea.Batch(tea.ClearScrollArea, renderPrCmd)
+	} else {
+		return showErr(err)
+	}
+}
+
 func focusChanged(address viewAddress) func() tea.Msg {
 	return func() tea.Msg {
 		return focusChangedMsg{address}
 	}
 }
 
-func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
 		cmds []tea.Cmd
 	)
 
-	switch msg := msg.(type) {
+	switch msg := m.(type) {
+	case clearStatusMsg,
+		showStatusMsg:
+		if err := p.withStatusBarView(func(sb statusBar) (statusBar, error) {
+			newBar, cmd := sb.Update(m)
+			cmds = append(cmds, cmd)
+			return newBar.(statusBar), nil
+		}); err != nil {
+			pterm.Warning.Println("Coudln't process a message to status bar: ", err)
+		}
+
 	case renderPrMsg:
 		p.dirty = true
 		p.ready = true
 		p.renderPullRequest()
+	case lineCommandMsg:
+		switch msg.cmd {
+		case newComment:
+			input := confirmation.New(fmt.Sprintf("Want to comment line %05d/%05d", msg.code.old, msg.code.new), confirmation.Yes)
+			if yes, err := input.RunPrompt(); yes && err == nil {
+				// Do nothing for now
+				if comment, err := launchEditor(""); err == nil && comment != "" {
+					isNew := msg.code.code.New()
+					fn := getFileName(msg.code.file)
+					if newComment, err := p.pullRequest.CreateComment(fn, msg.code.commitId, msg.code.position, isNew, comment); err != nil {
+						pterm.Warning.Println("Couldn't add: ", err)
+					} else {
+						p.pullRequest.addComment(fn, msg.code.new, msg.code.old, isNew, newComment)
+						return p, tea.Batch(tea.ClearScrollArea, renderPrCmd)
+					}
+				}
+
+			}
+			return p, tea.ClearScrollArea
+		case replyComment:
+			if _, data := bookmarkAt(&p, COMMENT_CATEGORY, msg.line); data != nil {
+				if comment, ok := data.(sv.Comment); ok {
+					input := confirmation.New(fmt.Sprintf("Whant to reply to comment by %s", comment.GetUser().GetDisplayName()), confirmation.Yes)
+					if yes, err := input.RunPrompt(); yes && err == nil {
+						// Do nothing for now
+						if replyText, err := launchEditor(""); err == nil {
+							if _, err := p.pullRequest.ReplyToComment(comment, replyText); err != nil {
+								return p, showErr(err)
+							} else {
+								return p, p.reloadPullRequest()
+							}
+						}
+					}
+					return p, tea.ClearScrollArea
+				}
+			} else {
+				return p, showErr(fmt.Errorf("No comments found at line %d", msg.line))
+			}
+		}
 
 	case tea.KeyMsg:
 
@@ -650,22 +770,16 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "C":
 			p.moveToPrevBookmark(COMMENT_CATEGORY)
 		case "r":
-			if _, data := currentBookmark(&p, COMMENT_CATEGORY); data != nil {
-				if comment, ok := data.(sv.Comment); ok {
-					input := confirmation.New(fmt.Sprintf("Whant to reply to comment by %s", comment.GetUser().GetDisplayName()), confirmation.Yes)
-					if ready, err := input.RunPrompt(); err != nil && ready {
-						// Do nothing for now
-					}
-					return p, tea.ClearScrollArea
-				}
+			if cv, ok := p.getContentView(); ok {
+				return p, lineCommand(replyComment, cv.viewport.YOffset, nil)
 			}
 		default:
 			switch p.currentFocus() {
 			case CONTENT_ADDRESS:
-				p.withContentViewPtr(func(content *contentView) error {
-					content.viewport, cmd = content.viewport.Update(msg)
+				p.withContentView(func(content contentView) (contentView, error) {
+					newView, cmd := content.Update(msg)
 					cmds = append(cmds, cmd)
-					return nil
+					return newView.(contentView), nil
 				})
 			case FILEVIEW_ADDRESS:
 				p.withFileListView(func(view fileList) (fileList, error) {
@@ -706,7 +820,7 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		for l := 0; l < len(header.currentHeading); l++ {
 			header.currentHeading[l] = -1
 			for n, h := range header.headings[l] {
-				if h.line <= content.viewport.YOffset+1 {
+				if h.line <= content.viewport.YOffset+1 && (content.viewport.YOffset < h.lineEnd || h.lineEnd == -1) {
 					header.currentHeading[l] = n
 				}
 			}
@@ -722,6 +836,42 @@ func (p PullRequestView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return p, tea.Batch(cmds...)
+}
+
+func launchEditor(initialText string) (string, error) {
+	if file, err := ioutil.TempFile(os.TempDir(), "comment-"); err == nil {
+		if _, err = file.WriteString(initialText); err != nil {
+			return "", err
+		}
+		file.Close()
+		defer os.Remove(file.Name())
+
+		// Run editor
+		var editorPath string
+		if editorPath = os.Getenv("EDITOR"); editorPath != "" {
+			editorPath = "vim"
+		}
+
+		cmd := exec.Command(editorPath, file.Name())
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		if err = cmd.Start(); err != nil {
+			return "", err
+		}
+		if err = cmd.Wait(); err != nil {
+			return "", err
+		}
+
+		// Read back the file and write it
+		if content, err := ioutil.ReadFile(file.Name()); err == nil {
+			return string(content[:]), nil
+		} else {
+			return "", err
+		}
+
+	} else {
+		return "", err
+	}
 }
 
 func (p PullRequestView) propagateEvent(msg tea.Msg, cmds []tea.Cmd) (PullRequestView, []tea.Cmd) {
@@ -806,7 +956,10 @@ func (prv *PullRequestView) renderPullRequest() {
 			h := make(lines, 0)
 			content.clear()
 
-			prv.bookmarks[FILE_CATEGORY] = make([]int, 0)
+			// clear bookmarks
+			prv.bookmarks[FILE_CATEGORY] = make([]bookmark, 0)
+			prv.bookmarks[COMMENT_CATEGORY] = make([]bookmark, 0)
+
 			header.header = &h
 
 			pr := prv.pullRequest
@@ -873,11 +1026,14 @@ func (prv *PullRequestView) renderPullRequest() {
 						Foreground(lipgloss.Color("#ffffff")).
 						Background(lipgloss.Color("#005E00e0")).
 						Width(w).MaxHeight(1)
-					styleNorm := lipgloss.NewStyle().Width(w).MaxHeight(1)
+					styleNorm := lipgloss.NewStyle().
+						Foreground(lipgloss.Color("#999999")).
+						Background(lipgloss.Color("#000000")).
+						Width(w).MaxHeight(1)
 					styleDel := lipgloss.NewStyle().
 						Bold(true).
 						Foreground(lipgloss.Color("#ffffff")).
-						Background(lipgloss.Color("#5e0000e0")).
+						Background(lipgloss.Color("#5e0000")).
 						Width(w).MaxHeight(1)
 
 					for _, frag := range file.TextFragments {
@@ -887,7 +1043,8 @@ func (prv *PullRequestView) renderPullRequest() {
 						oldN := frag.OldPosition
 						newN := frag.NewPosition
 
-						for _, ln := range frag.Lines {
+						for pos, ln := range frag.Lines {
+							content.saveLine(prv.pullRequest.GetLastCommitId(), oldN, newN, pos+1, file, ln)
 							var style lipgloss.Style
 							switch ln.Op {
 							case gitdiff.OpAdd:
@@ -905,7 +1062,7 @@ func (prv *PullRequestView) renderPullRequest() {
 								escaped = ""
 							}
 
-							rendered := style.Render(fmt.Sprintf("%05d %05d %s  %s", oldN, newN, ln.Op, escaped))
+							rendered := style.Render(fillLine(pterm.RemoveColorFromString(fmt.Sprintf("%05d %05d %s  %s", oldN, newN, ln.Op, escaped)), w))
 
 							content.printf(rendered)
 							if haveFileComments {
@@ -939,4 +1096,43 @@ func (prv *PullRequestView) renderPullRequest() {
 		})
 	})
 
+}
+
+var asyncMsg chan tea.Msg
+
+func sendAsyncMsg(msg tea.Msg) {
+	asyncMsg <- msg
+}
+
+func sendAsyncCmd(cmd tea.Cmd) {
+	sendAsyncMsg(cmd())
+}
+
+func ShowPr(pr sv.PullRequest) error {
+	asyncMsg = make(chan tea.Msg)
+	defer close(asyncMsg)
+
+	if prv, err := NewView(pr); err != nil {
+		return err
+	} else {
+		// Show Pr
+		p := tea.NewProgram(
+			prv,
+			tea.WithAltScreen(),       // use the full size of the terminal in its "alternate screen buffer"
+			tea.WithMouseCellMotion(), // turn on mouse support so we can track the mouse wheel
+		)
+
+		// Start processing any async msg
+		go func() {
+			for msg := range asyncMsg {
+				p.Send(msg)
+			}
+		}()
+
+		if err := p.Start(); err != nil {
+			fmt.Println("could not run program:", err)
+			os.Exit(1)
+		}
+		return nil
+	}
 }

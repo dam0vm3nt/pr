@@ -17,6 +17,9 @@ type PullRequest interface {
 	GetBase() Branch
 	GetChecks() ([]Check, error)
 	GetReviews() ([]Review, error)
+	ReplyToComment(comment Comment, replyText string) (Comment, error)
+	CreateComment(path string, commitId string, line int, isNew bool, body string) (Comment, error)
+	GetLastCommitId() string
 }
 
 type Comment interface {
