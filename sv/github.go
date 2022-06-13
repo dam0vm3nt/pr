@@ -185,57 +185,73 @@ func (g GitHubPullRequest) CreateComment(path string, commitId string, line int,
 
 func (g GitHubPullRequest) ReplyToComment(comment Comment, replyText string) (Comment, error) {
 	if c, ok := comment.(GitHubCommentWrapper); ok {
-		getDiscussion := `
-query discussionId($commentId: ID!) {
-    nodes(ids:[$commentId]) {
-        ... on PullRequestReviewComment {
-            pullRequest {
-                id
-            }
-            pullRequestReview {
-                id
-            }
-        }
+		newDiscussionMutation := `
+mutation newReview($prId: ID!) {
+  addPullRequestReview(input: {pullRequestId: $prId}) { 
+    pullRequestReview {
+      id
     }
-}`
-		var getDiscussionResponse struct {
-			Nodes []struct {
-				PullRequest struct {
-					Id string
-				}
+  }
+}
+`
+		var newDiscussionMutationResponse struct {
+			AddPullRequestReview struct {
 				PullRequestReview struct {
 					Id string
 				}
 			}
 		}
 
-		if err := g.sv.gqlClient.GraphQL(g.sv.host, getDiscussion, map[string]interface{}{"commentId": c.GetNodeID()}, &getDiscussionResponse); err != nil {
+		if err := g.sv.gqlClient.GraphQL(g.sv.host, newDiscussionMutation, map[string]interface{}{"prId": g.GetNodeID()}, &newDiscussionMutationResponse); err != nil {
 			return nil, err
 		}
 
 		mutation := `
-mutation replyTo($commentId: ID!, $body: String!) {
-    addPullRequestReviewComment(input: {inReplyTo: $commentId, body: $body}) {
-        comment {
-            id
-        }
+mutation replyTo($revId: ID!, $commentId: ID!, $body: String!) {
+  addPullRequestReviewComment(
+    input: {pullRequestReviewId: $revId, inReplyTo: $commentId, body: $body}
+  ) { 
+    comment {
+      id
     }
+  }
 }`
 		var resp1 struct {
-			Comment struct {
-				Id string
+			AddPullRequestReviewComment struct {
+				Comment struct {
+					Id string
+				}
 			}
 		}
 
 		if err := g.sv.gqlClient.GraphQL(g.sv.host, mutation, map[string]interface{}{
-			"commentId":           c.GetNodeID(),
-			"pullRequestId":       getDiscussionResponse.Nodes[0].PullRequest.Id,
-			"pullRequestReviewId": getDiscussionResponse.Nodes[0].PullRequestReview.Id,
-			"body":                replyText}, &resp1); err != nil {
+			"commentId": c.GetNodeID(),
+			"revId":     newDiscussionMutationResponse.AddPullRequestReview.PullRequestReview.Id,
+			"body":      replyText}, &resp1); err != nil {
 			return nil, err
-		} else {
-			return nil, nil
 		}
+
+		// Finally close the review and return
+
+		closeReviewMutation := `
+mutation closeReview($revId: ID!) {
+  submitPullRequestReview(input: {pullRequestReviewId: $revId, event: COMMENT}) {
+    clientMutationId
+  }
+}`
+		var closeReviewMutationResponse struct {
+			SubmitPullRequestReview struct {
+				ClientMutationId *string
+			}
+		}
+
+		if err := g.sv.gqlClient.GraphQL(g.sv.host, closeReviewMutation, map[string]interface{}{
+			"revId": newDiscussionMutationResponse.AddPullRequestReview.PullRequestReview.Id,
+		}, &closeReviewMutationResponse); err != nil {
+			return nil, err
+		}
+
+		return nil, nil
 	}
 
 	if c, ok := comment.(GitHubCommentWrapper); ok {
@@ -403,7 +419,11 @@ func (g GitHubReview) GetAuthor() string {
 }
 
 func (g GitHubReview) GetSubmitedAt() time.Time {
-	return *g.SubmittedAt
+	if ok := g.SubmittedAt; ok != nil {
+		return *ok
+	} else {
+		return time.Now()
+	}
 }
 
 func (g GitHubPullRequest) GetCommentsByLine() ([]Comment, map[string]map[int64][]Comment, error) {

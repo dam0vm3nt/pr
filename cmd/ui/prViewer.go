@@ -24,8 +24,9 @@ const (
 )
 
 type Heading struct {
-	line int
-	text string
+	line    int
+	text    string
+	lineEnd int
 }
 
 type pullRequestData struct {
@@ -144,6 +145,7 @@ func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 				pullRequest: data,
 				bookmarks: map[bookmarkCategory][]bookmark{
 					COMMENT_CATEGORY: make([]bookmark, 0),
+					FILE_CATEGORY:    make([]bookmark, 0),
 				},
 				mainFocus: 0,
 				dirty:     true,
@@ -155,10 +157,12 @@ func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 }
 
 func fillLine(s string, w int) string {
+	r := strings.NewReplacer("\n", "", "\r", "", "\t", "    ")
+	s = r.Replace(s)
 	l := min1(w, len(s))
 	s = s[0:l]
 	for len(s) < w {
-		s = s + " "
+		s = s + strings.Repeat(" ", w-len(s))
 	}
 	return s
 }
@@ -426,8 +430,8 @@ func (prv *PullRequestView) PrintComments(content *contentView, header *pullRequ
 				comment.GetCreatedOn())))
 
 		rawRendered, _ := r.Render(raw)
-		content.printf(style2.Render(rawRendered))
-		prv.removeLastHeader(header, content, COMMIT_LEVEL)
+		content.printf(style2.Render(strings.ReplaceAll(rawRendered, "\t", "    ")))
+		prv.closeLastHeader(header, content, COMMIT_LEVEL)
 	}
 }
 
@@ -435,15 +439,16 @@ func (c *contentView) currentLine() int {
 	return len(*c.content)
 }
 
-func (prv *PullRequestView) removeLastHeader(header *pullRequestHeader, contentView *contentView, lev int) {
-	header.headings[lev] = append(header.headings[lev], Heading{contentView.currentLine(), header.headings[lev][len(header.headings[lev])-2].text})
+func (prv *PullRequestView) closeLastHeader(header *pullRequestHeader, contentView *contentView, lev int) {
+	header.headings[lev][len(header.headings[lev])-1].lineEnd = contentView.currentLine()
+	//header.headings[lev] = append(header.headings[lev], Heading{contentView.currentLine(), header.headings[lev][len(header.headings[lev])-2].text, -1})
 }
 
 func (prv *PullRequestView) addBookmark(contentView *contentView, b bookmarkCategory, data interface{}) {
 	prv.bookmarks[b] = append(prv.bookmarks[b], bookmark{contentView.currentLine() + 1, data})
 }
 
-func addHeading(content *contentView, header *pullRequestHeader, w int, lev int, format string, args ...any) {
+func addHeading(content *contentView, header *pullRequestHeader, w int, lev int, format string, args ...any) int {
 	var st lipgloss.Style
 	switch lev {
 	case FILE_LEVEL:
@@ -461,7 +466,9 @@ func addHeading(content *contentView, header *pullRequestHeader, w int, lev int,
 
 	s := st.Render(fmt.Sprintf(format, args...))
 	content.printf(s)
-	header.headings[lev] = append(header.headings[lev], Heading{content.currentLine() + 1, s})
+	h := Heading{content.currentLine() + 1, s, -1}
+	header.headings[lev] = append(header.headings[lev], h)
+	return len(header.headings[lev]) - 1
 }
 
 func (prv *lines) printf(format string, args ...any) {
@@ -813,7 +820,7 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 		for l := 0; l < len(header.currentHeading); l++ {
 			header.currentHeading[l] = -1
 			for n, h := range header.headings[l] {
-				if h.line <= content.viewport.YOffset+1 {
+				if h.line <= content.viewport.YOffset+1 && (content.viewport.YOffset < h.lineEnd || h.lineEnd == -1) {
 					header.currentHeading[l] = n
 				}
 			}
@@ -949,7 +956,10 @@ func (prv *PullRequestView) renderPullRequest() {
 			h := make(lines, 0)
 			content.clear()
 
+			// clear bookmarks
 			prv.bookmarks[FILE_CATEGORY] = make([]bookmark, 0)
+			prv.bookmarks[COMMENT_CATEGORY] = make([]bookmark, 0)
+
 			header.header = &h
 
 			pr := prv.pullRequest
@@ -1016,11 +1026,14 @@ func (prv *PullRequestView) renderPullRequest() {
 						Foreground(lipgloss.Color("#ffffff")).
 						Background(lipgloss.Color("#005E00e0")).
 						Width(w).MaxHeight(1)
-					styleNorm := lipgloss.NewStyle().Width(w).MaxHeight(1)
+					styleNorm := lipgloss.NewStyle().
+						Foreground(lipgloss.Color("#999999")).
+						Background(lipgloss.Color("#000000")).
+						Width(w).MaxHeight(1)
 					styleDel := lipgloss.NewStyle().
 						Bold(true).
 						Foreground(lipgloss.Color("#ffffff")).
-						Background(lipgloss.Color("#5e0000e0")).
+						Background(lipgloss.Color("#5e0000")).
 						Width(w).MaxHeight(1)
 
 					for _, frag := range file.TextFragments {
@@ -1049,7 +1062,7 @@ func (prv *PullRequestView) renderPullRequest() {
 								escaped = ""
 							}
 
-							rendered := style.Render(fmt.Sprintf("%05d %05d %s  %s", oldN, newN, ln.Op, escaped))
+							rendered := style.Render(fillLine(pterm.RemoveColorFromString(fmt.Sprintf("%05d %05d %s  %s", oldN, newN, ln.Op, escaped)), w))
 
 							content.printf(rendered)
 							if haveFileComments {
