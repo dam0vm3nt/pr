@@ -678,7 +678,7 @@ func (p *PullRequestView) reloadPullRequest() tea.Cmd {
 		})
 		return tea.Batch(tea.ClearScrollArea, renderPrCmd)
 	} else {
-		return showErr(err)
+		return showErrCmd(err)
 	}
 }
 
@@ -746,7 +746,7 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 						// Do nothing for now
 						if replyText, err := launchEditor(""); err == nil {
 							if _, err := p.pullRequest.ReplyToComment(comment, replyText); err != nil {
-								return p, showErr(err)
+								return p, showErrCmd(err)
 							} else {
 								return p, p.reloadPullRequest()
 							}
@@ -755,16 +755,20 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 					return p, tea.ClearScrollArea
 				}
 			} else {
-				return p, showErr(fmt.Errorf("No comments found at line %d", msg.line))
+				return p, showErrCmd(fmt.Errorf("No comments found at line %d", msg.line))
 			}
 		}
 
 	case moveToBookmarkMsg:
 		switch msg.dir {
 		case NEXT:
-			p.moveToNextBookmark(msg.cat)
+			if err := p.moveToNextBookmark(msg.cat); err != nil {
+				cmds = append(cmds, showErrCmd(err))
+			}
 		case PREV:
-			p.moveToPrevBookmark(msg.cat)
+			if err := p.moveToPrevBookmark(msg.cat); err != nil {
+				cmds = append(cmds, showErrCmd(err))
+			}
 		}
 	case moveToHeadingMsg:
 		switch msg.dir {
@@ -805,17 +809,21 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 		default:
 			switch p.currentFocus() {
 			case CONTENT_ADDRESS:
-				p.withContentView(func(content contentView) (contentView, error) {
+				if err := p.withContentView(func(content contentView) (contentView, error) {
 					newView, cmd := content.Update(msg)
 					cmds = append(cmds, cmd)
 					return newView.(contentView), nil
-				})
+				}); err != nil {
+					cmds = append(cmds, showErrCmd(err))
+				}
 			case FILEVIEW_ADDRESS:
-				p.withFileListView(func(view fileList) (fileList, error) {
+				if err := p.withFileListView(func(view fileList) (fileList, error) {
 					newView, cmd := view.Update(msg)
 					cmds = append(cmds, cmd)
 					return newView.(fileList), nil
-				})
+				}); err != nil {
+					cmds = append(cmds, showErrCmd(err))
+				}
 			}
 		}
 
