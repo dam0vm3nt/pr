@@ -45,14 +45,14 @@ func clearStatus(messageId int64) tea.Cmd {
 	}
 }
 
-func showStatus(mode messageMode, message string, timeout time.Duration) tea.Cmd {
+func showStatusCmd(mode messageMode, message string, timeout time.Duration) tea.Cmd {
 	return func() tea.Msg {
 		return showStatusMsg{mode, message, timeout}
 	}
 }
 
-func showErr(err error) tea.Cmd {
-	return showStatus(severeMode, err.Error(), 3*time.Second)
+func showErrCmd(err error) tea.Cmd {
+	return showStatusCmd(severeMode, err.Error(), 3*time.Second)
 }
 
 func (s statusBar) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

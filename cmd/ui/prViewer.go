@@ -104,7 +104,7 @@ var focusOrder = [...]viewAddress{CONTENT_ADDRESS, FILEVIEW_ADDRESS}
 func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 
 	headings := make([][]Heading, HEADINGS)
-	for l := 0; l < HEADINGS; l++ {
+	for l := 0; l < int(HEADINGS); l++ {
 		headings[l] = make([]Heading, 0)
 	}
 
@@ -439,16 +439,15 @@ func (c *contentView) currentLine() int {
 	return len(*c.content)
 }
 
-func (prv *PullRequestView) closeLastHeader(header *pullRequestHeader, contentView *contentView, lev int) {
+func (prv *PullRequestView) closeLastHeader(header *pullRequestHeader, contentView *contentView, lev headingsLevel) {
 	header.headings[lev][len(header.headings[lev])-1].lineEnd = contentView.currentLine()
-	//header.headings[lev] = append(header.headings[lev], Heading{contentView.currentLine(), header.headings[lev][len(header.headings[lev])-2].text, -1})
 }
 
 func (prv *PullRequestView) addBookmark(contentView *contentView, b bookmarkCategory, data interface{}) {
 	prv.bookmarks[b] = append(prv.bookmarks[b], bookmark{contentView.currentLine() + 1, data})
 }
 
-func addHeading(content *contentView, header *pullRequestHeader, w int, lev int, format string, args ...any) int {
+func addHeading(content *contentView, header *pullRequestHeader, w int, lev headingsLevel, format string, args ...any) int {
 	var st lipgloss.Style
 	switch lev {
 	case FILE_LEVEL:
@@ -484,7 +483,25 @@ func (p PullRequestView) Init() tea.Cmd {
 	return nil
 }
 
-func (p *PullRequestView) moveToNextHeading(L int) {
+type direction int
+
+const (
+	NEXT direction = iota
+	PREV
+)
+
+type moveToHeadingMsg struct {
+	level headingsLevel
+	dir   direction
+}
+
+func moveToHeadingCmd(lev headingsLevel, dir direction) tea.Cmd {
+	return func() tea.Msg {
+		return moveToHeadingMsg{lev, dir}
+	}
+}
+
+func (p *PullRequestView) moveToNextHeading(L headingsLevel) {
 	p.withContentViewPtr(func(content *contentView) error {
 		return p.withHeaderViewPtr(func(header *pullRequestHeader) error {
 			if header.currentHeading[L] >= 0 && header.currentHeading[L] < len(header.headings[L])-1 {
@@ -499,7 +516,7 @@ func (p *PullRequestView) moveToNextHeading(L int) {
 	})
 }
 
-func (p *PullRequestView) moveToPrevHeading(L int) {
+func (p *PullRequestView) moveToPrevHeading(L headingsLevel) {
 	p.withContentViewPtr(func(content *contentView) error {
 		return p.withHeaderViewPtr(func(header *pullRequestHeader) error {
 			if len(header.headings[L]) > 0 && header.currentHeading[L] > 0 {
@@ -512,6 +529,17 @@ func (p *PullRequestView) moveToPrevHeading(L int) {
 			return nil
 		})
 	})
+}
+
+type moveToBookmarkMsg struct {
+	cat bookmarkCategory
+	dir direction
+}
+
+func moveToNextPrevBookmarkCmd(cat bookmarkCategory, dir direction) tea.Cmd {
+	return func() tea.Msg {
+		return moveToBookmarkMsg{cat, dir}
+	}
 }
 
 func (p *PullRequestView) moveToNextBookmark(b bookmarkCategory) error {
@@ -650,13 +678,23 @@ func (p *PullRequestView) reloadPullRequest() tea.Cmd {
 		})
 		return tea.Batch(tea.ClearScrollArea, renderPrCmd)
 	} else {
-		return showErr(err)
+		return showErrCmd(err)
 	}
 }
 
 func focusChanged(address viewAddress) func() tea.Msg {
 	return func() tea.Msg {
 		return focusChangedMsg{address}
+	}
+}
+
+type moveHorizontallyMsg struct {
+	offset int
+}
+
+func moveHorizontallyCmd(offset int) tea.Cmd {
+	return func() tea.Msg {
+		return moveHorizontallyMsg{offset: offset}
 	}
 }
 
@@ -708,7 +746,7 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 						// Do nothing for now
 						if replyText, err := launchEditor(""); err == nil {
 							if _, err := p.pullRequest.ReplyToComment(comment, replyText); err != nil {
-								return p, showErr(err)
+								return p, showErrCmd(err)
 							} else {
 								return p, p.reloadPullRequest()
 							}
@@ -717,10 +755,33 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 					return p, tea.ClearScrollArea
 				}
 			} else {
-				return p, showErr(fmt.Errorf("No comments found at line %d", msg.line))
+				return p, showErrCmd(fmt.Errorf("No comments found at line %d", msg.line))
 			}
 		}
 
+	case moveToBookmarkMsg:
+		switch msg.dir {
+		case NEXT:
+			if err := p.moveToNextBookmark(msg.cat); err != nil {
+				cmds = append(cmds, showErrCmd(err))
+			}
+		case PREV:
+			if err := p.moveToPrevBookmark(msg.cat); err != nil {
+				cmds = append(cmds, showErrCmd(err))
+			}
+		}
+	case moveToHeadingMsg:
+		switch msg.dir {
+		case NEXT:
+			p.moveToNextHeading(msg.level)
+		case PREV:
+			p.moveToPrevHeading(msg.level)
+		}
+	case moveHorizontallyMsg:
+		if p.xOffset+msg.offset >= 0 {
+			p.xOffset += msg.offset
+			return p, renderPrCmd
+		}
 	case tea.KeyMsg:
 
 		switch k := msg.String(); k {
@@ -744,49 +805,25 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 			if !p.isVisible(p.currentFocus()) {
 				p.nextFocus()
 			}
-		case "right":
-			if p.currentFocus() == CONTENT_ADDRESS {
-				p.xOffset += 4
-				cmds = append(cmds, renderPrCmd)
-			}
 
-		case "left":
-			if p.currentFocus() == CONTENT_ADDRESS {
-				if p.xOffset >= 4 {
-					p.xOffset -= 4
-					cmds = append(cmds, renderPrCmd)
-				}
-			}
-		case "n":
-			p.moveToNextHeading(COMMIT_LEVEL)
-		case "p":
-			p.moveToPrevHeading(COMMIT_LEVEL)
-		case "N":
-			p.moveToNextHeading(FILE_LEVEL)
-		case "P":
-			p.moveToPrevHeading(FILE_LEVEL)
-		case "c":
-			p.moveToNextBookmark(COMMENT_CATEGORY)
-		case "C":
-			p.moveToPrevBookmark(COMMENT_CATEGORY)
-		case "r":
-			if cv, ok := p.getContentView(); ok {
-				return p, lineCommand(replyComment, cv.viewport.YOffset, nil)
-			}
 		default:
 			switch p.currentFocus() {
 			case CONTENT_ADDRESS:
-				p.withContentView(func(content contentView) (contentView, error) {
+				if err := p.withContentView(func(content contentView) (contentView, error) {
 					newView, cmd := content.Update(msg)
 					cmds = append(cmds, cmd)
 					return newView.(contentView), nil
-				})
+				}); err != nil {
+					cmds = append(cmds, showErrCmd(err))
+				}
 			case FILEVIEW_ADDRESS:
-				p.withFileListView(func(view fileList) (fileList, error) {
+				if err := p.withFileListView(func(view fileList) (fileList, error) {
 					newView, cmd := view.Update(msg)
 					cmds = append(cmds, cmd)
 					return newView.(fileList), nil
-				})
+				}); err != nil {
+					cmds = append(cmds, showErrCmd(err))
+				}
 			}
 		}
 
@@ -848,7 +885,7 @@ func launchEditor(initialText string) (string, error) {
 
 		// Run editor
 		var editorPath string
-		if editorPath = os.Getenv("EDITOR"); editorPath != "" {
+		if editorPath = os.Getenv("EDITOR"); editorPath == "" {
 			editorPath = "vim"
 		}
 
@@ -930,8 +967,10 @@ func min1(a ...int) int {
 	return m
 }
 
+type headingsLevel int
+
 const (
-	FILE_LEVEL = iota
+	FILE_LEVEL headingsLevel = iota
 	COMMIT_LEVEL
 	HEADINGS
 )
