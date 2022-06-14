@@ -62,9 +62,25 @@ func (content contentView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return content, renderPrCmd
 	case tea.KeyMsg:
 		if !content.isLineSelected() {
-			if msg.String() == " " {
+			switch msg.String() {
+			case "n":
+				return content, moveToHeadingCmd(COMMIT_LEVEL, NEXT)
+			case "p":
+				return content, moveToHeadingCmd(COMMIT_LEVEL, PREV)
+			case "N":
+				return content, moveToHeadingCmd(FILE_LEVEL, NEXT)
+			case "P":
+				return content, moveToHeadingCmd(FILE_LEVEL, PREV)
+			case "c":
+				return content, moveToNextPrevBookmarkCmd(COMMENT_CATEGORY, NEXT)
+			case "C":
+				return content, moveToNextPrevBookmarkCmd(COMMENT_CATEGORY, PREV)
+			case "r":
+				return content, lineCommand(replyComment, content.viewport.YOffset, nil)
+			case " ":
 				content.selectLine(content.viewport.YOffset)
-			} else {
+				return content, nil
+			default:
 				newViewport, cmd := content.viewport.Update(msg)
 				content.viewport = newViewport
 				return content, cmd
@@ -77,6 +93,8 @@ func (content contentView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				content.selectDown()
 			case " ":
 				content.selectLine(-1)
+			case "r":
+				return content, lineCommand(replyComment, content.selectedLine, nil)
 			case "+":
 				if ln, ok := content.codeLines[content.selectedLine]; ok {
 					cmd := lineCommand(newComment, content.selectedLine, &ln)

@@ -104,7 +104,7 @@ var focusOrder = [...]viewAddress{CONTENT_ADDRESS, FILEVIEW_ADDRESS}
 func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 
 	headings := make([][]Heading, HEADINGS)
-	for l := 0; l < HEADINGS; l++ {
+	for l := 0; l < int(HEADINGS); l++ {
 		headings[l] = make([]Heading, 0)
 	}
 
@@ -439,16 +439,15 @@ func (c *contentView) currentLine() int {
 	return len(*c.content)
 }
 
-func (prv *PullRequestView) closeLastHeader(header *pullRequestHeader, contentView *contentView, lev int) {
+func (prv *PullRequestView) closeLastHeader(header *pullRequestHeader, contentView *contentView, lev headingsLevel) {
 	header.headings[lev][len(header.headings[lev])-1].lineEnd = contentView.currentLine()
-	//header.headings[lev] = append(header.headings[lev], Heading{contentView.currentLine(), header.headings[lev][len(header.headings[lev])-2].text, -1})
 }
 
 func (prv *PullRequestView) addBookmark(contentView *contentView, b bookmarkCategory, data interface{}) {
 	prv.bookmarks[b] = append(prv.bookmarks[b], bookmark{contentView.currentLine() + 1, data})
 }
 
-func addHeading(content *contentView, header *pullRequestHeader, w int, lev int, format string, args ...any) int {
+func addHeading(content *contentView, header *pullRequestHeader, w int, lev headingsLevel, format string, args ...any) int {
 	var st lipgloss.Style
 	switch lev {
 	case FILE_LEVEL:
@@ -484,7 +483,25 @@ func (p PullRequestView) Init() tea.Cmd {
 	return nil
 }
 
-func (p *PullRequestView) moveToNextHeading(L int) {
+type direction int
+
+const (
+	NEXT direction = iota
+	PREV
+)
+
+type moveToHeadingMsg struct {
+	level headingsLevel
+	dir   direction
+}
+
+func moveToHeadingCmd(lev headingsLevel, dir direction) tea.Cmd {
+	return func() tea.Msg {
+		return moveToHeadingMsg{lev, dir}
+	}
+}
+
+func (p *PullRequestView) moveToNextHeading(L headingsLevel) {
 	p.withContentViewPtr(func(content *contentView) error {
 		return p.withHeaderViewPtr(func(header *pullRequestHeader) error {
 			if header.currentHeading[L] >= 0 && header.currentHeading[L] < len(header.headings[L])-1 {
@@ -499,7 +516,7 @@ func (p *PullRequestView) moveToNextHeading(L int) {
 	})
 }
 
-func (p *PullRequestView) moveToPrevHeading(L int) {
+func (p *PullRequestView) moveToPrevHeading(L headingsLevel) {
 	p.withContentViewPtr(func(content *contentView) error {
 		return p.withHeaderViewPtr(func(header *pullRequestHeader) error {
 			if len(header.headings[L]) > 0 && header.currentHeading[L] > 0 {
@@ -512,6 +529,17 @@ func (p *PullRequestView) moveToPrevHeading(L int) {
 			return nil
 		})
 	})
+}
+
+type moveToBookmarkMsg struct {
+	cat bookmarkCategory
+	dir direction
+}
+
+func moveToNextPrevBookmarkCmd(cat bookmarkCategory, dir direction) tea.Cmd {
+	return func() tea.Msg {
+		return moveToBookmarkMsg{cat, dir}
+	}
 }
 
 func (p *PullRequestView) moveToNextBookmark(b bookmarkCategory) error {
@@ -721,6 +749,20 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
+	case moveToBookmarkMsg:
+		switch msg.dir {
+		case NEXT:
+			p.moveToNextBookmark(msg.cat)
+		case PREV:
+			p.moveToPrevBookmark(msg.cat)
+		}
+	case moveToHeadingMsg:
+		switch msg.dir {
+		case NEXT:
+			p.moveToNextHeading(msg.level)
+		case PREV:
+			p.moveToPrevHeading(msg.level)
+		}
 	case tea.KeyMsg:
 
 		switch k := msg.String(); k {
@@ -756,22 +798,6 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 					p.xOffset -= 4
 					cmds = append(cmds, renderPrCmd)
 				}
-			}
-		case "n":
-			p.moveToNextHeading(COMMIT_LEVEL)
-		case "p":
-			p.moveToPrevHeading(COMMIT_LEVEL)
-		case "N":
-			p.moveToNextHeading(FILE_LEVEL)
-		case "P":
-			p.moveToPrevHeading(FILE_LEVEL)
-		case "c":
-			p.moveToNextBookmark(COMMENT_CATEGORY)
-		case "C":
-			p.moveToPrevBookmark(COMMENT_CATEGORY)
-		case "r":
-			if cv, ok := p.getContentView(); ok {
-				return p, lineCommand(replyComment, cv.viewport.YOffset, nil)
 			}
 		default:
 			switch p.currentFocus() {
@@ -930,8 +956,10 @@ func min1(a ...int) int {
 	return m
 }
 
+type headingsLevel int
+
 const (
-	FILE_LEVEL = iota
+	FILE_LEVEL headingsLevel = iota
 	COMMIT_LEVEL
 	HEADINGS
 )
