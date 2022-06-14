@@ -688,6 +688,16 @@ func focusChanged(address viewAddress) func() tea.Msg {
 	}
 }
 
+type moveHorizontallyMsg struct {
+	offset int
+}
+
+func moveHorizontallyCmd(offset int) tea.Cmd {
+	return func() tea.Msg {
+		return moveHorizontallyMsg{offset: offset}
+	}
+}
+
 func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
@@ -763,6 +773,11 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 		case PREV:
 			p.moveToPrevHeading(msg.level)
 		}
+	case moveHorizontallyMsg:
+		if p.xOffset+msg.offset >= 0 {
+			p.xOffset += msg.offset
+			return p, renderPrCmd
+		}
 	case tea.KeyMsg:
 
 		switch k := msg.String(); k {
@@ -786,19 +801,7 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 			if !p.isVisible(p.currentFocus()) {
 				p.nextFocus()
 			}
-		case "right":
-			if p.currentFocus() == CONTENT_ADDRESS {
-				p.xOffset += 4
-				cmds = append(cmds, renderPrCmd)
-			}
 
-		case "left":
-			if p.currentFocus() == CONTENT_ADDRESS {
-				if p.xOffset >= 4 {
-					p.xOffset -= 4
-					cmds = append(cmds, renderPrCmd)
-				}
-			}
 		default:
 			switch p.currentFocus() {
 			case CONTENT_ADDRESS:

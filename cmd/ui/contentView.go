@@ -77,6 +77,10 @@ func (content contentView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return content, moveToNextPrevBookmarkCmd(COMMENT_CATEGORY, PREV)
 			case "r":
 				return content, lineCommand(replyComment, content.viewport.YOffset, nil)
+			case "right":
+				return content, moveHorizontallyCmd(4)
+			case "left":
+				return content, moveHorizontallyCmd(-4)
 			case " ":
 				content.selectLine(content.viewport.YOffset)
 				return content, nil
