@@ -20,9 +20,9 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "gobb-cli",
-	Short: "Stupid CLI for Bitbucket",
-	Long: `I need a CLI for managing my BB account, so I goggled it and couldn't find any.
+	Use:   "sv",
+	Short: "Stupid CLI for any sv system",
+	Long: `I need a CLI for managing my repos regardless the provider (BB, GH, GL) account, so I goggled it and couldn't find any.
 Since I'm a developer I thought it would have been funny to create one. Here it is.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:

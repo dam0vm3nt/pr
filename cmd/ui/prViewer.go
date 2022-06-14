@@ -848,7 +848,7 @@ func launchEditor(initialText string) (string, error) {
 
 		// Run editor
 		var editorPath string
-		if editorPath = os.Getenv("EDITOR"); editorPath != "" {
+		if editorPath = os.Getenv("EDITOR"); editorPath == "" {
 			editorPath = "vim"
 		}
 
