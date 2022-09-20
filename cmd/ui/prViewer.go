@@ -40,9 +40,9 @@ type pullRequestData struct {
 }
 
 func (d *pullRequestData) addComment(path string, old int64, new int64, isNew bool, comment sv.Comment) {
-	n := new
-	if !isNew {
-		n = -old
+	n := old
+	if isNew {
+		n = -new
 	}
 	fileComments, ok := d.commentMap[path]
 	if !ok {
@@ -735,7 +735,7 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 					if newComment, err := p.pullRequest.CreateComment(fn, msg.code.commitId, lineNum, isNew, comment); err != nil {
 						pterm.Warning.Println("Couldn't add: ", err)
 					} else {
-						p.pullRequest.addComment(fn, msg.code.new, msg.code.old, isNew, newComment)
+						p.pullRequest.addComment(fn, msg.code.old, msg.code.new, isNew, newComment)
 						return p, tea.Batch(tea.ClearScrollArea, renderPrCmd)
 					}
 				}
