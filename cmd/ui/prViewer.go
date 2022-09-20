@@ -1105,12 +1105,14 @@ func (prv *PullRequestView) renderPullRequest() {
 
 							content.printf(rendered)
 							if haveFileComments {
-								if commentsForLine, haveLineComments := commentsForFile[newN]; haveLineComments {
+								if commentsForLine, haveLineComments := commentsForFile[-newN]; ln.Op != gitdiff.OpDelete && haveLineComments {
 									prv.PrintComments(content, header, commentsForLine, content.viewport.Width)
-									delete(commentsForFile, newN)
-								} else if commentsForLine, haveLineComments := commentsForFile[-oldN]; haveLineComments {
+									delete(commentsForFile, -newN)
+								}
+
+								if commentsForLine, haveLineComments := commentsForFile[oldN]; ln.Op != gitdiff.OpAdd && haveLineComments {
 									prv.PrintComments(content, header, commentsForLine, content.viewport.Width)
-									delete(commentsForFile, -oldN)
+									delete(commentsForFile, oldN)
 								}
 							}
 

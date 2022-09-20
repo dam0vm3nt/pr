@@ -1,13 +1,21 @@
 {
-  "name": "Untitled GraphQL Schema",
+  "name": "GitHUB GraphQL Schema",
   "schemaPath": "schema.graphql",
   "extensions": {
     "endpoints": {
-      "Default GraphQL Endpoint": {
+      "Latch Default GraphQL Endpoint": {
         "url": "https://api.github.com/graphql",
         "headers": {
           "user-agent": "JS GraphQL",
-          "authorization": "Bearer $GITHUB_TOKEN"
+          "authorization": "Bearer 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"
+        },
+        "introspect": false
+      },
+      "Personal Default GraphQL Endpoint": {
+        "url": "https://api.github.com/graphql",
+        "headers": {
+          "user-agent": "JS GraphQL",
+          "authorization": "Bearer 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"
         },
         "introspect": false
       }

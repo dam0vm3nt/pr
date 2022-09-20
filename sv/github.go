@@ -471,10 +471,13 @@ func (g GitHubPullRequest) GetCommentsByLine() ([]Comment, map[string]map[int64]
 			}
 
 			var line int64
+
 			if ghC.Line != nil {
-				line = int64(*ghC.Line)
-			} else if ghC.OriginalLine != nil {
-				line = -int64(*ghC.OriginalLine)
+				if ghC.GetSide() == "RIGHT" {
+					line = -int64(*ghC.Line)
+				} else {
+					line = int64(*ghC.Line)
+				}
 			} else {
 				pterm.Fatal.Println("comment without a line")
 			}
