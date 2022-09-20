@@ -121,7 +121,7 @@ func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 			headings:       headings,
 			currentHeading: make([]int, HEADINGS),
 			maxReviews:     4,
-			maxChecks:      2,
+			maxChecks:      5,
 		}
 
 		content := contentView{
@@ -1012,7 +1012,7 @@ func (prv *PullRequestView) renderPullRequest() {
 				sourceBranch, destBranch, pr.GetState())
 
 			for n, chk := range prv.pullRequest.checks {
-				header.header.printf("* %s : %s (%s)", chk.GetStatus(), chk.GetName(), chk.GetUrl())
+				header.header.printf("> %s : %s (%s)", chk.GetStatus(), chk.GetName(), chk.GetUrl())
 				if n >= header.maxChecks-1 {
 					break
 				}

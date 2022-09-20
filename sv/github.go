@@ -335,7 +335,7 @@ query GetRepos($name: String!, $owner: String!, $number: Int!) {
 
 		if rollups != nil && rollups.Commit != nil && rollups.Commit.StatusCheckRollup != nil && rollups.Commit.StatusCheckRollup.Contexts != nil {
 			for _, checks := range rollups.Commit.StatusCheckRollup.Contexts.Nodes {
-				if checks.State != "" && checks.Name != "" {
+				if (checks.State != "" || checks.Status != "") && checks.Name != "" {
 					result = append(result, GitHubCheck{checks})
 				}
 			}
@@ -351,14 +351,26 @@ type GitHubCheck struct {
 }
 
 func (g GitHubCheck) GetUrl() string {
+	if g.TypeName == "CheckRun" {
+		return g.DetailsURL
+	}
 	return g.TargetURL
 }
 
 func (g GitHubCheck) GetName() string {
+	if g.TypeName == "CheckRun" {
+		return g.Name
+	}
 	return g.Context
 }
 
 func (g GitHubCheck) GetStatus() string {
+	if g.TypeName == "CheckRun" {
+		if g.Status != "COMPLETED" {
+			return g.Status
+		}
+		return g.Conclusion
+	}
 	return g.State
 }
 
