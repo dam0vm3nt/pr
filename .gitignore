@@ -3,4 +3,4 @@ vendor
 
 dist/
 
-dist/
+docs/.graphqlconfig

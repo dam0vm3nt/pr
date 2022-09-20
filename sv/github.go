@@ -174,7 +174,7 @@ func (g GitHubPullRequest) CreateComment(path string, commitId string, line int,
 			Path:     &path,
 			CommitID: &commitId,
 			Side:     &side,
-			Position: &line,
+			Line:     &line,
 			Body:     &body,
 		}); err == nil {
 		return GitHubCommentWrapper{comment}, nil

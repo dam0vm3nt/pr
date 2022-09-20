@@ -728,7 +728,11 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 				if comment, err := launchEditor(""); err == nil && comment != "" {
 					isNew := msg.code.code.New()
 					fn := getFileName(msg.code.file)
-					if newComment, err := p.pullRequest.CreateComment(fn, msg.code.commitId, msg.code.position, isNew, comment); err != nil {
+					lineNum := int(msg.code.new)
+					if !isNew {
+						lineNum = int(msg.code.old)
+					}
+					if newComment, err := p.pullRequest.CreateComment(fn, msg.code.commitId, lineNum, isNew, comment); err != nil {
 						pterm.Warning.Println("Couldn't add: ", err)
 					} else {
 						p.pullRequest.addComment(fn, msg.code.new, msg.code.old, isNew, newComment)
