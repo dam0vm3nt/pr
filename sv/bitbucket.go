@@ -28,6 +28,11 @@ type BitBucketSv struct {
 	localRepo string
 }
 
+func (b *BitBucketSv) PullRequestStatus() (<-chan PullRequestStatus, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (b *BitBucketSv) Fetch() error {
 	rep, giterr := git.PlainOpen(b.localRepo)
 	if giterr != nil {

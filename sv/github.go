@@ -37,6 +37,165 @@ type GitHubSv struct {
 	sshKeySelector *regexp.Regexp
 }
 
+type PullRequestStatusResponse struct {
+	Number      int64
+	Title       string
+	State       string
+	BaseRefName string
+	HeadRefName string
+	Reviews     struct {
+		Nodes []struct {
+			Author struct {
+				Login string
+			}
+			State string
+		}
+	}
+	Commits struct {
+		Nodes []struct {
+			Commit struct {
+				StatusCheckRollup struct {
+					Contexts struct {
+						CheckRunCountsByState []struct {
+							State string
+							Count int
+						}
+						StatusContextCountsByState []struct {
+							State string
+							Count int
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+func (g *GitHubSv) PullRequestStatus() (<-chan PullRequestStatus, error) {
+	statusQuery := `query prStatus {
+    viewer {
+        pullRequests(last: 10,states: [OPEN]) {
+            nodes {
+                number
+                title
+                state
+                baseRefName
+                headRefName
+                reviews(last: 5) {
+                    nodes {
+                        author {
+                            login
+                        }
+                        state
+                    }
+                }
+                commits(last: 1) {
+                    nodes {
+                        commit {
+                            statusCheckRollup {
+                                contexts {
+                                    checkRunCountsByState {
+                                        state
+                                        count
+                                    }
+                                    statusContextCountsByState {
+                                        state
+                                        count
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}`
+
+	var res struct {
+		Viewer struct {
+			PullRequests struct {
+				Nodes []PullRequestStatusResponse
+			}
+		}
+	}
+
+	if err := g.gqlClient.GraphQL(g.host, statusQuery, map[string]interface{}{}, &res); err != nil {
+		return nil, err
+	}
+
+	ch := make(chan PullRequestStatus)
+	go func() {
+		for _, r := range res.Viewer.PullRequests.Nodes {
+			w := GitHubPullRequestStatusWrapper{&r}
+			ch <- w
+		}
+		close(ch)
+	}()
+
+	return ch, nil
+}
+
+type GitHubPullRequestStatusWrapper struct {
+	*PullRequestStatusResponse
+}
+
+func (g GitHubPullRequestStatusWrapper) GetId() interface{} {
+	return g.Number
+}
+
+func (g GitHubPullRequestStatusWrapper) GetTitle() string {
+	return g.Title
+}
+
+func (g GitHubPullRequestStatusWrapper) GetStatus() string {
+	return g.State
+}
+
+func (g GitHubPullRequestStatusWrapper) GetBranchName() string {
+	return g.HeadRefName
+}
+
+func (g GitHubPullRequestStatusWrapper) GetBaseName() string {
+	return g.BaseRefName
+}
+
+func (g GitHubPullRequestStatusWrapper) GetReviews() []Review {
+	rev := make([]Review, 0)
+	for _, r := range g.Reviews.Nodes {
+		rev = append(rev, GitHubReview{api.PullRequestReview{
+			Author: api.Author{
+				Login: r.Author.Login,
+			},
+			AuthorAssociation:   "",
+			Body:                "",
+			SubmittedAt:         nil,
+			IncludesCreatedEdit: false,
+			ReactionGroups:      nil,
+			State:               r.State,
+			URL:                 "",
+		}})
+	}
+
+	return rev
+}
+
+func (g GitHubPullRequestStatusWrapper) GetChecksByStatus() map[string]int {
+	states := make(map[string]int)
+	for _, s := range g.Commits.Nodes[0].Commit.StatusCheckRollup.Contexts.CheckRunCountsByState {
+		states[s.State] = s.Count
+	}
+	return states
+}
+
+func (g GitHubPullRequestStatusWrapper) GetContextByStatus() map[string]int {
+	states := make(map[string]int)
+	for _, s := range g.Commits.Nodes[0].Commit.StatusCheckRollup.Contexts.StatusContextCountsByState {
+		states[s.State] = s.Count
+	}
+	return states
+}
+
 func (g *GitHubSv) Fetch() error {
 	rep, giterr := git.PlainOpen(g.localRepo)
 	if giterr != nil {

@@ -57,5 +57,17 @@ type Branch interface {
 type Sv interface {
 	ListPullRequests(query string) (<-chan PullRequest, error)
 	GetPullRequest(id string) (PullRequest, error)
+	PullRequestStatus() (<-chan PullRequestStatus, error)
 	Fetch() error
+}
+
+type PullRequestStatus interface {
+	GetId() interface{}
+	GetTitle() string
+	GetStatus() string
+	GetBranchName() string
+	GetBaseName() string
+	GetReviews() []Review
+	GetChecksByStatus() map[string]int
+	GetContextByStatus() map[string]int
 }
