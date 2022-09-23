@@ -70,4 +70,7 @@ type PullRequestStatus interface {
 	GetReviews() []Review
 	GetChecksByStatus() map[string]int
 	GetContextByStatus() map[string]int
+	GetAuthor() string
+	GetRepository() string
+	IsMine() bool
 }

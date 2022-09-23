@@ -14,6 +14,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	gh "github.com/google/go-github/v43/github"
 	"github.com/pterm/pterm"
+	"github.com/shurcooL/githubv4"
 	sshagent "github.com/xanzy/ssh-agent"
 	ssh2 "golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
@@ -43,7 +44,16 @@ type PullRequestStatusResponse struct {
 	State       string
 	BaseRefName string
 	HeadRefName string
-	Reviews     struct {
+	Repository  struct {
+		Name  string
+		Owner struct {
+			Login string
+		}
+	}
+	Author struct {
+		Login string
+	}
+	Reviews struct {
 		Nodes []struct {
 			Author struct {
 				Login string
@@ -72,64 +82,26 @@ type PullRequestStatusResponse struct {
 }
 
 func (g *GitHubSv) PullRequestStatus() (<-chan PullRequestStatus, error) {
-	statusQuery := `query prStatus {
-    viewer {
-        pullRequests(last: 10,states: [OPEN]) {
-            nodes {
-                number
-                title
-                state
-                baseRefName
-                headRefName
-                reviews(last: 5) {
-                    nodes {
-                        author {
-                            login
-                        }
-                        state
-                    }
-                }
-                commits(last: 1) {
-                    nodes {
-                        commit {
-                            statusCheckRollup {
-                                contexts {
-                                    checkRunCountsByState {
-                                        state
-                                        count
-                                    }
-                                    statusContextCountsByState {
-                                        state
-                                        count
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}`
-
-	var res struct {
-		Viewer struct {
-			PullRequests struct {
-				Nodes []PullRequestStatusResponse
-			}
-		}
-	}
-
-	if err := g.gqlClient.GraphQL(g.host, statusQuery, map[string]interface{}{}, &res); err != nil {
-		return nil, err
-	}
-
 	ch := make(chan PullRequestStatus)
 	go func() {
-		for _, r := range res.Viewer.PullRequests.Nodes {
-			w := GitHubPullRequestStatusWrapper{&r}
-			ch <- w
+		// Get my login
+		if login, err := g.currentLogin(); err == nil {
+
+			// Get My PRs
+			if ch2, err := g.searchForPrStatus(fmt.Sprintf("type:pr state:open author:%s", login), true); err == nil {
+				for r := range ch2 {
+					ch <- r
+				}
+			}
+
+			// Now get reviews as well
+			if ch2, err := g.searchForPrStatus(fmt.Sprintf("type:pr state:open review-requested:%s", login), false); err == nil {
+				for r := range ch2 {
+					ch <- r
+				}
+			}
 		}
+
 		close(ch)
 	}()
 
@@ -137,7 +109,20 @@ func (g *GitHubSv) PullRequestStatus() (<-chan PullRequestStatus, error) {
 }
 
 type GitHubPullRequestStatusWrapper struct {
-	*PullRequestStatusResponse
+	PullRequestStatusResponse
+	isMine bool
+}
+
+func (g GitHubPullRequestStatusWrapper) IsMine() bool {
+	return g.isMine
+}
+
+func (g GitHubPullRequestStatusWrapper) GetAuthor() string {
+	return g.Author.Login
+}
+
+func (g GitHubPullRequestStatusWrapper) GetRepository() string {
+	return fmt.Sprintf("%s/%s", g.Repository.Owner.Login, g.Repository.Name)
 }
 
 func (g GitHubPullRequestStatusWrapper) GetId() interface{} {
@@ -340,6 +325,183 @@ func (g GitHubPullRequest) CreateComment(path string, commitId string, line int,
 	} else {
 		return nil, err
 	}
+}
+
+func (g *GitHubSv) graphQL(query string, variables map[string]interface{}, data interface{}) error {
+	return g.gqlClient.GraphQL(g.host, query, variables, data)
+}
+
+func (g *GitHubSv) currentLogin() (string, error) {
+	loginQuery := `query myLogin {
+    viewer {
+        login
+    }
+}`
+	var resp struct {
+		Viewer struct {
+			Login string
+		}
+	}
+
+	if err := g.graphQL(loginQuery, nil, &resp); err != nil {
+		return "", err
+	}
+
+	return resp.Viewer.Login, nil
+}
+
+type IssueResNode struct {
+	Id         string
+	Repository struct {
+		NameWithOwner string
+	}
+	Number int
+}
+
+func (g *GitHubSv) searchIssueNodes(nodeQuery string) <-chan IssueResNode {
+	searchQuery := `query requestedReviews($prQuery: String!, $after: String)
+{
+    search(query: $prQuery, type: ISSUE, first: 5, after: $after) {
+        issueCount
+        pageInfo {
+            endCursor
+            hasNextPage
+        }
+        edges {
+            node {
+                ... on Node {
+                    id
+                }
+            }
+        }
+    }
+}`
+	args := make(map[string]interface{})
+	args["prQuery"] = nodeQuery
+
+	res := make(chan IssueResNode)
+
+	go func() {
+
+		var resp struct {
+			Search struct {
+				IssueCount int
+				PageInfo   struct {
+					EndCursor   string
+					HasNextPage bool
+				}
+				Edges []struct {
+					Node IssueResNode
+				}
+			}
+		}
+
+		cont := true
+		for cont {
+			if err := g.graphQL(searchQuery, args, &resp); err == nil {
+
+				for _, n := range resp.Search.Edges {
+					res <- n.Node
+				}
+
+				if resp.Search.PageInfo.HasNextPage {
+					args["after"] = resp.Search.PageInfo.EndCursor
+				} else {
+					cont = false
+				}
+
+			} else {
+				cont = false
+			}
+		}
+
+		close(res)
+	}()
+
+	return res
+}
+
+func (g *GitHubSv) searchForPrStatus(prQuery string, isMine bool) (<-chan PullRequestStatus, error) {
+	singlePrQuery := `
+query singleStatus($ids: [ID!]!) {
+    nodes(ids: $ids) {
+        ... on PullRequest {
+
+            number
+            title
+            state
+			repository {
+                name
+                owner {
+                    login
+                }
+            }
+            author {
+                login
+            }
+            baseRefName
+            headRefName
+            reviews(first: 5) {
+                nodes {
+                    author {
+                        login
+                    }
+                    state
+                }
+            }
+            commits(last: 1) {
+                nodes {
+                    commit {
+                        statusCheckRollup {
+                            contexts {
+                                checkRunCountsByState {
+                                    state
+                                    count
+                                }
+                                statusContextCountsByState {
+                                    state
+                                    count
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+}
+`
+	var resp struct {
+		Nodes []PullRequestStatusResponse
+	}
+
+	ch := make(chan PullRequestStatus)
+	go func() {
+
+		ids := make([]string, 0)
+		for nd := range g.searchIssueNodes(prQuery) {
+			ids = append(ids, nd.Id)
+			if len(ids) > 5 {
+				if err := g.graphQL(singlePrQuery, map[string]interface{}{"ids": ids}, &resp); err == nil {
+					for _, pr := range resp.Nodes {
+						ch <- GitHubPullRequestStatusWrapper{pr, isMine}
+					}
+				}
+				ids = make([]string, 0)
+			}
+		}
+
+		if err := g.graphQL(singlePrQuery, map[string]interface{}{"ids": ids}, &resp); err == nil {
+			for _, pr := range resp.Nodes {
+				ch <- GitHubPullRequestStatusWrapper{pr, isMine}
+			}
+		}
+
+		close(ch)
+	}()
+
+	return ch, nil
 }
 
 func (g GitHubPullRequest) ReplyToComment(comment Comment, replyText string) (Comment, error) {
@@ -597,6 +759,272 @@ func (g GitHubReview) GetSubmitedAt() time.Time {
 	}
 }
 
+type UserInfo struct {
+	Login string
+}
+
+func (u UserInfo) GetDisplayName() string {
+	return u.Login
+}
+
+type ReactionsInfo struct {
+	TotalCount int
+	Nodes      []struct {
+		Content   githubv4.ReactionContent
+		CreatedAt string
+		User      UserInfo
+	}
+}
+
+type CommentInfo struct {
+	Id        string
+	Author    UserInfo
+	Body      string
+	BodyText  string
+	BodyHTML  string
+	Reactions ReactionsInfo
+}
+
+type PageInfo struct {
+	HasNextPage bool
+	EndCursor   string
+}
+
+type PullRequestCommentResponse struct {
+	Repository struct {
+		PullRequest struct {
+			Comments struct {
+				PageInfo   PageInfo
+				TotalCount int
+				Nodes      []CommentInfo
+			}
+		}
+	}
+}
+
+type PullRequestCommentOrError struct {
+	Comment *CommentInfo
+	error   error
+}
+
+type PullRequestThreadOrError struct {
+	PullRequestThread *PullRequestThread
+	error             error
+}
+
+type PullRequestThread struct {
+	Line              *int
+	OriginalLine      *int
+	Path              string
+	DiffSide          *githubv4.DiffSide
+	StartLine         *int
+	StartDiffSide     *githubv4.DiffSide
+	OriginalStartLine *int
+	IsOutdated        bool
+	Comments          struct {
+		PageInfo   PageInfo
+		TotalCount int
+		Nodes      []struct {
+			CommentInfo
+			ReplyTo *struct {
+				Id *string
+			}
+		}
+	}
+}
+
+func (g GitHubPullRequest) getPullRequestThreadComments() <-chan PullRequestThreadOrError {
+	query := `query pullRequestThreads($number:Int!, $owner: String!, $name: String!, $commentAfter: String) {
+    repository(owner: $owner,name: $name) {
+        pullRequest(number: $number) {
+            reviewThreads(first:5, after: $commentAfter) {
+                pageInfo {
+                    endCursor
+                    hasNextPage
+                }
+                totalCount
+                nodes {
+                    line
+                    originalLine
+                    path
+                    diffSide
+
+                    startLine
+                    startDiffSide
+                    originalStartLine
+
+                    isOutdated
+
+                    comments(first: 100) {
+                        pageInfo {
+                            endCursor
+                            hasNextPage
+                        }
+                        totalCount
+                        nodes {
+                            replyTo {
+                                id
+                            }
+                            ...ReviewInfo
+                            ...ReactionsInfo
+                        }
+
+                    }
+                }
+            }
+        }
+    }
+
+}
+
+
+
+fragment ReviewInfo on Comment {
+    id
+    author {
+        login
+    }
+    body
+    bodyText
+    bodyHTML
+}
+
+fragment ReactionsInfo on Reactable {
+    reactions(first: 20) {
+        totalCount
+        nodes {
+            content
+            createdAt
+            user {
+                login
+            }
+        }
+    }
+}
+`
+	args := map[string]interface{}{
+		"number": g.Number,
+		"owner":  g.sv.owner,
+		"name":   g.sv.repo,
+	}
+
+	ch := make(chan PullRequestThreadOrError)
+
+	go func() {
+		cont := true
+		var resp struct {
+			Repository struct {
+				PullRequest struct {
+					ReviewThreads struct {
+						PageInfo   PageInfo
+						TotalCount int
+						Nodes      []*PullRequestThread
+					}
+				}
+			}
+		}
+		for cont {
+			if err := g.sv.graphQL(query, args, &resp); err != nil {
+				cont = false
+				ch <- PullRequestThreadOrError{nil, err}
+			}
+
+			for _, c := range resp.Repository.PullRequest.ReviewThreads.Nodes {
+				ch <- PullRequestThreadOrError{c, nil}
+			}
+			if resp.Repository.PullRequest.ReviewThreads.PageInfo.HasNextPage {
+				args["commentAfter"] = resp.Repository.PullRequest.ReviewThreads.PageInfo.EndCursor
+			} else {
+				cont = false
+			}
+
+		}
+		close(ch)
+	}()
+
+	return ch
+}
+
+func (g GitHubPullRequest) getPullRequestComments() <-chan PullRequestCommentOrError {
+	query := `
+query pullRequestComments($number:Int!, $owner: String!, $name: String!, $commentAfter: String) {
+    repository(owner: $owner,name: $name) {
+        pullRequest(number: $number) {
+            comments(first: 100, after: $commentAfter){
+                pageInfo {
+                    hasNextPage
+                    endCursor
+                }
+
+                totalCount
+                nodes {
+					id
+                    ...ReactionsInfo
+                    ...ReviewInfo
+                }
+            }
+        }
+    }
+
+}
+
+fragment ReviewInfo on Comment {
+
+    author {
+        login
+    }
+    body
+    bodyText
+    bodyHTML
+}
+
+fragment ReactionsInfo on Reactable {
+    reactions(first: 20) {
+        totalCount
+        nodes {
+            content
+            createdAt
+            user {
+                login
+            }
+        }
+    }
+}
+`
+	args := map[string]interface{}{
+		"number": g.Number,
+		"owner":  g.sv.owner,
+		"name":   g.sv.repo,
+	}
+
+	ch := make(chan PullRequestCommentOrError)
+
+	go func() {
+		cont := true
+		var resp PullRequestCommentResponse
+		for cont {
+			if err := g.sv.graphQL(query, args, &resp); err != nil {
+				cont = false
+				ch <- PullRequestCommentOrError{nil, err}
+			}
+
+			for _, c := range resp.Repository.PullRequest.Comments.Nodes {
+				ch <- PullRequestCommentOrError{&c, nil}
+			}
+			if resp.Repository.PullRequest.Comments.PageInfo.HasNextPage {
+				args["commentAfter"] = resp.Repository.PullRequest.Comments.PageInfo.EndCursor
+			} else {
+				cont = false
+			}
+
+		}
+		close(ch)
+	}()
+
+	return ch
+
+}
+
 func (g GitHubPullRequest) GetCommentsByLine() ([]Comment, map[string]map[int64][]Comment, error) {
 	cl := g.sv.client
 
@@ -630,41 +1058,87 @@ func (g GitHubPullRequest) GetCommentsByLine() ([]Comment, map[string]map[int64]
 
 	commentsById := make(map[int64]*gh.PullRequestComment)
 
+	for ghC := range g.getPullRequestThreadComments() {
+		if ghC.error != nil {
+			return nil, nil, ghC.error
+		}
+		fmt.Println(ghC.PullRequestThread)
+	}
+
 	for ghC := range commentsChan {
 		commentsById[*ghC.ID] = ghC
 		cmt := GitHubCommentWrapper{ghC}
-		if ghC.Path != nil {
-			path := *ghC.Path
-			byLine, ok := commentMap[path]
-			if !ok {
-				byLine = make(map[int64][]Comment)
-				commentMap[path] = byLine
-			}
 
-			var line int64
-
-			if ghC.Line != nil {
-				if ghC.GetSide() == "RIGHT" {
-					line = -int64(*ghC.Line)
-				} else {
-					line = int64(*ghC.Line)
-				}
-			} else {
-				pterm.Fatal.Println("comment without a line")
-			}
-
-			lineComments, hasComments := byLine[line]
-			if !hasComments {
-				lineComments = make([]Comment, 0)
-			}
-			lineComments = append(lineComments, cmt)
-			byLine[line] = lineComments
-		} else {
-			prComments = append(prComments, cmt)
+		path := *ghC.Path
+		byLine, ok := commentMap[path]
+		if !ok {
+			byLine = make(map[int64][]Comment)
+			commentMap[path] = byLine
 		}
+
+		var line int64
+
+		if ghC.Line != nil {
+			if ghC.GetSide() == "RIGHT" {
+				line = -int64(*ghC.Line)
+			} else {
+				line = int64(*ghC.Line)
+			}
+		} else if ghC.OriginalLine != nil {
+			// This is an obsolete comment, ignored for now
+			continue
+		} else {
+			pterm.Fatal.Println("comment without a line")
+		}
+
+		lineComments, hasComments := byLine[line]
+		if !hasComments {
+			lineComments = make([]Comment, 0)
+		}
+		lineComments = append(lineComments, cmt)
+		byLine[line] = lineComments
+	}
+
+	for re := range g.getPullRequestComments() {
+		if re.error != nil {
+			return nil, nil, re.error
+		}
+		prComments = append(prComments, GithubQLCommentWrapper{re.Comment})
 	}
 
 	return prComments, commentMap, nil
+}
+
+type GithubQLCommentWrapper struct {
+	*CommentInfo
+}
+
+func (g GithubQLCommentWrapper) GetRaw() string {
+	return g.Body
+}
+
+func (g GithubQLCommentWrapper) GetContent() CommentContent {
+	return g
+}
+
+func (g GithubQLCommentWrapper) GetParentId() interface{} {
+	return nil
+}
+
+func (g GithubQLCommentWrapper) GetId() interface{} {
+	return g.Id
+}
+
+func (g GithubQLCommentWrapper) GetUser() Author {
+	return g.Author
+}
+
+func (g GithubQLCommentWrapper) GetCreatedOn() time.Time {
+	if t, err := time.Parse(time.RFC822, g.Body); err != nil {
+		return time.Now()
+	} else {
+		return t
+	}
 }
 
 type GitHubCommentWrapper struct {
