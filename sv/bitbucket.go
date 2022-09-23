@@ -219,6 +219,10 @@ type BitbucketComment struct {
 	*bitbucket.Comment
 }
 
+func (b BitbucketComment) GetReactions() Reactions {
+	return make(Reactions)
+}
+
 func (b BitbucketComment) GetParentId() interface{} {
 	if b.Parent != nil {
 		return b.Parent.Id

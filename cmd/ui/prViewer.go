@@ -419,18 +419,28 @@ func (prv *PullRequestView) PrintComments(content *contentView, header *pullRequ
 		raw := comment.GetContent().GetRaw()
 		reply := ""
 		if id := comment.GetParentId(); id != nil {
-			reply = fmt.Sprintf(" <- %d", id)
+			reply = fmt.Sprintf(" <- %s", id)
 		}
 
 		prv.addBookmark(content, COMMENT_CATEGORY, comment)
 		addHeading(content, header, w, COMMIT_LEVEL, style.Render(
-			fmt.Sprintf("------- [%d%s] %s at %s ------",
+			fmt.Sprintf("------- [%s%s] %s at %s ------",
 				comment.GetId(), reply,
 				comment.GetUser().GetDisplayName(),
 				comment.GetCreatedOn())))
 
 		rawRendered, _ := r.Render(raw)
-		content.printf(style2.Render(strings.ReplaceAll(rawRendered, "\t", "    ")))
+		content.printf(style2.Render(
+			strings.ReplaceAll(
+				strings.ReplaceAll(rawRendered, "\t", "    "), "\r", "\n")))
+
+		// Print reactions
+		reactions := make([]string, 0)
+		for r, u := range comment.GetReactions() {
+			reactions = append(reactions, fmt.Sprintf("%s(%d)", r, len(u)))
+		}
+		content.printf(style2.Render(strings.Join(reactions, " ")))
+
 		prv.closeLastHeader(header, content, COMMIT_LEVEL)
 	}
 }

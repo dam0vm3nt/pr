@@ -28,6 +28,14 @@ type Comment interface {
 	GetId() interface{}
 	GetUser() Author
 	GetCreatedOn() time.Time
+	GetReactions() Reactions
+}
+
+type Reactions map[string][]Reaction
+
+type Reaction interface {
+	GetAuthor() Author
+	GetCreatedOn() time.Time
 }
 
 type Check interface {

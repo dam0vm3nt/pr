@@ -767,13 +767,39 @@ func (u UserInfo) GetDisplayName() string {
 	return u.Login
 }
 
+type ReactionInfo struct {
+	Content   githubv4.ReactionContent
+	CreatedAt time.Time
+	User      UserInfo
+}
+
+func (r ReactionInfo) GetAuthor() Author {
+	return r.User
+}
+
+func (r ReactionInfo) GetCreatedOn() time.Time {
+	return r.CreatedAt
+}
+
 type ReactionsInfo struct {
 	TotalCount int
-	Nodes      []struct {
-		Content   githubv4.ReactionContent
-		CreatedAt string
-		User      UserInfo
+	Nodes      []ReactionInfo
+}
+
+func (i ReactionsInfo) toReactions() Reactions {
+	res := make(Reactions)
+
+	for _, r := range i.Nodes {
+		var l []Reaction
+		if ll, ok := res[string(r.Content)]; !ok {
+			l = ll
+		} else {
+			l = make([]Reaction, 0)
+		}
+		res[string(r.Content)] = append(l, r)
 	}
+
+	return res
 }
 
 type CommentInfo struct {
@@ -783,6 +809,11 @@ type CommentInfo struct {
 	BodyText  string
 	BodyHTML  string
 	Reactions ReactionsInfo
+	CreatedAt time.Time
+}
+
+func (c CommentInfo) GetRaw() string {
+	return c.Body
 }
 
 type PageInfo struct {
@@ -887,6 +918,7 @@ fragment ReviewInfo on Comment {
     body
     bodyText
     bodyHTML
+    createdAt
 }
 
 fragment ReactionsInfo on Reactable {
@@ -969,13 +1001,14 @@ query pullRequestComments($number:Int!, $owner: String!, $name: String!, $commen
 }
 
 fragment ReviewInfo on Comment {
-
+    id
     author {
         login
     }
     body
     bodyText
     bodyHTML
+    createdAt
 }
 
 fragment ReactionsInfo on Reactable {
@@ -1025,78 +1058,89 @@ fragment ReactionsInfo on Reactable {
 
 }
 
+type GitHubQLThreadCommentWrapper struct {
+	*PullRequestThread
+	idx int
+}
+
+func (g GitHubQLThreadCommentWrapper) GetReactions() Reactions {
+	return g.Comments.Nodes[g.idx].GetReactions()
+}
+
+func (g GitHubQLThreadCommentWrapper) GetContent() CommentContent {
+	return g.Comments.Nodes[g.idx].CommentInfo
+}
+
+func (g GitHubQLThreadCommentWrapper) GetParentId() interface{} {
+	if g.Comments.Nodes[g.idx].ReplyTo != nil {
+		return *(g.Comments.Nodes[g.idx].ReplyTo.Id)
+	} else {
+		return nil
+	}
+}
+
+func (g GitHubQLThreadCommentWrapper) GetId() interface{} {
+	return g.Comments.Nodes[g.idx].Id
+}
+
+func (g GitHubQLThreadCommentWrapper) GetUser() Author {
+	return g.Comments.Nodes[g.idx].Author
+}
+
+func (g GitHubQLThreadCommentWrapper) GetCreatedOn() time.Time {
+	return g.Comments.Nodes[g.idx].CreatedAt
+}
+
 func (g GitHubPullRequest) GetCommentsByLine() ([]Comment, map[string]map[int64][]Comment, error) {
-	cl := g.sv.client
-
-	opts := &gh.PullRequestListCommentsOptions{}
-	opts.Page = 1
-
-	commentsChan := make(chan *gh.PullRequestComment)
-
-	// Get all the comments
-	go func() {
-		hasMore := true
-		for hasMore {
-			comments, _, err := cl.PullRequests.ListComments(g.sv.ctx, g.sv.owner, g.sv.repo, g.GetNumber(), opts)
-			if err != nil {
-				break
-			}
-
-			for _, ghC := range comments {
-				commentsChan <- ghC
-			}
-
-			hasMore = len(comments) > 0
-			opts.Page += 1
-		}
-
-		close(commentsChan)
-	}()
-
 	prComments := make([]Comment, 0)
 	commentMap := make(map[string]map[int64][]Comment)
 
-	commentsById := make(map[int64]*gh.PullRequestComment)
+	commentsById := make(map[string]*CommentInfo)
 
 	for ghC := range g.getPullRequestThreadComments() {
 		if ghC.error != nil {
 			return nil, nil, ghC.error
 		}
-		fmt.Println(ghC.PullRequestThread)
-	}
 
-	for ghC := range commentsChan {
-		commentsById[*ghC.ID] = ghC
-		cmt := GitHubCommentWrapper{ghC}
+		th := ghC.PullRequestThread
 
-		path := *ghC.Path
-		byLine, ok := commentMap[path]
-		if !ok {
-			byLine = make(map[int64][]Comment)
-			commentMap[path] = byLine
-		}
-
-		var line int64
-
-		if ghC.Line != nil {
-			if ghC.GetSide() == "RIGHT" {
-				line = -int64(*ghC.Line)
-			} else {
-				line = int64(*ghC.Line)
-			}
-		} else if ghC.OriginalLine != nil {
-			// This is an obsolete comment, ignored for now
+		if th.IsOutdated {
 			continue
-		} else {
-			pterm.Fatal.Println("comment without a line")
 		}
 
-		lineComments, hasComments := byLine[line]
-		if !hasComments {
-			lineComments = make([]Comment, 0)
+		for i, c := range th.Comments.Nodes {
+			commentsById[c.Id] = &c.CommentInfo
+			cmt := GitHubQLThreadCommentWrapper{th, i}
+
+			path := th.Path
+			byLine, ok := commentMap[path]
+			if !ok {
+				byLine = make(map[int64][]Comment)
+				commentMap[path] = byLine
+			}
+
+			var line int64
+
+			if th.Line != nil {
+				if *th.DiffSide == githubv4.DiffSideRight {
+					line = -int64(*th.Line)
+				} else {
+					line = int64(*th.Line)
+				}
+			} else if th.OriginalLine != nil {
+				// This is an obsolete comment, ignored for now
+				continue
+			} else {
+				pterm.Fatal.Println("comment without a line")
+			}
+
+			lineComments, hasComments := byLine[line]
+			if !hasComments {
+				lineComments = make([]Comment, 0)
+			}
+			lineComments = append(lineComments, cmt)
+			byLine[line] = lineComments
 		}
-		lineComments = append(lineComments, cmt)
-		byLine[line] = lineComments
 	}
 
 	for re := range g.getPullRequestComments() {
@@ -1111,6 +1155,10 @@ func (g GitHubPullRequest) GetCommentsByLine() ([]Comment, map[string]map[int64]
 
 type GithubQLCommentWrapper struct {
 	*CommentInfo
+}
+
+func (g CommentInfo) GetReactions() Reactions {
+	return g.Reactions.toReactions()
 }
 
 func (g GithubQLCommentWrapper) GetRaw() string {
@@ -1134,15 +1182,15 @@ func (g GithubQLCommentWrapper) GetUser() Author {
 }
 
 func (g GithubQLCommentWrapper) GetCreatedOn() time.Time {
-	if t, err := time.Parse(time.RFC822, g.Body); err != nil {
-		return time.Now()
-	} else {
-		return t
-	}
+	return g.CreatedAt
 }
 
 type GitHubCommentWrapper struct {
 	*gh.PullRequestComment
+}
+
+func (g GitHubCommentWrapper) GetReactions() Reactions {
+	return make(Reactions)
 }
 
 func (g GitHubCommentWrapper) GetContent() CommentContent {
@@ -1213,7 +1261,9 @@ func (g GitHubPullRequest) GetDiff() ([]*gitdiff.File, error) {
 
 	changes, _ := baseTree.Patch(brTree)
 	buf := &bytes.Buffer{}
-	changes.Encode(buf)
+	if err := changes.Encode(buf); err != nil {
+		return nil, err
+	}
 
 	files, _, err5 := gitdiff.Parse(buf)
 	if err5 != nil {
