@@ -1,12 +1,4 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
-
-#load("@io_bazel_rules_go//go:def.bzl", "go_binary")
-
-#go_binary(
-#    name = "svc",
-#    srcs = ["main.go"],
-#)
-
 load("@bazel_gazelle//:def.bzl", "gazelle")
 
 # gazelle:prefix github.com/vballestra/sv
@@ -23,7 +15,7 @@ gazelle(
 )
 
 go_binary(
-    name = "project",
+    name = "sv",
     embed = [":sv_lib"],
     visibility = ["//visibility:public"],
 )

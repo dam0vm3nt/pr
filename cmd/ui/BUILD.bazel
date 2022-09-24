@@ -21,6 +21,7 @@ go_library(
         "@com_github_charmbracelet_glamour//:glamour",
         "@com_github_charmbracelet_lipgloss//:lipgloss",
         "@com_github_erikgeiser_promptkit//confirmation",
+        "@com_github_evertras_bubble_table//table",
         "@com_github_pterm_pterm//:pterm",
         "@com_github_treilik_bubbleboxer//:bubbleboxer",
     ],

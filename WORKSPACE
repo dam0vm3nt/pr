@@ -136,15 +136,15 @@ go_repository(
 go_repository(
     name = "com_github_charmbracelet_bubbles",
     importpath = "github.com/charmbracelet/bubbles",
-    sum = "h1:fKarbRaObLn/DCsZO4Y3vKCwRUzynQD9L+gGev1E/ho=",
-    version = "v0.10.3",
+    sum = "h1:fBLyY0PvJnd56Vlu5L84JJH6f4axhgIJ9P3NET78f0Q=",
+    version = "v0.11.0",
 )
 
 go_repository(
     name = "com_github_charmbracelet_bubbletea",
     importpath = "github.com/charmbracelet/bubbletea",
-    sum = "h1:/b8LEPgCbNr7WWZ2LuE/BV1/r4t5PyYJtDb+J3vpwxc=",
-    version = "v0.20.0",
+    sum = "h1:f3y+kanzgev5PA916qxmDybSHU3N804uOnKnhRPXTcI=",
+    version = "v0.21.0",
 )
 
 go_repository(
@@ -157,8 +157,8 @@ go_repository(
 go_repository(
     name = "com_github_charmbracelet_harmonica",
     importpath = "github.com/charmbracelet/harmonica",
-    sum = "h1:lFKeSd6OAckQ/CEzPVd2mqj+YMEubQ/3FM2IYY3xNm0=",
-    version = "v0.1.0",
+    sum = "h1:8NxJWRWg/bzKqqEaaeFNipOu77YR5t8aSwG4pgaUBiQ=",
+    version = "v0.2.0",
 )
 
 go_repository(
@@ -1217,6 +1217,11 @@ go_repository(
     sum = "h1:go1bK/D/BFZV2I8cIQd1NKEZ+0owSTG1fDTci4IqFcE=",
     version = "v0.0.0-20200804184101-5ec99f83aff1",
 )
+
+load("//:deps.bzl", "go_dependencies")
+
+# gazelle:repository_macro deps.bzl%go_dependencies
+go_dependencies()
 
 go_rules_dependencies()
 

@@ -4,90 +4,63 @@ import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/pterm/pterm"
+	"github.com/evertras/bubble-table/table"
 	"github.com/vballestra/sv/sv"
 	"strings"
 )
 
 type PrStatusView struct {
-	pullRequests  []sv.PullRequestStatus
-	currentSelect int
-	w             int
-	h             int
+	pullRequests []sv.PullRequestStatus
+	w            int
+	h            int
 
 	ready bool
+
+	statusTable table.Model
 }
 
 func (p PrStatusView) Init() tea.Cmd {
 	return nil
 }
 
-func (p PrStatusView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch m := msg.(type) {
-	case tea.WindowSizeMsg:
-		// save window info
-		p.w = m.Width
-		p.h = m.Height
-		p.ready = true
-		break
-	case tea.KeyMsg:
-		return p.handleKey(m)
-	}
-
-	return p, nil
+type setupTableMsg struct {
 }
 
-func (p PrStatusView) handleKey(m tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch t := m.Type.String(); t {
-	case "up":
-		if p.currentSelect > 0 {
-			p.currentSelect = p.currentSelect - 1
-		}
-	case "down":
-		if p.currentSelect < len(p.pullRequests)-1 {
-			p.currentSelect = p.currentSelect + 1
-		}
-	case "ctrl+c":
-		return p, tea.Quit
-	case "esc":
-		return p, tea.Quit
-	case "runes":
-		switch r := m.Runes[0]; r {
-		case 'q':
-			return p, tea.Quit
-		}
-	}
+const (
+	colId         = "id"
+	colTitle      = "title"
+	colAuthor     = "author"
+	colRepository = "repo"
+	colBranch     = "branch"
+	colState      = "state"
+	colReviews    = "reviews"
+	colChecks     = "checks"
+	colContexts   = "contexts"
+)
 
-	return p, nil
-}
+var mineStyle = lipgloss.NewStyle().Bold(true).ColorWhitespace(true).Foreground(lipgloss.Color("#ff0000"))
+var theirStyle = lipgloss.NewStyle().Bold(true).ColorWhitespace(true).Foreground(lipgloss.Color("#00ffff"))
 
-func (p PrStatusView) View() string {
-	if !p.ready {
-		return "... initializing ..."
-	}
+func (m setupTableMsg) Update(p PrStatusView) (PrStatusView, tea.Cmd) {
+	rows := make([]table.Row, 0)
+	for _, pi := range p.pullRequests {
 
-	data := pterm.TableData{{"ID", "Title", "Author", "Repository", "Branch", "State", "Reviews", "Checks", "Contexts"}}
-	mineStyle := lipgloss.NewStyle().Bold(true).ColorWhitespace(true).Foreground(lipgloss.Color("#ff0000"))
-	theirStyle := lipgloss.NewStyle().Bold(true).ColorWhitespace(true).Foreground(lipgloss.Color("#00ffff"))
-
-	for i, pr := range p.pullRequests {
-		selected := i == p.currentSelect
 		checks := make([]string, 0)
-		for s, k := range pr.GetChecksByStatus() {
+		for s, k := range pi.GetChecksByStatus() {
 			if k > 0 {
 				checks = append(checks, fmt.Sprintf("%s: %d", s, k))
 			}
 		}
 
 		contexts := make([]string, 0)
-		for s, k := range pr.GetContextByStatus() {
+		for s, k := range pi.GetContextByStatus() {
 			if k > 0 {
 				contexts = append(contexts, fmt.Sprintf("%s: %d", s, k))
 			}
 		}
 
 		reviewCount := make(map[string]map[string]int)
-		for _, r := range pr.GetReviews() {
+		for _, r := range pi.GetReviews() {
 			if byStatus, ok := reviewCount[r.GetState()]; ok {
 				if count, ok := byStatus[r.GetAuthor()]; ok {
 					byStatus[r.GetAuthor()] = count + 1
@@ -112,30 +85,105 @@ func (p PrStatusView) View() string {
 
 		var idStr string
 
-		if selected {
-			idStr = fmt.Sprintf("* %5d", pr.GetId())
-		} else {
-			idStr = fmt.Sprintf("  %5d", pr.GetId())
-		}
-
-		if pr.IsMine() {
+		if pi.IsMine() {
 			idStr = mineStyle.Render(idStr)
 		} else {
 			idStr = theirStyle.Render(idStr)
 		}
 
-		data = append(data, []string{
-			idStr, pr.GetTitle(), pr.GetAuthor(), pr.GetRepository(), pr.GetBranchName(), pr.GetStatus(), strings.Join(reviews, ", "), strings.Join(checks, ", "),
-			strings.Join(contexts, ", "),
+		row := table.NewRow(table.RowData{
+			colId:         pi.GetId(),
+			colTitle:      pi.GetTitle(),
+			colAuthor:     pi.GetAuthor(),
+			colRepository: pi.GetRepository(),
+			colBranch:     pi.GetBranchName(),
+			colState:      pi.GetStatus(),
+			colReviews:    strings.Join(reviews, ", "),
+			colChecks:     strings.Join(checks, ", "),
+			colContexts:   strings.Join(contexts, ", "),
 		})
+		rows = append(rows, row)
+	}
+	p.statusTable = table.New([]table.Column{
+		table.NewColumn(colId, "ID", 5).
+			WithFormatString("%05d"),
+		table.NewFlexColumn(colTitle, "Title", 3),
+		table.NewColumn(colAuthor, "Author", 10),
+		table.NewFlexColumn(colBranch, "Branch", 1),
+		table.NewFlexColumn(colRepository, "Repository", 1),
+		table.NewColumn(colState, "State", 10),
+		table.NewFlexColumn(colReviews, "Reviews", 2),
+		table.NewFlexColumn(colChecks, "Checks", 2),
+		table.NewFlexColumn(colContexts, "Contexts", 2),
+	}).WithRows(rows).
+		WithTargetWidth(p.w).
+		BorderRounded().
+		WithKeyMap(table.DefaultKeyMap()).
+		Focused(true).
+		WithHighlightedRow(0)
+	p.ready = true
+
+	return p, tea.ClearScrollArea
+}
+
+func setupTable() tea.Msg {
+	return setupTableMsg{}
+}
+
+func (p PrStatusView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	cmds := make([]tea.Cmd, 0)
+	var pp tea.Model = p
+	switch m := msg.(type) {
+	case tea.WindowSizeMsg:
+		// save window info
+		p.w = m.Width
+		p.h = m.Height
+		pp = p
+		cmds = append(cmds, setupTable)
+		break
+	case tea.KeyMsg:
+		p_, cmd := p.handleKey(m)
+		pp = p_
+		cmds = append(cmds, cmd)
+	case setupTableMsg:
+		p_, cmd := m.Update(p)
+		pp = p_
+		cmds = append(cmds, cmd)
 	}
 
-	tbl, rerr := pterm.DefaultTable.WithHasHeader().WithData(data).Srender()
-	if rerr != nil {
-		pterm.Fatal.Println(rerr)
+	return pp, tea.Batch(cmds...)
+}
+
+func (p PrStatusView) handleKey(m tea.KeyMsg) (tea.Model, tea.Cmd) {
+	pp := p
+	cmds := make([]tea.Cmd, 0)
+
+	switch t := m.Type.String(); t {
+	case "ctrl+c":
+		cmds = append(cmds, tea.Quit)
+	case "esc":
+		cmds = append(cmds, tea.Quit)
+	case "runes":
+		switch r := m.Runes[0]; r {
+		case 'q':
+			cmds = append(cmds, tea.Quit)
+		}
 	}
 
-	return tbl
+	// delegate table
+	statusTable_, cmd := pp.statusTable.Update(m)
+	cmds = append(cmds, cmd)
+	pp.statusTable = statusTable_
+
+	return pp, tea.Batch(cmds...)
+}
+
+func (p PrStatusView) View() string {
+	if !p.ready {
+		return "... initializing ..."
+	}
+
+	return p.statusTable.View()
 }
 
 func RunPrStatusView(s sv.Sv) error {
@@ -150,11 +198,10 @@ func RunPrStatusView(s sv.Sv) error {
 		}
 
 		view := PrStatusView{
-			pullRequests:  pullRequests,
-			currentSelect: 0,
-			w:             0,
-			h:             0,
-			ready:         false,
+			pullRequests: pullRequests,
+			w:            0,
+			h:            0,
+			ready:        false,
 		}
 
 		prg := tea.NewProgram(view)

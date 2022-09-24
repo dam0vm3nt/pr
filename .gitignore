@@ -4,3 +4,4 @@ vendor
 dist/
 
 docs/.graphqlconfig
+bazel-*
