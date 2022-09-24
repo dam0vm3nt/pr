@@ -107,14 +107,30 @@ func (m setupTableMsg) Update(p PrStatusView) (PrStatusView, tea.Cmd) {
 	p.statusTable = table.New([]table.Column{
 		table.NewColumn(colId, "ID", 5).
 			WithFormatString("%05d"),
-		table.NewFlexColumn(colTitle, "Title", 3),
-		table.NewColumn(colAuthor, "Author", 10),
-		table.NewFlexColumn(colBranch, "Branch", 1),
-		table.NewFlexColumn(colRepository, "Repository", 1),
-		table.NewColumn(colState, "State", 10),
-		table.NewFlexColumn(colReviews, "Reviews", 2),
-		table.NewFlexColumn(colChecks, "Checks", 2),
-		table.NewFlexColumn(colContexts, "Contexts", 2),
+		table.NewFlexColumn(colTitle, "Title", 3).
+			WithStyle(lipgloss.NewStyle().
+				Align(lipgloss.Left)),
+		table.NewColumn(colAuthor, "Author", 10).
+			WithStyle(lipgloss.NewStyle().
+				Align(lipgloss.Center)),
+		table.NewFlexColumn(colBranch, "Branch", 1).
+			WithStyle(lipgloss.NewStyle().
+				Align(lipgloss.Center)),
+		table.NewFlexColumn(colRepository, "Repository", 1).
+			WithStyle(lipgloss.NewStyle().
+				Align(lipgloss.Left)),
+		table.NewColumn(colState, "State", 10).
+			WithStyle(lipgloss.NewStyle().
+				Align(lipgloss.Center)),
+		table.NewFlexColumn(colReviews, "Reviews", 2).
+			WithStyle(lipgloss.NewStyle().
+				Align(lipgloss.Center)),
+		table.NewFlexColumn(colChecks, "Checks", 2).
+			WithStyle(lipgloss.NewStyle().
+				Align(lipgloss.Center)),
+		table.NewFlexColumn(colContexts, "Contexts", 2).
+			WithStyle(lipgloss.NewStyle().
+				Align(lipgloss.Center)),
 	}).WithRows(rows).
 		WithTargetWidth(p.w).
 		BorderRounded().
