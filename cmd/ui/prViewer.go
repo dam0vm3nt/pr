@@ -890,7 +890,7 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func launchEditor(initialText string) (string, error) {
-	if file, err := ioutil.TempFile(os.TempDir(), "comment-"); err == nil {
+	if file, err := os.CreateTemp("", "comment-*.txt"); err == nil {
 		if _, err = file.WriteString(initialText); err != nil {
 			return "", err
 		}

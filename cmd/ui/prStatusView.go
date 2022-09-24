@@ -38,7 +38,7 @@ func (p PrStatusView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (p PrStatusView) handleKey(m tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch m.Type.String() {
+	switch t := m.Type.String(); t {
 	case "up":
 		if p.currentSelect > 0 {
 			p.currentSelect = p.currentSelect - 1
@@ -49,10 +49,13 @@ func (p PrStatusView) handleKey(m tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case "ctrl+c":
 		return p, tea.Quit
-	case "q":
-		return p, tea.Quit
 	case "esc":
 		return p, tea.Quit
+	case "runes":
+		switch r := m.Runes[0]; r {
+		case 'q':
+			return p, tea.Quit
+		}
 	}
 
 	return p, nil
