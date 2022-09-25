@@ -70,7 +70,7 @@ func finishedLoadingCmd(pullRequests []sv.PullRequestStatus) tea.Cmd {
 }
 
 func (m loadPrStatusMsg) Update(view PrStatusView) (tea.Model, tea.Cmd) {
-	view.loadingStatus = spinner.New(spinner.WithSpinner(spinner.Hamburger))
+	view.loadingStatus = spinner.New(spinner.WithSpinner(spinner.Points))
 	view.loaded = false
 	cmd := view.loadingStatus.Tick
 	go func(tick tea.Cmd) {
@@ -111,12 +111,7 @@ func (m setupTableMsg) Update(p PrStatusView) (PrStatusView, tea.Cmd) {
 	rows := make([]table.Row, 0)
 	for _, pi := range p.pullRequests {
 
-		checks := make([]string, 0)
-		for s, k := range pi.GetChecksByStatus() {
-			if k > 0 {
-				checks = append(checks, fmt.Sprintf("%s: %d", s, k))
-			}
-		}
+		checks := renderChecks(pi)
 
 		contexts := renderContexts(pi)
 
@@ -137,9 +132,9 @@ func (m setupTableMsg) Update(p PrStatusView) (PrStatusView, tea.Cmd) {
 			colRepository: pi.GetRepository(),
 			colBranch:     pi.GetBranchName(),
 			colState:      pi.GetStatus(),
-			colReviews:    strings.Join(reviews, ", "),
+			colReviews:    strings.Join(reviews, " "),
 			colChecks:     strings.Join(checks, ", "),
-			colContexts:   strings.Join(contexts, ", "),
+			colContexts:   strings.Join(contexts, " "),
 		})
 		rows = append(rows, row)
 	}
@@ -164,7 +159,7 @@ func (m setupTableMsg) Update(p PrStatusView) (PrStatusView, tea.Cmd) {
 		table.NewFlexColumn(colReviews, "Reviews", 1).
 			WithStyle(lipgloss.NewStyle().
 				Align(lipgloss.Left)),
-		table.NewFlexColumn(colChecks, "Checks", 2).
+		table.NewFlexColumn(colChecks, "Checks", 1).
 			WithStyle(lipgloss.NewStyle().
 				Align(lipgloss.Center)),
 		table.NewFlexColumn(colContexts, "Contexts", 1).
@@ -181,6 +176,34 @@ func (m setupTableMsg) Update(p PrStatusView) (PrStatusView, tea.Cmd) {
 	p.ready = true
 
 	return p, tea.ClearScrollArea
+}
+
+func renderChecks(pi sv.PullRequestStatus) []string {
+	changesMap := map[string]string{
+		"SUCCESS": "👌",
+		"FAILED":  "👎",
+	}
+
+	stylesMap := map[string]lipgloss.Style{
+		"SUCCESS": lipgloss.NewStyle().Foreground(lipgloss.Color("#00ff00")),
+		"FAILED":  lipgloss.NewStyle().Foreground(lipgloss.Color("#ff0000")),
+	}
+
+	checks := make([]string, 0)
+	for s, k := range pi.GetChecksByStatus() {
+		if k > 0 {
+			ss, ok := changesMap[s]
+			if !ok {
+				ss = s
+			}
+			st, ok := stylesMap[s]
+			if !ok {
+				st = lipgloss.NewStyle()
+			}
+			checks = append(checks, st.Render(fmt.Sprintf("%d%s", k, ss)))
+		}
+	}
+	return checks
 }
 
 func renderContexts(pi sv.PullRequestStatus) []string {
@@ -268,10 +291,12 @@ func (p PrStatusView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var pp tea.Model = p
 	switch m := msg.(type) {
 	case spinner.TickMsg:
-		s, cmd := p.loadingStatus.Update(m)
-		p.loadingStatus = s
-		cmds = append(cmds, cmd)
-		pp = p
+		if !p.loaded {
+			s, cmd := p.loadingStatus.Update(m)
+			p.loadingStatus = s
+			cmds = append(cmds, cmd)
+			pp = p
+		}
 	case tea.WindowSizeMsg:
 		// save window info
 		p.w = m.Width
@@ -344,8 +369,9 @@ func (p PrStatusView) handleKey(m tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (p PrStatusView) View() string {
 	if !p.loaded {
-		return p.loadingStatus.View()
+		return lipgloss.JoinHorizontal(lipgloss.Center, p.loadingStatus.View(), " Loading PR status ")
 	}
+
 	if !p.ready {
 		return "... initializing ..."
 	}
