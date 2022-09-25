@@ -8,8 +8,10 @@ go_library(
     deps = [
         "//cmd/ui",
         "//sv",
+        "@com_github_charmbracelet_bubbles//spinner",
         "@com_github_charmbracelet_bubbletea//:bubbletea",
         "@com_github_charmbracelet_lipgloss//:lipgloss",
         "@com_github_evertras_bubble_table//table",
+        "@com_github_pterm_pterm//:pterm",
     ],
 )

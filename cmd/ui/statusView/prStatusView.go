@@ -2,9 +2,11 @@ package statusView
 
 import (
 	"fmt"
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/evertras/bubble-table/table"
+	"github.com/pterm/pterm"
 	"github.com/vballestra/sv/cmd/ui"
 	"github.com/vballestra/sv/sv"
 	"strings"
@@ -16,14 +18,16 @@ type PrStatusView struct {
 	w            int
 	h            int
 
-	ready bool
+	ready  bool
+	loaded bool
 
-	statusTable table.Model
-	asyncMsg    chan tea.Cmd
+	statusTable   table.Model
+	asyncMsg      chan tea.Cmd
+	loadingStatus spinner.Model
 }
 
 func (p PrStatusView) Init() tea.Cmd {
-	return nil
+	return loadPrStatusCmd
 }
 
 type setupTableMsg struct {
@@ -42,6 +46,50 @@ func showStatusErrorCmd(err string) tea.Cmd {
 	return func() tea.Msg {
 		return showStatusError{err}
 	}
+}
+
+type loadPrStatusMsg struct {
+}
+
+func loadPrStatusCmd() tea.Msg {
+	return loadPrStatusMsg{}
+}
+
+type finishedLoadingMsg struct {
+	pullRequests []sv.PullRequestStatus
+}
+
+func (m finishedLoadingMsg) Update(p PrStatusView) (tea.Model, tea.Cmd) {
+	p.loaded = true
+	p.pullRequests = m.pullRequests
+	return p, setupTable
+}
+
+func finishedLoadingCmd(pullRequests []sv.PullRequestStatus) tea.Cmd {
+	return func() tea.Msg { return finishedLoadingMsg{pullRequests} }
+}
+
+func (m loadPrStatusMsg) Update(view PrStatusView) (tea.Model, tea.Cmd) {
+	view.loadingStatus = spinner.New(spinner.WithSpinner(spinner.Hamburger))
+	view.loaded = false
+	cmd := view.loadingStatus.Tick
+	go func(tick tea.Cmd) {
+		if ch, err := view.sv.PullRequestStatus(); err == nil {
+			pullRequests := make([]sv.PullRequestStatus, 0)
+
+			for p := range ch {
+				pullRequests = append(pullRequests, p)
+				view.asyncMsg <- tick
+			}
+
+			view.asyncMsg <- finishedLoadingCmd(pullRequests)
+		} else {
+			pterm.Fatal.Println(err)
+		}
+
+	}(cmd)
+
+	return view, cmd
 }
 
 const (
@@ -219,6 +267,11 @@ func (p PrStatusView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0)
 	var pp tea.Model = p
 	switch m := msg.(type) {
+	case spinner.TickMsg:
+		s, cmd := p.loadingStatus.Update(m)
+		p.loadingStatus = s
+		cmds = append(cmds, cmd)
+		pp = p
 	case tea.WindowSizeMsg:
 		// save window info
 		p.w = m.Width
@@ -226,6 +279,14 @@ func (p PrStatusView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		pp = p
 		cmds = append(cmds, setupTable)
 	case showStatusError:
+		p_, cmd := m.Update(p)
+		pp = p_
+		cmds = append(cmds, cmd)
+	case finishedLoadingMsg:
+		p_, cmd := m.Update(p)
+		pp = p_
+		cmds = append(cmds, cmd)
+	case loadPrStatusMsg:
 		p_, cmd := m.Update(p)
 		pp = p_
 		cmds = append(cmds, cmd)
@@ -268,6 +329,8 @@ func (p PrStatusView) handleKey(m tea.KeyMsg) (tea.Model, tea.Cmd) {
 		switch r := m.Runes[0]; r {
 		case 'q':
 			cmds = append(cmds, tea.Quit)
+		case 'r':
+			cmds = append(cmds, loadPrStatusCmd)
 		}
 	}
 
@@ -280,6 +343,9 @@ func (p PrStatusView) handleKey(m tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (p PrStatusView) View() string {
+	if !p.loaded {
+		return p.loadingStatus.View()
+	}
 	if !p.ready {
 		return "... initializing ..."
 	}
@@ -288,29 +354,31 @@ func (p PrStatusView) View() string {
 }
 
 func RunPrStatusView(s sv.Sv) error {
-	if ch, err := s.PullRequestStatus(); err != nil {
-		return err
-	} else {
 
-		pullRequests := make([]sv.PullRequestStatus, 0)
-
-		for p := range ch {
-			pullRequests = append(pullRequests, p)
-		}
-
-		view := PrStatusView{
-			sv:           s,
-			pullRequests: pullRequests,
-			w:            0,
-			h:            0,
-			ready:        false,
-		}
-
-		prg := tea.NewProgram(view)
-		if err := prg.Start(); err != nil {
-			return err
-		}
-
-		return nil
+	view := PrStatusView{
+		sv:            s,
+		w:             0,
+		h:             0,
+		ready:         false,
+		loaded:        false,
+		loadingStatus: spinner.New(),
+		asyncMsg:      make(chan tea.Cmd),
 	}
+
+	prg := tea.NewProgram(view)
+
+	go func() {
+		for cmd := range view.asyncMsg {
+			prg.Send(cmd())
+		}
+	}()
+
+	defer close(view.asyncMsg)
+
+	if err := prg.Start(); err != nil {
+		return err
+	}
+
+	return nil
+
 }

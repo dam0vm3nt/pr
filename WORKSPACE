@@ -136,8 +136,8 @@ go_repository(
 go_repository(
     name = "com_github_charmbracelet_bubbles",
     importpath = "github.com/charmbracelet/bubbles",
-    sum = "h1:fBLyY0PvJnd56Vlu5L84JJH6f4axhgIJ9P3NET78f0Q=",
-    version = "v0.11.0",
+    sum = "h1:DJfCwnARfWjZLvMglhSQzo76UZ2gucuHPy9jLWX45Og=",
+    version = "v0.14.0",
 )
 
 go_repository(
