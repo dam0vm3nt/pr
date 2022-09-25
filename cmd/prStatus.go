@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/pterm/pterm"
-	"github.com/vballestra/sv/cmd/ui"
+	"github.com/vballestra/sv/cmd/ui/statusView"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -26,7 +26,7 @@ var prStatusCmd = &cobra.Command{
 			return
 		} else {
 			if interactive {
-				if err := ui.RunPrStatusView(sv); err != nil {
+				if err := statusView.RunPrStatusView(sv); err != nil {
 					pterm.Fatal.Println(err)
 				}
 				return

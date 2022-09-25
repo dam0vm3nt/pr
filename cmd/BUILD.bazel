@@ -18,6 +18,7 @@ go_library(
     deps = [
         "//bitbucket",
         "//cmd/ui",
+        "//cmd/ui/statusView",
         "//sv",
         "@com_github_antihax_optional//:optional",
         "@com_github_charmbracelet_lipgloss//:lipgloss",

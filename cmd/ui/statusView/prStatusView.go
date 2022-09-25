@@ -1,10 +1,11 @@
-package ui
+package statusView
 
 import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/evertras/bubble-table/table"
+	"github.com/vballestra/sv/cmd/ui"
 	"github.com/vballestra/sv/sv"
 	"strings"
 )
@@ -254,7 +255,7 @@ func (p PrStatusView) handleKey(m tea.KeyMsg) (tea.Model, tea.Cmd) {
 		pr := p.pullRequests[p.statusTable.GetHighlightedRowIndex()]
 		if pr.GetRepository() == p.sv.GetRepositoryFullName() {
 			if prr, err := p.sv.GetPullRequest(fmt.Sprintf("%d", pr.GetId())); err == nil {
-				if err := ShowPr(prr); err != nil {
+				if err := ui.ShowPr(prr); err != nil {
 					cmds = append(cmds, showStatusErrorCmd(fmt.Sprintf("Error while showing load pr %d : %e", pr.GetId(), err)))
 				}
 			} else {
