@@ -67,6 +67,7 @@ type Sv interface {
 	GetPullRequest(id string) (PullRequest, error)
 	PullRequestStatus() (<-chan PullRequestStatus, error)
 	Fetch() error
+	GetRepositoryFullName() string
 }
 
 type PullRequestStatus interface {

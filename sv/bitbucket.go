@@ -28,6 +28,10 @@ type BitBucketSv struct {
 	localRepo string
 }
 
+func (b *BitBucketSv) GetRepositoryFullName() string {
+	return fmt.Sprintf("%s/%s", b.workspace, b.repoSlug)
+}
+
 func (b *BitBucketSv) PullRequestStatus() (<-chan PullRequestStatus, error) {
 	//TODO implement me
 	panic("implement me")

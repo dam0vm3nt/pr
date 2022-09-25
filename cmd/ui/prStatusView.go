@@ -10,6 +10,7 @@ import (
 )
 
 type PrStatusView struct {
+	sv           sv.Sv
 	pullRequests []sv.PullRequestStatus
 	w            int
 	h            int
@@ -17,6 +18,7 @@ type PrStatusView struct {
 	ready bool
 
 	statusTable table.Model
+	asyncMsg    chan tea.Cmd
 }
 
 func (p PrStatusView) Init() tea.Cmd {
@@ -24,6 +26,21 @@ func (p PrStatusView) Init() tea.Cmd {
 }
 
 type setupTableMsg struct {
+}
+
+type showStatusError struct {
+	err string
+}
+
+func (m showStatusError) Update(view PrStatusView) (PrStatusView, tea.Cmd) {
+	view.statusTable = view.statusTable.WithStaticFooter(m.err)
+	return view, nil
+}
+
+func showStatusErrorCmd(err string) tea.Cmd {
+	return func() tea.Msg {
+		return showStatusError{err}
+	}
 }
 
 const (
@@ -89,7 +106,7 @@ func (m setupTableMsg) Update(p PrStatusView) (PrStatusView, tea.Cmd) {
 		table.NewFlexColumn(colBranch, "Branch", 2).
 			WithStyle(lipgloss.NewStyle().
 				Align(lipgloss.Left)),
-		table.NewFlexColumn(colRepository, "Repository", 1).
+		table.NewFlexColumn(colRepository, "Repository", 2).
 			WithStyle(lipgloss.NewStyle().
 				Align(lipgloss.Left)),
 		table.NewColumn(colState, "State", 10).
@@ -101,7 +118,7 @@ func (m setupTableMsg) Update(p PrStatusView) (PrStatusView, tea.Cmd) {
 		table.NewFlexColumn(colChecks, "Checks", 2).
 			WithStyle(lipgloss.NewStyle().
 				Align(lipgloss.Center)),
-		table.NewFlexColumn(colContexts, "Contexts", 2).
+		table.NewFlexColumn(colContexts, "Contexts", 1).
 			WithStyle(lipgloss.NewStyle().
 				Align(lipgloss.Center)),
 	}).WithRows(rows).
@@ -109,7 +126,9 @@ func (m setupTableMsg) Update(p PrStatusView) (PrStatusView, tea.Cmd) {
 		BorderRounded().
 		WithKeyMap(table.DefaultKeyMap()).
 		Focused(true).
-		WithHighlightedRow(0)
+		WithHighlightedRow(0).
+		WithPageSize(10).
+		WithFooterVisibility(true)
 	p.ready = true
 
 	return p, tea.ClearScrollArea
@@ -205,7 +224,10 @@ func (p PrStatusView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		p.h = m.Height
 		pp = p
 		cmds = append(cmds, setupTable)
-		break
+	case showStatusError:
+		p_, cmd := m.Update(p)
+		pp = p_
+		cmds = append(cmds, cmd)
 	case tea.KeyMsg:
 		p_, cmd := p.handleKey(m)
 		pp = p_
@@ -228,6 +250,19 @@ func (p PrStatusView) handleKey(m tea.KeyMsg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, tea.Quit)
 	case "esc":
 		cmds = append(cmds, tea.Quit)
+	case "enter":
+		pr := p.pullRequests[p.statusTable.GetHighlightedRowIndex()]
+		if pr.GetRepository() == p.sv.GetRepositoryFullName() {
+			if prr, err := p.sv.GetPullRequest(fmt.Sprintf("%d", pr.GetId())); err == nil {
+				if err := ShowPr(prr); err != nil {
+					cmds = append(cmds, showStatusErrorCmd(fmt.Sprintf("Error while showing load pr %d : %e", pr.GetId(), err)))
+				}
+			} else {
+				cmds = append(cmds, showStatusErrorCmd(fmt.Sprintf("Cannot load pr %d : %e", pr.GetId(), err)))
+			}
+		} else {
+			cmds = append(cmds, showStatusErrorCmd(fmt.Sprintf("Repo '%s' doesn't match with '%s'", pr.GetRepository(), p.sv.GetRepositoryFullName())))
+		}
 	case "runes":
 		switch r := m.Runes[0]; r {
 		case 'q':
@@ -263,6 +298,7 @@ func RunPrStatusView(s sv.Sv) error {
 		}
 
 		view := PrStatusView{
+			sv:           s,
 			pullRequests: pullRequests,
 			w:            0,
 			h:            0,

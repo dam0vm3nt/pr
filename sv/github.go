@@ -38,6 +38,10 @@ type GitHubSv struct {
 	sshKeySelector *regexp.Regexp
 }
 
+func (g *GitHubSv) GetRepositoryFullName() string {
+	return fmt.Sprintf("%s/%s", g.owner, g.repo)
+}
+
 type PullRequestStatusResponse struct {
 	Number      int64
 	Title       string
