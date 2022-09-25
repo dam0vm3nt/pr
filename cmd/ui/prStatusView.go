@@ -52,36 +52,9 @@ func (m setupTableMsg) Update(p PrStatusView) (PrStatusView, tea.Cmd) {
 			}
 		}
 
-		contexts := make([]string, 0)
-		for s, k := range pi.GetContextByStatus() {
-			if k > 0 {
-				contexts = append(contexts, fmt.Sprintf("%s: %d", s, k))
-			}
-		}
+		contexts := renderContexts(pi)
 
-		reviewCount := make(map[string]map[string]int)
-		for _, r := range pi.GetReviews() {
-			if byStatus, ok := reviewCount[r.GetState()]; ok {
-				if count, ok := byStatus[r.GetAuthor()]; ok {
-					byStatus[r.GetAuthor()] = count + 1
-				} else {
-					byStatus[r.GetAuthor()] = 1
-				}
-				reviewCount[r.GetState()] = byStatus
-			} else {
-				byStatus = make(map[string]int)
-				byStatus[r.GetAuthor()] = 1
-				reviewCount[r.GetState()] = byStatus
-			}
-		}
-
-		reviews := make([]string, 0)
-		for s, byStatus := range reviewCount {
-			var stats string
-			stats = fmt.Sprintf("%d", len(byStatus))
-
-			reviews = append(reviews, fmt.Sprintf("%s: %s", s, stats))
-		}
+		reviews := renderReviews(pi)
 
 		var idStr string
 
@@ -122,9 +95,9 @@ func (m setupTableMsg) Update(p PrStatusView) (PrStatusView, tea.Cmd) {
 		table.NewColumn(colState, "State", 10).
 			WithStyle(lipgloss.NewStyle().
 				Align(lipgloss.Center)),
-		table.NewFlexColumn(colReviews, "Reviews", 2).
+		table.NewFlexColumn(colReviews, "Reviews", 1).
 			WithStyle(lipgloss.NewStyle().
-				Align(lipgloss.Center)),
+				Align(lipgloss.Left)),
 		table.NewFlexColumn(colChecks, "Checks", 2).
 			WithStyle(lipgloss.NewStyle().
 				Align(lipgloss.Center)),
@@ -140,6 +113,82 @@ func (m setupTableMsg) Update(p PrStatusView) (PrStatusView, tea.Cmd) {
 	p.ready = true
 
 	return p, tea.ClearScrollArea
+}
+
+func renderContexts(pi sv.PullRequestStatus) []string {
+	changesMap := map[string]string{
+		"SUCCESS": "👌",
+		"FAILED":  "👎",
+	}
+
+	stylesMap := map[string]lipgloss.Style{
+		"SUCCESS": lipgloss.NewStyle().Foreground(lipgloss.Color("#00ff00")),
+		"FAILED":  lipgloss.NewStyle().Foreground(lipgloss.Color("#ff0000")),
+	}
+
+	contexts := make([]string, 0)
+	for s, k := range pi.GetContextByStatus() {
+		if k > 0 {
+			ss, ok := changesMap[s]
+			if !ok {
+				ss = s
+			}
+			st, ok := stylesMap[s]
+			if !ok {
+				st = lipgloss.NewStyle()
+			}
+			contexts = append(contexts, st.Render(fmt.Sprintf("%d%s", k, ss)))
+		}
+	}
+	return contexts
+}
+
+func renderReviews(pi sv.PullRequestStatus) []string {
+	reviewCount := make(map[string]map[string]int)
+
+	for _, r := range pi.GetReviews() {
+		if byStatus, ok := reviewCount[r.GetState()]; ok {
+			if count, ok := byStatus[r.GetAuthor()]; ok {
+				byStatus[r.GetAuthor()] = count + 1
+			} else {
+				byStatus[r.GetAuthor()] = 1
+			}
+			reviewCount[r.GetState()] = byStatus
+		} else {
+			byStatus = make(map[string]int)
+			byStatus[r.GetAuthor()] = 1
+			reviewCount[r.GetState()] = byStatus
+		}
+	}
+
+	reviews := make([]string, 0)
+
+	changesMap := map[string]string{
+		"APPROVED":          "👌",
+		"CHANGES_REQUESTED": "♺",
+		"COMMENTED":         "💬",
+	}
+
+	stylesMap := map[string]lipgloss.Style{
+		"APPROVED":          lipgloss.NewStyle().Foreground(lipgloss.Color("#00ff00")),
+		"CHANGES_REQUESTED": lipgloss.NewStyle().Foreground(lipgloss.Color("#ff0000")),
+		"COMMENTED":         lipgloss.NewStyle().Foreground(lipgloss.Color("#e0e0e0")),
+	}
+
+	for s, byStatus := range reviewCount {
+		var stats string
+		stats = fmt.Sprintf("%d", len(byStatus))
+		ss, ok := changesMap[s]
+		if !ok {
+			ss = s
+		}
+		style, ok := stylesMap[s]
+		if !ok {
+			style = lipgloss.NewStyle().Foreground(lipgloss.Color("#ffffff"))
+		}
+		reviews = append(reviews, style.Render(fmt.Sprintf("%s %s", stats, ss)))
+	}
+	return reviews
 }
 
 func setupTable() tea.Msg {
