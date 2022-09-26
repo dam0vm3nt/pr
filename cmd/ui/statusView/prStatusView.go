@@ -181,13 +181,14 @@ func (m setupTableMsg) Update(p PrStatusView) (PrStatusView, tea.Cmd) {
 
 func renderChecks(pi sv.PullRequestStatus) []string {
 	changesMap := map[string]string{
-		"SUCCESS": "👌",
-		"FAILED":  "👎",
+		"SUCCESS":     "✔",
+		"FAILURE":     "⤫",
+		"IN_PROGRESS": "☯",
 	}
 
 	stylesMap := map[string]lipgloss.Style{
 		"SUCCESS": lipgloss.NewStyle().Foreground(lipgloss.Color("#00ff00")),
-		"FAILED":  lipgloss.NewStyle().Foreground(lipgloss.Color("#ff0000")),
+		"FAILURE": lipgloss.NewStyle().Foreground(lipgloss.Color("#ff0000")),
 	}
 
 	checks := make([]string, 0)
@@ -209,13 +210,14 @@ func renderChecks(pi sv.PullRequestStatus) []string {
 
 func renderContexts(pi sv.PullRequestStatus) []string {
 	changesMap := map[string]string{
-		"SUCCESS": "👌",
-		"FAILED":  "👎",
+		"SUCCESS": "✔",
+		"ERROR":   "⤫",
+		"PENDING": "☯",
 	}
 
 	stylesMap := map[string]lipgloss.Style{
 		"SUCCESS": lipgloss.NewStyle().Foreground(lipgloss.Color("#00ff00")),
-		"FAILED":  lipgloss.NewStyle().Foreground(lipgloss.Color("#ff0000")),
+		"ERROR":   lipgloss.NewStyle().Foreground(lipgloss.Color("#ff0000")),
 	}
 
 	contexts := make([]string, 0)
