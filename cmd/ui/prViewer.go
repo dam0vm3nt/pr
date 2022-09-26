@@ -436,8 +436,16 @@ func (prv *PullRequestView) PrintComments(content *contentView, header *pullRequ
 
 		// Print reactions
 		reactions := make([]string, 0)
+		reactionIcons := map[string]string{
+			"THUMBS_UP": "👍",
+			"ROCKET":    "🚀",
+		}
 		for r, u := range comment.GetReactions() {
-			reactions = append(reactions, fmt.Sprintf("%s(%d)", r, len(u)))
+			icon, ok := reactionIcons[r]
+			if !ok {
+				icon = r
+			}
+			reactions = append(reactions, fmt.Sprintf("%s(%d)", icon, len(u)))
 		}
 		content.printf(style2.Render(strings.Join(reactions, " ")))
 

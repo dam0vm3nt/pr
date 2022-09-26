@@ -276,7 +276,7 @@ func NewGitHubSv(token string, repo string, sshKeyComment string, owner string, 
 	}
 }
 
-func (g *GitHubSv) ListPullRequests(query string) (<-chan PullRequest, error) {
+func (g *GitHubSv) ListPullRequests(_ string) (<-chan PullRequest, error) {
 	opts := &gh.PullRequestListOptions{}
 	opts.Page = 1
 	if res, resp, err := g.client.PullRequests.List(g.ctx, g.owner, g.repo, opts); err != nil {
@@ -843,8 +843,15 @@ type PullRequestCommentOrError struct {
 }
 
 type PullRequestThreadOrError struct {
-	PullRequestThread *PullRequestThread
+	PullRequestThread PullRequestThread
 	error             error
+}
+
+type PullRequestThreadComment struct {
+	CommentInfo
+	ReplyTo *struct {
+		Id *string
+	}
 }
 
 type PullRequestThread struct {
@@ -859,12 +866,7 @@ type PullRequestThread struct {
 	Comments          struct {
 		PageInfo   PageInfo
 		TotalCount int
-		Nodes      []struct {
-			CommentInfo
-			ReplyTo *struct {
-				Id *string
-			}
-		}
+		Nodes      []PullRequestThreadComment
 	}
 }
 
@@ -954,7 +956,7 @@ fragment ReactionsInfo on Reactable {
 					ReviewThreads struct {
 						PageInfo   PageInfo
 						TotalCount int
-						Nodes      []*PullRequestThread
+						Nodes      []PullRequestThread
 					}
 				}
 			}
@@ -962,11 +964,11 @@ fragment ReactionsInfo on Reactable {
 		for cont {
 			if err := g.sv.graphQL(query, args, &resp); err != nil {
 				cont = false
-				ch <- PullRequestThreadOrError{nil, err}
+				ch <- PullRequestThreadOrError{error: err}
 			}
 
 			for _, c := range resp.Repository.PullRequest.ReviewThreads.Nodes {
-				ch <- PullRequestThreadOrError{c, nil}
+				ch <- PullRequestThreadOrError{PullRequestThread: c}
 			}
 			if resp.Repository.PullRequest.ReviewThreads.PageInfo.HasNextPage {
 				args["commentAfter"] = resp.Repository.PullRequest.ReviewThreads.PageInfo.EndCursor
@@ -1063,43 +1065,43 @@ fragment ReactionsInfo on Reactable {
 }
 
 type GitHubQLThreadCommentWrapper struct {
-	*PullRequestThread
-	idx int
+	thread  PullRequestThread
+	comment PullRequestThreadComment
 }
 
 func (g GitHubQLThreadCommentWrapper) GetReactions() Reactions {
-	return g.Comments.Nodes[g.idx].GetReactions()
+	return g.comment.GetReactions()
 }
 
 func (g GitHubQLThreadCommentWrapper) GetContent() CommentContent {
-	return g.Comments.Nodes[g.idx].CommentInfo
+	return g.comment.CommentInfo
 }
 
 func (g GitHubQLThreadCommentWrapper) GetParentId() interface{} {
-	if g.Comments.Nodes[g.idx].ReplyTo != nil {
-		return *(g.Comments.Nodes[g.idx].ReplyTo.Id)
+	if g.comment.ReplyTo != nil {
+		return *(g.comment.ReplyTo.Id)
 	} else {
 		return nil
 	}
 }
 
 func (g GitHubQLThreadCommentWrapper) GetId() interface{} {
-	return g.Comments.Nodes[g.idx].Id
+	return g.comment.Id
 }
 
 func (g GitHubQLThreadCommentWrapper) GetUser() Author {
-	return g.Comments.Nodes[g.idx].Author
+	return g.comment.Author
 }
 
 func (g GitHubQLThreadCommentWrapper) GetCreatedOn() time.Time {
-	return g.Comments.Nodes[g.idx].CreatedAt
+	return g.comment.CreatedAt
 }
 
 func (g GitHubPullRequest) GetCommentsByLine() ([]Comment, map[string]map[int64][]Comment, error) {
 	prComments := make([]Comment, 0)
 	commentMap := make(map[string]map[int64][]Comment)
 
-	commentsById := make(map[string]*CommentInfo)
+	//commentsById := make(map[string]*CommentInfo)
 
 	for ghC := range g.getPullRequestThreadComments() {
 		if ghC.error != nil {
@@ -1112,9 +1114,9 @@ func (g GitHubPullRequest) GetCommentsByLine() ([]Comment, map[string]map[int64]
 			continue
 		}
 
-		for i, c := range th.Comments.Nodes {
-			commentsById[c.Id] = &c.CommentInfo
-			cmt := GitHubQLThreadCommentWrapper{th, i}
+		for _, c := range th.Comments.Nodes {
+			//commentsById[c.Id] = &c.CommentInfo
+			cmt := GitHubQLThreadCommentWrapper{th, c}
 
 			path := th.Path
 			byLine, ok := commentMap[path]
