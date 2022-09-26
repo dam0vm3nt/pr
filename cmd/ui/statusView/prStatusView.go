@@ -24,6 +24,7 @@ type PrStatusView struct {
 	statusTable   table.Model
 	asyncMsg      chan tea.Cmd
 	loadingStatus spinner.Model
+	showingPr     bool
 }
 
 func (p PrStatusView) Init() tea.Cmd {
@@ -286,6 +287,43 @@ func setupTable() tea.Msg {
 	return setupTableMsg{}
 }
 
+type showPrMsg struct {
+	pullRequest sv.PullRequest
+}
+
+func showPrCmd(s sv.Sv, id string) tea.Cmd {
+	return func() tea.Msg {
+		if prr, err := s.GetPullRequest(id); err == nil {
+			return showPrMsg{prr}
+		} else {
+			return showStatusErrorCmd(fmt.Sprintf("Cannot load pr %s : %e", id, err))()
+		}
+	}
+}
+
+type modelAndCmd struct {
+	model tea.Model
+	cmd   tea.Cmd
+}
+
+func (m showPrMsg) Update(view PrStatusView) (tea.Model, tea.Cmd) {
+	w := make(chan modelAndCmd)
+	go func() {
+		cmds := make([]tea.Cmd, 0)
+		if err := ui.ShowPr(m.pullRequest); err != nil {
+			cmds = append(cmds, showStatusErrorCmd(fmt.Sprintf("Error while showing load pr %d : %e", m.pullRequest.GetId(), err)))
+		}
+
+		view.loaded = true
+		view.showingPr = false
+		w <- modelAndCmd{view, tea.Batch(cmds...)}
+		close(w)
+	}()
+
+	res := <-w
+	return res.model, res.cmd
+}
+
 func (p PrStatusView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0)
 	var pp tea.Model = p
@@ -303,6 +341,10 @@ func (p PrStatusView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		p.h = m.Height
 		pp = p
 		cmds = append(cmds, setupTable)
+	case showPrMsg:
+		p_, cmd := m.Update(p)
+		pp = p_
+		cmds = append(cmds, cmd)
 	case showStatusError:
 		p_, cmd := m.Update(p)
 		pp = p_
@@ -329,6 +371,9 @@ func (p PrStatusView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (p PrStatusView) handleKey(m tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if p.showingPr {
+		return p, nil
+	}
 	pp := p
 	cmds := make([]tea.Cmd, 0)
 
@@ -340,13 +385,11 @@ func (p PrStatusView) handleKey(m tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "enter":
 		pr := p.pullRequests[p.statusTable.GetHighlightedRowIndex()]
 		if pr.GetRepository() == p.sv.GetRepositoryFullName() {
-			if prr, err := p.sv.GetPullRequest(fmt.Sprintf("%d", pr.GetId())); err == nil {
-				if err := ui.ShowPr(prr); err != nil {
-					cmds = append(cmds, showStatusErrorCmd(fmt.Sprintf("Error while showing load pr %d : %e", pr.GetId(), err)))
-				}
-			} else {
-				cmds = append(cmds, showStatusErrorCmd(fmt.Sprintf("Cannot load pr %d : %e", pr.GetId(), err)))
-			}
+			go func() { p.asyncMsg <- showPrCmd(p.sv, fmt.Sprintf("%d", pr.GetId())) }()
+			cmds = append(cmds, p.loadingStatus.Tick)
+			p.showingPr = true
+			p.loaded = false
+			pp = p
 		} else {
 			cmds = append(cmds, showStatusErrorCmd(fmt.Sprintf("Repo '%s' doesn't match with '%s'", pr.GetRepository(), p.sv.GetRepositoryFullName())))
 		}
