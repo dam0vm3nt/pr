@@ -509,7 +509,7 @@ query singleStatus($ids: [ID!]!) {
 }
 
 func (g GitHubPullRequest) ReplyToComment(comment Comment, replyText string) (Comment, error) {
-	if c, ok := comment.(GitHubCommentWrapper); ok {
+	if c, ok := comment.(GitHubQLThreadCommentWrapper); ok {
 		newDiscussionMutation := `
 mutation newReview($prId: ID!) {
   addPullRequestReview(input: {pullRequestId: $prId}) { 
@@ -550,7 +550,7 @@ mutation replyTo($revId: ID!, $commentId: ID!, $body: String!) {
 		}
 
 		if err := g.sv.gqlClient.GraphQL(g.sv.host, mutation, map[string]interface{}{
-			"commentId": c.GetNodeID(),
+			"commentId": c.comment.Id,
 			"revId":     newDiscussionMutationResponse.AddPullRequestReview.PullRequestReview.Id,
 			"body":      replyText}, &resp1); err != nil {
 			return nil, err
@@ -577,9 +577,7 @@ mutation closeReview($revId: ID!) {
 		}
 
 		return nil, nil
-	}
-
-	if c, ok := comment.(GitHubCommentWrapper); ok {
+	} else if c, ok := comment.(GitHubCommentWrapper); ok {
 		if cmt, _, err := g.sv.client.PullRequests.CreateComment(g.sv.ctx, g.sv.owner, g.sv.repo, g.GetNumber(), &gh.PullRequestComment{
 			InReplyTo: c.ID,
 			Position:  c.Position,
