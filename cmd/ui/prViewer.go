@@ -437,8 +437,14 @@ func (prv *PullRequestView) PrintComments(content *contentView, header *pullRequ
 		// Print reactions
 		reactions := make([]string, 0)
 		reactionIcons := map[string]string{
-			"THUMBS_UP": "👍",
-			"ROCKET":    "🚀",
+			"THUMBS_UP":   "👍",
+			"THUMBS_DOWN": "👎",
+			"LAUGH":       "😁",
+			"HOORAY":      "🕺",
+			"CONFUSED":    "🤔",
+			"HEART":       "🫶",
+			"ROCKET":      "🚀",
+			"EYES":        "👀",
 		}
 		for r, u := range comment.GetReactions() {
 			icon, ok := reactionIcons[r]
