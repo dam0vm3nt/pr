@@ -10,6 +10,7 @@ import (
 	"github.com/vballestra/sv/cmd/ui"
 	"github.com/vballestra/sv/sv"
 	"strings"
+	"time"
 )
 
 type PrStatusView struct {
@@ -25,6 +26,7 @@ type PrStatusView struct {
 	asyncMsg      chan tea.Cmd
 	loadingStatus spinner.Model
 	showingPr     bool
+	isMonitoring  bool
 }
 
 func (p PrStatusView) Init() tea.Cmd {
@@ -184,6 +186,7 @@ func renderChecks(pi sv.PullRequestStatus) []string {
 		"SUCCESS":     "✔",
 		"FAILURE":     "⤫",
 		"IN_PROGRESS": "☯",
+		"QUEUED":      "䷄",
 	}
 
 	stylesMap := map[string]lipgloss.Style{
@@ -343,6 +346,10 @@ func (p PrStatusView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		p.h = m.Height
 		pp = p
 		cmds = append(cmds, setupTable)
+	case delayMsg:
+		p_, cmd := m.Update(p)
+		pp = p_
+		cmds = append(cmds, cmd)
 	case showPrMsg:
 		p_, cmd := m.Update(p)
 		pp = p_
@@ -370,6 +377,28 @@ func (p PrStatusView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return pp, tea.Batch(cmds...)
+}
+
+type delayMsg struct {
+	delay time.Duration
+	cmd   tea.Cmd
+}
+
+func delayCmd(delay time.Duration, cmd tea.Cmd) tea.Cmd {
+	return func() tea.Msg {
+		return delayMsg{delay, cmd}
+	}
+}
+
+func (m delayMsg) Update(p PrStatusView) (tea.Model, tea.Cmd) {
+	if p.isMonitoring {
+		go func() {
+			p.asyncMsg <- m.cmd
+			time.Sleep(m.delay)
+			p.asyncMsg <- delayCmd(m.delay, m.cmd)
+		}()
+	}
+	return p, nil
 }
 
 func (p PrStatusView) handleKey(m tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -401,6 +430,11 @@ func (p PrStatusView) handleKey(m tea.KeyMsg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, tea.Quit)
 		case 'r':
 			cmds = append(cmds, loadPrStatusCmd)
+		case 'm':
+			pp.isMonitoring = !p.isMonitoring
+			if pp.isMonitoring {
+				cmds = append(cmds, delayCmd(time.Second*30, loadPrStatusCmd))
+			}
 		}
 	}
 
@@ -413,15 +447,20 @@ func (p PrStatusView) handleKey(m tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (p PrStatusView) View() string {
+	verts := make([]string, 0)
 	if !p.loaded {
-		return lipgloss.JoinHorizontal(lipgloss.Center, p.loadingStatus.View(), " Loading PR status ")
+		verts = append(verts, lipgloss.JoinHorizontal(lipgloss.Center, p.loadingStatus.View(), " Loading PR status "))
+	} else {
+		verts = append(verts, "")
 	}
 
 	if !p.ready {
-		return "... initializing ..."
+		verts = append(verts, "... initializing ...")
+	} else {
+		verts = append(verts, p.statusTable.View())
 	}
 
-	return p.statusTable.View()
+	return lipgloss.JoinVertical(lipgloss.Left, verts...)
 }
 
 func RunPrStatusView(s sv.Sv) error {
