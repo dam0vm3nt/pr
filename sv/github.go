@@ -836,7 +836,7 @@ type PullRequestCommentResponse struct {
 }
 
 type PullRequestCommentOrError struct {
-	Comment *CommentInfo
+	Comment CommentInfo
 	error   error
 }
 
@@ -1042,11 +1042,11 @@ fragment ReactionsInfo on Reactable {
 		for cont {
 			if err := g.sv.graphQL(query, args, &resp); err != nil {
 				cont = false
-				ch <- PullRequestCommentOrError{nil, err}
+				ch <- PullRequestCommentOrError{error: err}
 			}
 
 			for _, c := range resp.Repository.PullRequest.Comments.Nodes {
-				ch <- PullRequestCommentOrError{&c, nil}
+				ch <- PullRequestCommentOrError{c, nil}
 			}
 			if resp.Repository.PullRequest.Comments.PageInfo.HasNextPage {
 				args["commentAfter"] = resp.Repository.PullRequest.Comments.PageInfo.EndCursor
@@ -1158,7 +1158,7 @@ func (g GitHubPullRequest) GetCommentsByLine() ([]Comment, map[string]map[int64]
 }
 
 type GithubQLCommentWrapper struct {
-	*CommentInfo
+	CommentInfo
 }
 
 func (g CommentInfo) GetReactions() Reactions {

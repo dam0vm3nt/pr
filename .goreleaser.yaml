@@ -14,6 +14,8 @@ builds:
       - linux
       - windows
       - darwin
+universal_binaries:
+- replace: true
 archives:
   - replacements:
       darwin: Darwin

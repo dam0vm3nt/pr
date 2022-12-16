@@ -317,6 +317,8 @@ func (m showPrMsg) Update(view PrStatusView) (tea.Model, tea.Cmd) {
 		cmds := make([]tea.Cmd, 0)
 		if err := ui.ShowPr(m.pullRequest); err != nil {
 			cmds = append(cmds, showStatusErrorCmd(fmt.Sprintf("Error while showing load pr %d : %e", m.pullRequest.GetId(), err)))
+		} else {
+			cmds = append(cmds, tea.ClearScrollArea)
 		}
 
 		view.loaded = true
