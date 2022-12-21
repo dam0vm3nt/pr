@@ -462,7 +462,13 @@ func (p PrStatusView) View() string {
 		verts = append(verts, p.statusTable.View())
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Left, verts...)
+	line := strings.Repeat(" ", p.w)
+	res := strings.Split(strings.ReplaceAll(lipgloss.JoinVertical(lipgloss.Left, verts...), "\r\n", "\n"), "\n")
+	for len(res) < p.h {
+		res = append(res, line)
+	}
+
+	return strings.Join(res, "\n")
 }
 
 func RunPrStatusView(s sv.Sv) error {
