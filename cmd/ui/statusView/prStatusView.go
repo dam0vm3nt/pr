@@ -333,12 +333,30 @@ func execGitFetch() error {
 			return err
 		}
 		if err = cmd.Wait(); err != nil {
+			if err, ok := err.(*exec.ExitError); ok {
+				if err.ExitCode() != 1 {
+					return err
+				} else {
+					// We can ignore exit code 1 from fetch.
+					return nil
+				}
+			}
 			return err
 		}
 
 		return nil
 	}
 
+}
+
+func forceFetch(repo sv.Sv) error {
+	if err := repo.Fetch(); err == nil {
+		return nil
+	} else if err := execGitFetch(); err == nil {
+		return nil
+	} else {
+		return err
+	}
 }
 
 func (m showPrMsg) Update(view PrStatusView) (tea.Model, tea.Cmd) {
@@ -348,16 +366,10 @@ func (m showPrMsg) Update(view PrStatusView) (tea.Model, tea.Cmd) {
 		if err := ui.ShowPr(m.pullRequest); err != nil {
 			if _, ok := err.(*sv.MissingCommitError); ok {
 				// Let's try updating the archive
-				if err := view.sv.Fetch(); err == nil {
+				if err := forceFetch(view.sv); err == nil {
 					cmds = append(cmds, showPrCmd(view.sv, fmt.Sprintf("%s", m.pullRequest.GetId())))
 				} else {
-					// Last resort try running git fetch
-					if err := execGitFetch(); err == nil {
-						cmds = append(cmds, tea.ClearScrollArea)
-						cmds = append(cmds, showPrCmd(view.sv, fmt.Sprintf("%s", m.pullRequest.GetId())))
-					} else {
-						cmds = append(cmds, showStatusErrorCmd(fmt.Sprintf("Error while showing load pr %d : %s", m.pullRequest.GetId(), err)))
-					}
+					cmds = append(cmds, showStatusErrorCmd(fmt.Sprintf("Error while showing load pr %d : %s", m.pullRequest.GetId(), err)))
 				}
 			} else {
 				cmds = append(cmds, showStatusErrorCmd(fmt.Sprintf("Error while showing load pr %d : %s", m.pullRequest.GetId(), err)))
