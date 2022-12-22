@@ -9,6 +9,7 @@ import (
 	"github.com/pterm/pterm"
 	"github.com/vballestra/sv/cmd/ui"
 	"github.com/vballestra/sv/sv"
+	"os/exec"
 	"strings"
 	"time"
 )
@@ -311,12 +312,56 @@ type modelAndCmd struct {
 	cmd   tea.Cmd
 }
 
+type fetchAndReloadMsg struct {
+	pr sv.PullRequest
+}
+
+func fetchAndReloadCmd(pr sv.PullRequest) tea.Cmd {
+	return func() tea.Msg {
+		return fetchAndReloadMsg{pr}
+	}
+}
+
+func execGitFetch() error {
+	if path, err := exec.LookPath("git"); err != nil {
+		return err
+	} else {
+		cmd := exec.Command(path, "fetch")
+		// cmd.Stdin = os.Stdin
+		// cmd.Stdout = os.Stdout
+		if err = cmd.Start(); err != nil {
+			return err
+		}
+		if err = cmd.Wait(); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+}
+
 func (m showPrMsg) Update(view PrStatusView) (tea.Model, tea.Cmd) {
 	w := make(chan modelAndCmd)
 	go func() {
 		cmds := make([]tea.Cmd, 0)
 		if err := ui.ShowPr(m.pullRequest); err != nil {
-			cmds = append(cmds, showStatusErrorCmd(fmt.Sprintf("Error while showing load pr %d : %e", m.pullRequest.GetId(), err)))
+			if _, ok := err.(*sv.MissingCommitError); ok {
+				// Let's try updating the archive
+				if err := view.sv.Fetch(); err == nil {
+					cmds = append(cmds, showPrCmd(view.sv, fmt.Sprintf("%s", m.pullRequest.GetId())))
+				} else {
+					// Last resort try running git fetch
+					if err := execGitFetch(); err == nil {
+						cmds = append(cmds, tea.ClearScrollArea)
+						cmds = append(cmds, showPrCmd(view.sv, fmt.Sprintf("%s", m.pullRequest.GetId())))
+					} else {
+						cmds = append(cmds, showStatusErrorCmd(fmt.Sprintf("Error while showing load pr %d : %s", m.pullRequest.GetId(), err)))
+					}
+				}
+			} else {
+				cmds = append(cmds, showStatusErrorCmd(fmt.Sprintf("Error while showing load pr %d : %s", m.pullRequest.GetId(), err)))
+			}
 		} else {
 			cmds = append(cmds, tea.ClearScrollArea)
 		}

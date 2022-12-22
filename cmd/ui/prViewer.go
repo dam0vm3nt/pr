@@ -11,7 +11,6 @@ import (
 	"github.com/pterm/pterm"
 	boxer "github.com/treilik/bubbleboxer"
 	"github.com/vballestra/sv/sv"
-	"io/ioutil"
 	"math"
 	"os"
 	"os/exec"
@@ -109,7 +108,7 @@ func NewView(pr sv.PullRequest) (*PullRequestView, error) {
 	}
 
 	if data, err := loadPullRequestData(pr); err != nil {
-		pterm.Warning.Println("Couldn't read pr ", err)
+		pterm.Debug.Println("Couldn't read pr ", err)
 		return nil, err
 	} else {
 		box := boxer.Boxer{
@@ -928,7 +927,7 @@ func launchEditor(initialText string) (string, error) {
 		}
 
 		// Read back the file and write it
-		if content, err := ioutil.ReadFile(file.Name()); err == nil {
+		if content, err := os.ReadFile(file.Name()); err == nil {
 			return string(content[:]), nil
 		} else {
 			return "", err
@@ -1200,7 +1199,6 @@ func ShowPr(pr sv.PullRequest) error {
 
 		if err := p.Start(); err != nil {
 			fmt.Println("could not run program:", err)
-			os.Exit(1)
 		}
 		return nil
 	}

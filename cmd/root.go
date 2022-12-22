@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
@@ -146,7 +145,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&githubToken, "token", "t", os.Getenv("GITHUB_TOKEN"), "Github token")
 	rootCmd.PersistentFlags().StringVarP(&localRepo, "workspace", "w", wd, "Local copy")
 	rootCmd.PersistentFlags().StringVar(&defaultOrigin, "remote", "origin", "Default origin to use")
-	rootCmd.PersistentFlags().StringVar(&sshKeyComment, "ssh-key-comment", ".*", "REGEXP that should match with the SSH key to be used")
+	rootCmd.PersistentFlags().StringVarP(&sshKeyComment, "ssh-key-comment", "K", ".*", "REGEXP that should match with the SSH key to be used")
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 

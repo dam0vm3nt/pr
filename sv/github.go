@@ -1228,6 +1228,15 @@ func (g GitHubCommentWrapper) GetCreatedOn() time.Time {
 	return *g.CreatedAt
 }
 
+type MissingCommitError struct {
+	missingHash plumbing.Hash
+	cause       error
+}
+
+func (m *MissingCommitError) Error() string {
+	return fmt.Sprintf("Cannot find commit hash: %s. Cause: %s", m.missingHash, m.cause.Error())
+}
+
 func (g GitHubPullRequest) GetDiff() ([]*gitdiff.File, error) {
 	rep, giterr := git.PlainOpen(g.sv.localRepo)
 	if giterr != nil {
@@ -1239,28 +1248,34 @@ func (g GitHubPullRequest) GetDiff() ([]*gitdiff.File, error) {
 
 	cBr, err := rep.CommitObject(refBrHash)
 	if err != nil {
-		pterm.Fatal.Println("Cannot get the pr branch head commit, do you need to update your local repo ?", err)
+		pterm.Debug.Println("Cannot get the pr branch head commit, do you need to update your local repo ?", err)
+		return nil, &MissingCommitError{refBrHash, err}
 	}
 	cBase, err := rep.CommitObject(refBaseHash)
 	if err != nil {
-		pterm.Fatal.Println("Cannot get the base branch commit, do you need to update your local repo ?", err)
+		pterm.Debug.Println("Cannot get the base branch commit, do you need to update your local repo ?", err)
+		return nil, &MissingCommitError{refBaseHash, err}
 	}
 
 	merge, err := cBr.MergeBase(cBase)
 	if err != nil {
-		pterm.Fatal.Println("Cannot find a merge base?!?")
+		pterm.Debug.Println("Cannot find a merge base?!?")
+		return nil, err
 	}
 	if len(merge) != 1 {
-		pterm.Fatal.Printfln("More than one merge base ?!? %s", merge)
+		pterm.Debug.Printfln("More than one merge base ?!? %s", merge)
+		return nil, errors.New(pterm.Sprintfln("More than one merge base : %d", len(merge)))
 	}
 
 	baseTree, err2 := merge[0].Tree()
 	if err2 != nil {
-		pterm.Error.Println(err2)
+		pterm.Debug.Println(err2)
+		return nil, err2
 	}
 	brTree, err3 := cBr.Tree()
 	if err3 != nil {
-		pterm.Error.Println(err3)
+		pterm.Debug.Println(err3)
+		return nil, err3
 	}
 
 	changes, _ := baseTree.Patch(brTree)
