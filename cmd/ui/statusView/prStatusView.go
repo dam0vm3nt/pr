@@ -2,6 +2,7 @@ package statusView
 
 import (
 	"fmt"
+	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -23,11 +24,13 @@ type PrStatusView struct {
 	ready  bool
 	loaded bool
 
-	statusTable   table.Model
-	asyncMsg      chan tea.Cmd
-	loadingStatus spinner.Model
-	showingPr     bool
-	isMonitoring  bool
+	statusTable      table.Model
+	asyncMsg         chan tea.Cmd
+	loadingStatus    spinner.Model
+	countdownStatus  progress.Model
+	loadingCountdown int
+	showingPr        bool
+	isMonitoring     bool
 }
 
 func (p PrStatusView) Init() tea.Cmd {
@@ -407,6 +410,17 @@ func (p PrStatusView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// save window info
 		p.w = m.Width
 		p.h = m.Height
+		p.countdownStatus = progress.New(progress.WithScaledGradient("#FF7CCB", "#FDFF8C"),
+			progress.WithoutPercentage(),
+			(func(min int, max int) progress.Option {
+				if m.Width-min > max {
+					return progress.WithWidth(max)
+				} else if m.Width < min {
+					return progress.WithWidth(0)
+				} else {
+					return progress.WithWidth(m.Width - min)
+				}
+			})(15, 30))
 		pp = p
 		cmds = append(cmds, setupTable)
 	case delayMsg:
@@ -443,22 +457,31 @@ func (p PrStatusView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 type delayMsg struct {
-	delay time.Duration
-	cmd   tea.Cmd
+	initialCounter int
+	counter        int
+	delay          time.Duration
+	cmd            tea.Cmd
 }
 
-func delayCmd(delay time.Duration, cmd tea.Cmd) tea.Cmd {
+func delayCmd(initialCounter int, counter int, delay time.Duration, cmd tea.Cmd) tea.Cmd {
 	return func() tea.Msg {
-		return delayMsg{delay, cmd}
+		return delayMsg{initialCounter, counter, delay, cmd}
 	}
 }
 
 func (m delayMsg) Update(p PrStatusView) (tea.Model, tea.Cmd) {
+	p.loadingCountdown = m.counter
 	if p.isMonitoring {
 		go func() {
-			p.asyncMsg <- m.cmd
+			var newCounter int
+			if m.counter == 0 {
+				p.asyncMsg <- m.cmd
+				newCounter = m.initialCounter
+			} else {
+				newCounter = m.counter - 1
+			}
 			time.Sleep(m.delay)
-			p.asyncMsg <- delayCmd(m.delay, m.cmd)
+			p.asyncMsg <- delayCmd(m.initialCounter, newCounter, m.delay, m.cmd)
 		}()
 	}
 	return p, nil
@@ -496,7 +519,7 @@ func (p PrStatusView) handleKey(m tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case 'm':
 			pp.isMonitoring = !p.isMonitoring
 			if pp.isMonitoring {
-				cmds = append(cmds, delayCmd(time.Second*30, loadPrStatusCmd))
+				cmds = append(cmds, delayCmd(30, 30, time.Second, loadPrStatusCmd))
 			}
 		}
 	}
@@ -511,6 +534,11 @@ func (p PrStatusView) handleKey(m tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (p PrStatusView) View() string {
 	verts := make([]string, 0)
+
+	if p.isMonitoring && p.loadingCountdown > 0 {
+		verts = append(verts, fmt.Sprintf("Countdown : %d %s", p.loadingCountdown, p.countdownStatus.ViewAs(float64(p.loadingCountdown)/30.0)))
+	}
+
 	if !p.loaded {
 		verts = append(verts, lipgloss.JoinHorizontal(lipgloss.Center, p.loadingStatus.View(), " Loading PR status "))
 	} else {

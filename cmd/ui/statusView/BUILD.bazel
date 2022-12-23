@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//cmd/ui",
         "//sv",
+        "@com_github_charmbracelet_bubbles//progress",
         "@com_github_charmbracelet_bubbles//spinner",
         "@com_github_charmbracelet_bubbletea//:bubbletea",
         "@com_github_charmbracelet_lipgloss//:lipgloss",
