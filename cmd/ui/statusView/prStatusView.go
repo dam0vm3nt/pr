@@ -371,7 +371,7 @@ func (m showPrMsg) Update(view PrStatusView) (tea.Model, tea.Cmd) {
 			if _, ok := err.(*sv.MissingCommitError); ok {
 				// Let's try updating the archive
 				if err := forceFetch(view.sv); err == nil {
-					cmds = append(cmds, showPrCmd(view.sv, fmt.Sprintf("%s", m.pullRequest.GetId())))
+					cmds = append(cmds, showPrCmd(view.sv, fmt.Sprintf("%d", m.pullRequest.GetId())))
 				} else {
 					cmds = append(cmds, showStatusErrorCmd(fmt.Sprintf("Error while showing load pr %d : %s", m.pullRequest.GetId(), err)))
 				}
