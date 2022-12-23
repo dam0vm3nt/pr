@@ -108,12 +108,15 @@ const (
 	colContexts   = "contexts"
 )
 
-var mineStyle = lipgloss.NewStyle().Bold(true).ColorWhitespace(true).Foreground(lipgloss.Color("#ff0000"))
-var theirStyle = lipgloss.NewStyle().Bold(true).ColorWhitespace(true).Foreground(lipgloss.Color("#00ffff"))
+var mineStyle = lipgloss.NewStyle().Bold(true).ColorWhitespace(true).Foreground(lipgloss.Color("#40e040"))
+var theirStyle = lipgloss.NewStyle().Bold(true).ColorWhitespace(true).Foreground(lipgloss.Color("#a0a0a0"))
+var notLocalStyle = lipgloss.NewStyle().Italic(true).ColorWhitespace(true).Foreground(lipgloss.Color("#e0e0e0"))
 
 func (m setupTableMsg) Update(p PrStatusView) (PrStatusView, tea.Cmd) {
 	rows := make([]table.Row, 0)
 	for _, pi := range p.pullRequests {
+
+		isLocal := pi.GetRepository() == p.sv.GetRepositoryFullName()
 
 		checks := renderChecks(pi)
 
@@ -121,20 +124,22 @@ func (m setupTableMsg) Update(p PrStatusView) (PrStatusView, tea.Cmd) {
 
 		reviews := renderReviews(pi)
 
-		var idStr string
-
-		if pi.IsMine() {
-			idStr = mineStyle.Render(idStr)
-		} else {
-			idStr = theirStyle.Render(idStr)
-		}
+		style := (func() lipgloss.Style {
+			if !isLocal {
+				return notLocalStyle
+			} else if pi.IsMine() {
+				return mineStyle
+			} else {
+				return theirStyle
+			}
+		})()
 
 		row := table.NewRow(table.RowData{
-			colId:         pi.GetId(),
-			colTitle:      pi.GetTitle(),
-			colAuthor:     pi.GetAuthor(),
-			colRepository: pi.GetRepository(),
-			colBranch:     pi.GetBranchName(),
+			colId:         style.Render(fmt.Sprintf("%5d", pi.GetId())),
+			colTitle:      style.Render(pi.GetTitle()),
+			colAuthor:     style.Render(pi.GetAuthor()),
+			colRepository: style.Render(pi.GetRepository()),
+			colBranch:     style.Render(pi.GetBranchName()),
 			colState:      pi.GetStatus(),
 			colReviews:    strings.Join(reviews, " "),
 			colChecks:     strings.Join(checks, ", "),
@@ -143,8 +148,7 @@ func (m setupTableMsg) Update(p PrStatusView) (PrStatusView, tea.Cmd) {
 		rows = append(rows, row)
 	}
 	p.statusTable = table.New([]table.Column{
-		table.NewColumn(colId, "ID", 5).
-			WithFormatString("%05d"),
+		table.NewColumn(colId, "ID", 5),
 		table.NewFlexColumn(colTitle, "Title", 2).
 			WithStyle(lipgloss.NewStyle().
 				Align(lipgloss.Left)),
