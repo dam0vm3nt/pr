@@ -238,24 +238,26 @@ interface MemberStatusable {
     ): UserStatusConnection!
 }
 
-"Represents an Octoshift migration."
+"Represents a GitHub Enterprise Importer (GEI) migration."
 interface Migration {
-    "The Octoshift migration flag to continue on error."
+    "The migration flag to continue on error."
     continueOnError: Boolean!
     "Identifies the date and time when the object was created."
     createdAt: DateTime!
+    "Identifies the primary key from the database."
+    databaseId: String
     "The reason the migration failed."
     failureReason: String
     id: ID!
     "The URL for the migration log (expires 1 day after migration completes)."
     migrationLogUrl: URI
-    "The Octoshift migration source."
+    "The migration source."
     migrationSource: MigrationSource!
     "The target repository name."
     repositoryName: String!
-    "The Octoshift migration source URL."
+    "The migration source URL."
     sourceUrl: URI!
-    "The Octoshift migration state."
+    "The migration state."
     state: MigrationState!
 }
 
@@ -376,20 +378,20 @@ interface ProfileOwner {
 "Common fields across different field types"
 interface ProjectNextFieldCommon {
     "Identifies the date and time when the object was created."
-    createdAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    createdAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The field's type."
-    dataType: ProjectNextFieldType! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    dataType: ProjectNextFieldType! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Identifies the primary key from the database."
-    databaseId: Int @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
-    id: ID! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    databaseId: Int @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
+    id: ID! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The project field's name."
-    name: String! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    name: String! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The project that contains this field."
-    project: ProjectNext! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    project: ProjectNext! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The field's settings."
-    settings: String @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    settings: String @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Identifies the date and time when the object was last updated."
-    updatedAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    updatedAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
 }
 
 "Represents an owner of a project (beta)."
@@ -399,7 +401,7 @@ interface ProjectNextOwner {
     projectNext(
         "The project (beta) number."
         number: Int!
-    ): ProjectNext @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): ProjectNext @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "A list of projects (beta) under the owner."
     projectsNext(
         "Returns the elements in the list that come after the specified cursor."
@@ -414,7 +416,7 @@ interface ProjectNextOwner {
         query: String,
         "How to order the returned projects (beta)."
         sortBy: ProjectNextOrderField = TITLE
-    ): ProjectNextConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): ProjectNextConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
 }
 
 "Represents an owner of a Project."
@@ -612,6 +614,8 @@ interface RepositoryInfo {
     descriptionHTML: HTML!
     "Returns how many forks there are of this repository in the whole network."
     forkCount: Int!
+    "Indicates if the repository has the Discussions feature enabled."
+    hasDiscussionsEnabled: Boolean!
     "Indicates if the repository has issues feature enabled."
     hasIssuesEnabled: Boolean!
     "Indicates if the repository has the Projects feature enabled."
@@ -730,7 +734,7 @@ interface RequirableByPullRequest {
     ): Boolean!
 }
 
-"Entities that can be sponsored through GitHub Sponsors"
+"Entities that can sponsor or be sponsored through GitHub Sponsors."
 interface Sponsorable {
     "The estimated next GitHub Sponsors payout for this user/organization in cents (USD)."
     estimatedNextSponsorsPayoutInCents: Int!
@@ -783,12 +787,18 @@ interface Sponsorable {
         before: String,
         "Returns the first _n_ elements from the list."
         first: Int,
+        "Whether to include those events where this sponsorable acted as the sponsor. Defaults to only including events where this sponsorable was the recipient of a sponsorship."
+        includeAsSponsor: Boolean = false,
         "Returns the last _n_ elements from the list."
         last: Int,
         "Ordering options for activity returned from the connection."
         orderBy: SponsorsActivityOrder = {field: TIMESTAMP, direction: DESC},
-        "Filter activities returned to only those that occurred in the most recent specified time period. Set to ALL to avoid filtering by when the activity occurred."
-        period: SponsorsActivityPeriod = MONTH
+        "Filter activities returned to only those that occurred in the most recent specified time period. Set to ALL to avoid filtering by when the activity occurred. Will be ignored if `since` or `until` is given."
+        period: SponsorsActivityPeriod = MONTH,
+        "Filter activities to those that occurred on or after this time."
+        since: DateTime,
+        "Filter activities to those that occurred before this time."
+        until: DateTime
     ): SponsorsActivityConnection!
     "The GitHub Sponsors listing for this user or organization."
     sponsorsListing: SponsorsListing
@@ -834,6 +844,8 @@ interface Sponsorable {
         first: Int,
         "Returns the last _n_ elements from the list."
         last: Int,
+        "Filter sponsorships returned to those for the specified maintainers. That is, the recipient of the sponsorship is a user or organization with one of the given logins."
+        maintainerLogins: [String!],
         "Ordering options for sponsorships returned from this connection. If left blank, the sponsorships will be ordered based on relevancy to the viewer."
         orderBy: SponsorshipOrder
     ): SponsorshipConnection!
@@ -936,6 +948,9 @@ union AuditEntryActor = Bot | Organization | User
 "Types which can be actors for `BranchActorAllowance` objects."
 union BranchActorAllowanceActor = App | Team | User
 
+"An object which can have its data claimed or claim data from another."
+union Claimable = Mannequin | User
+
 "The object which triggered a `ClosedEvent`."
 union Closer = Commit | PullRequest
 
@@ -1032,6 +1047,9 @@ union Sponsor = Organization | User
 "Entities that can be sponsored via GitHub Sponsors"
 union SponsorableItem = Organization | User
 
+"A record that can be featured on a GitHub Sponsors profile."
+union SponsorsListingFeatureableItem = Repository | User
+
 "Types that can be inside a StatusCheckRollup context."
 union StatusCheckRollupContext = CheckRun | StatusContext
 
@@ -1114,6 +1132,14 @@ type AddDiscussionPollVotePayload {
     pollOption: DiscussionPollOption
 }
 
+"Autogenerated return type of AddEnterpriseOrganizationMember"
+type AddEnterpriseOrganizationMemberPayload {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The users who were added to the organization."
+    users: [User!]
+}
+
 "Autogenerated return type of AddEnterpriseSupportEntitlement"
 type AddEnterpriseSupportEntitlementPayload {
     "A unique identifier for the client performing the mutation."
@@ -1155,7 +1181,7 @@ type AddProjectDraftIssuePayload {
     "A unique identifier for the client performing the mutation."
     clientMutationId: String
     "The draft issue added to the project."
-    projectNextItem: ProjectNextItem @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    projectNextItem: ProjectNextItem @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
 }
 
 "Autogenerated return type of AddProjectNextItem"
@@ -1163,7 +1189,7 @@ type AddProjectNextItemPayload {
     "A unique identifier for the client performing the mutation."
     clientMutationId: String
     "The item added to the project."
-    projectNextItem: ProjectNextItem @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    projectNextItem: ProjectNextItem @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
 }
 
 "Autogenerated return type of AddProjectV2DraftIssue"
@@ -1216,6 +1242,8 @@ type AddReactionPayload {
     clientMutationId: String
     "The reaction object."
     reaction: Reaction
+    "The reaction groups for the subject."
+    reactionGroups: [ReactionGroup!]
     "The reactable subject."
     subject: Reactable
 }
@@ -1308,6 +1336,14 @@ type ApproveVerifiableDomainPayload {
     clientMutationId: String
     "The verifiable domain that was approved."
     domain: VerifiableDomain
+}
+
+"Autogenerated return type of ArchiveProjectV2Item"
+type ArchiveProjectV2ItemPayload {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The item archived from the project."
+    item: ProjectV2Item
 }
 
 "Autogenerated return type of ArchiveRepository"
@@ -1597,6 +1633,10 @@ type BranchProtectionRule implements Node {
     id: ID!
     "Can admins overwrite branch protection."
     isAdminEnforced: Boolean!
+    "Whether users can pull changes from upstream when the branch is locked. Set to `true` to allow fork syncing. Set to `false` to prevent fork syncing."
+    lockAllowsFetchAndMerge: Boolean!
+    "Whether to set the branch as read-only. If this is true, users will not be able to push to the branch."
+    lockBranch: Boolean!
     "Repository refs that are protected by this rule"
     matchingRefs(
         "Returns the elements in the list that come after the specified cursor."
@@ -1625,6 +1665,8 @@ type BranchProtectionRule implements Node {
     ): PushAllowanceConnection!
     "The repository associated with this branch protection rule."
     repository: Repository
+    "Whether the most recent push must be approved by someone other than the person who pushed it"
+    requireLastPushApproval: Boolean!
     "Number of approving reviews required to update matching branches."
     requiredApprovingReviewCount: Int
     "List of required status check contexts that must pass for commits to be accepted to matching branches."
@@ -2600,6 +2642,46 @@ type CommitHistoryConnection {
     totalCount: Int!
 }
 
+"Represents a comparison between two commit revisions."
+type Comparison implements Node {
+    "The number of commits ahead of the base branch."
+    aheadBy: Int!
+    "The base revision of this comparison."
+    baseTarget: GitObject!
+    "The number of commits behind the base branch."
+    behindBy: Int!
+    "The commits which compose this comparison."
+    commits(
+        "Returns the elements in the list that come after the specified cursor."
+        after: String,
+        "Returns the elements in the list that come before the specified cursor."
+        before: String,
+        "Returns the first _n_ elements from the list."
+        first: Int,
+        "Returns the last _n_ elements from the list."
+        last: Int
+    ): ComparisonCommitConnection!
+    "The head revision of this comparison."
+    headTarget: GitObject!
+    id: ID!
+    "The status of this comparison."
+    status: ComparisonStatus!
+}
+
+"The connection type for Commit."
+type ComparisonCommitConnection {
+    "The total count of authors and co-authors across all commits."
+    authorCount: Int!
+    "A list of edges."
+    edges: [CommitEdge]
+    "A list of nodes."
+    nodes: [Commit]
+    "Information to aid in pagination."
+    pageInfo: PageInfo!
+    "Identifies the total count of items in the connection."
+    totalCount: Int!
+}
+
 "Represents a 'connected' event on a given issue or pull request."
 type ConnectedEvent implements Node {
     "Identifies the actor who performed the event."
@@ -2916,6 +2998,18 @@ type ConvertedToDiscussionEvent implements Node {
     id: ID!
 }
 
+"Autogenerated return type of CreateAttributionInvitation"
+type CreateAttributionInvitationPayload {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The owner scoping the reattributable data."
+    owner: Organization
+    "The account owning the data to reattribute."
+    source: Claimable
+    "The account which may claim the data."
+    target: Claimable
+}
+
 "Autogenerated return type of CreateBranchProtectionRule"
 type CreateBranchProtectionRulePayload {
     "The newly created BranchProtectionRule."
@@ -2992,11 +3086,19 @@ type CreateIssuePayload {
     issue: Issue
 }
 
+"Autogenerated return type of CreateLinkedBranch"
+type CreateLinkedBranchPayload {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The new branch issue reference."
+    linkedBranch: LinkedBranch
+}
+
 "Autogenerated return type of CreateMigrationSource"
 type CreateMigrationSourcePayload {
     "A unique identifier for the client performing the mutation."
     clientMutationId: String
-    "The created Octoshift migration source."
+    "The created migration source."
     migrationSource: MigrationSource
 }
 
@@ -3038,6 +3140,14 @@ type CreateRepositoryPayload {
     clientMutationId: String
     "The new repository."
     repository: Repository
+}
+
+"Autogenerated return type of CreateSponsorsListing"
+type CreateSponsorsListingPayload {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The new GitHub Sponsors profile."
+    sponsorsListing: SponsorsListing
 }
 
 "Autogenerated return type of CreateSponsorsTier"
@@ -3388,6 +3498,14 @@ type DeleteIssuePayload {
     repository: Repository
 }
 
+"Autogenerated return type of DeleteLinkedBranch"
+type DeleteLinkedBranchPayload {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The issue the linked branch was unlinked from."
+    issue: Issue
+}
+
 "Autogenerated return type of DeleteProjectCard"
 type DeleteProjectCardPayload {
     "A unique identifier for the client performing the mutation."
@@ -3413,7 +3531,7 @@ type DeleteProjectNextItemPayload {
     "A unique identifier for the client performing the mutation."
     clientMutationId: String
     "The ID of the deleted item."
-    deletedItemId: ID @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    deletedItemId: ID @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
 }
 
 "Autogenerated return type of DeleteProject"
@@ -5939,6 +6057,17 @@ type Issue implements Assignable & Closable & Comment & Labelable & Lockable & N
     ): LabelConnection
     "The moment the editor made the last edit"
     lastEditedAt: DateTime
+    "Branches linked to this issue."
+    linkedBranches(
+        "Returns the elements in the list that come after the specified cursor."
+        after: String,
+        "Returns the elements in the list that come before the specified cursor."
+        before: String,
+        "Returns the first _n_ elements from the list."
+        first: Int,
+        "Returns the last _n_ elements from the list."
+        last: Int
+    ): LinkedBranchConnection!
     "`true` if the object is locked"
     locked: Boolean!
     "Identifies the milestone associated with the issue."
@@ -5986,7 +6115,7 @@ type Issue implements Assignable & Closable & Comment & Labelable & Lockable & N
     projectNext(
         "The project (beta) number."
         number: Int!
-    ): ProjectNext @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): ProjectNext @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "List of project (beta) items associated with this issue."
     projectNextItems(
         "Returns the elements in the list that come after the specified cursor."
@@ -6019,7 +6148,7 @@ type Issue implements Assignable & Closable & Comment & Labelable & Lockable & N
         query: String,
         "How to order the returned projects (beta)."
         sortBy: ProjectNextOrderField = TITLE
-    ): ProjectNextConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): ProjectNextConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "A list of projects under the owner."
     projectsV2(
         "Returns the elements in the list that come after the specified cursor."
@@ -6306,6 +6435,8 @@ type IssueTemplate {
     about: String
     "The suggested issue body."
     body: String
+    "The template filename."
+    filename: String!
     "The template name."
     name: String!
     "The suggested issue title."
@@ -6550,6 +6681,22 @@ type LicenseRule {
     label: String!
 }
 
+"Autogenerated return type of LinkProjectV2ToRepository"
+type LinkProjectV2ToRepositoryPayload {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The repository the project is linked to."
+    repository: Repository
+}
+
+"Autogenerated return type of LinkProjectV2ToTeam"
+type LinkProjectV2ToTeamPayload {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The team the project is linked to"
+    team: Team
+}
+
 "Autogenerated return type of LinkRepositoryToProject"
 type LinkRepositoryToProjectPayload {
     "A unique identifier for the client performing the mutation."
@@ -6558,6 +6705,33 @@ type LinkRepositoryToProjectPayload {
     project: Project
     "The linked Repository."
     repository: Repository
+}
+
+"A branch linked to an issue."
+type LinkedBranch implements Node {
+    id: ID!
+    "The branch's ref."
+    ref: Ref
+}
+
+"The connection type for LinkedBranch."
+type LinkedBranchConnection {
+    "A list of edges."
+    edges: [LinkedBranchEdge]
+    "A list of nodes."
+    nodes: [LinkedBranch]
+    "Information to aid in pagination."
+    pageInfo: PageInfo!
+    "Identifies the total count of items in the connection."
+    totalCount: Int!
+}
+
+"An edge in a connection."
+type LinkedBranchEdge {
+    "A cursor for use in pagination."
+    cursor: String!
+    "The item at the end of the edge."
+    node: LinkedBranch
 }
 
 "Autogenerated return type of LockLockable"
@@ -6607,6 +6781,26 @@ type Mannequin implements Actor & Node & UniformResourceLocatable {
     updatedAt: DateTime!
     "The URL to this resource."
     url: URI!
+}
+
+"The connection type for Mannequin."
+type MannequinConnection {
+    "A list of edges."
+    edges: [MannequinEdge]
+    "A list of nodes."
+    nodes: [Mannequin]
+    "Information to aid in pagination."
+    pageInfo: PageInfo!
+    "Identifies the total count of items in the connection."
+    totalCount: Int!
+}
+
+"Represents a mannequin."
+type MannequinEdge {
+    "A cursor for use in pagination."
+    cursor: String!
+    "The item at the end of the edge."
+    node: Mannequin
 }
 
 "Autogenerated return type of MarkDiscussionCommentAsAnswer"
@@ -7018,14 +7212,14 @@ type MergedEvent implements Node & UniformResourceLocatable {
     url: URI!
 }
 
-"An Octoshift migration source."
+"A GitHub Enterprise Importer (GEI) migration source."
 type MigrationSource implements Node {
     id: ID!
-    "The Octoshift migration source name."
+    "The migration source name."
     name: String!
-    "The Octoshift migration source type."
+    "The migration source type."
     type: MigrationSourceType!
-    "The Octoshift migration source URL."
+    "The migration source URL."
     url: URI!
 }
 
@@ -7207,6 +7401,11 @@ type Mutation {
         "Parameters for AddDiscussionPollVote"
         input: AddDiscussionPollVoteInput!
     ): AddDiscussionPollVotePayload
+    "Adds enterprise members to an organization within the enterprise."
+    addEnterpriseOrganizationMember(
+        "Parameters for AddEnterpriseOrganizationMember"
+        input: AddEnterpriseOrganizationMemberInput!
+    ): AddEnterpriseOrganizationMemberPayload
     "Adds a support entitlement to an enterprise member."
     addEnterpriseSupportEntitlement(
         "Parameters for AddEnterpriseSupportEntitlement"
@@ -7231,12 +7430,12 @@ type Mutation {
     addProjectDraftIssue(
         "Parameters for AddProjectDraftIssue"
         input: AddProjectDraftIssueInput!
-    ): AddProjectDraftIssuePayload @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): AddProjectDraftIssuePayload @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Adds an existing item (Issue or PullRequest) to a Project."
     addProjectNextItem(
         "Parameters for AddProjectNextItem"
         input: AddProjectNextItemInput!
-    ): AddProjectNextItemPayload @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): AddProjectNextItemPayload @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Creates a new draft issue and add it to a Project."
     addProjectV2DraftIssue(
         "Parameters for AddProjectV2DraftIssue"
@@ -7292,6 +7491,11 @@ type Mutation {
         "Parameters for ApproveVerifiableDomain"
         input: ApproveVerifiableDomainInput!
     ): ApproveVerifiableDomainPayload
+    "Archives a ProjectV2Item"
+    archiveProjectV2Item(
+        "Parameters for ArchiveProjectV2Item"
+        input: ArchiveProjectV2ItemInput!
+    ): ArchiveProjectV2ItemPayload
     "Marks a repository as archived."
     archiveRepository(
         "Parameters for ArchiveRepository"
@@ -7352,6 +7556,11 @@ type Mutation {
         "Parameters for ConvertPullRequestToDraft"
         input: ConvertPullRequestToDraftInput!
     ): ConvertPullRequestToDraftPayload
+    "Invites a user to claim reattributable data"
+    createAttributionInvitation(
+        "Parameters for CreateAttributionInvitation"
+        input: CreateAttributionInvitationInput!
+    ): CreateAttributionInvitationPayload
     "Create a new branch protection rule"
     createBranchProtectionRule(
         "Parameters for CreateBranchProtectionRule"
@@ -7441,7 +7650,12 @@ type Mutation {
         "Parameters for CreateIssue"
         input: CreateIssueInput!
     ): CreateIssuePayload
-    "Creates an Octoshift migration source."
+    "Create a branch linked to an issue."
+    createLinkedBranch(
+        "Parameters for CreateLinkedBranch"
+        input: CreateLinkedBranchInput!
+    ): CreateLinkedBranchPayload
+    "Creates a GitHub Enterprise Importer (GEI) migration source."
     createMigrationSource(
         "Parameters for CreateMigrationSource"
         input: CreateMigrationSourceInput!
@@ -7471,6 +7685,11 @@ type Mutation {
         "Parameters for CreateRepository"
         input: CreateRepositoryInput!
     ): CreateRepositoryPayload
+    "Create a GitHub Sponsors profile to allow others to sponsor you or your organization."
+    createSponsorsListing(
+        "Parameters for CreateSponsorsListing"
+        input: CreateSponsorsListingInput!
+    ): CreateSponsorsListingPayload
     "Create a new payment tier for your GitHub Sponsors profile."
     createSponsorsTier(
         "Parameters for CreateSponsorsTier"
@@ -7536,6 +7755,11 @@ type Mutation {
         "Parameters for DeleteIssueComment"
         input: DeleteIssueCommentInput!
     ): DeleteIssueCommentPayload
+    "Unlink a branch from an issue."
+    deleteLinkedBranch(
+        "Parameters for DeleteLinkedBranch"
+        input: DeleteLinkedBranchInput!
+    ): DeleteLinkedBranchPayload
     "Deletes a project."
     deleteProject(
         "Parameters for DeleteProject"
@@ -7555,7 +7779,7 @@ type Mutation {
     deleteProjectNextItem(
         "Parameters for DeleteProjectNextItem"
         input: DeleteProjectNextItemInput!
-    ): DeleteProjectNextItemPayload @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): DeleteProjectNextItemPayload @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Deletes an item from a Project."
     deleteProjectV2Item(
         "Parameters for DeleteProjectV2Item"
@@ -7636,6 +7860,16 @@ type Mutation {
         "Parameters for InviteEnterpriseAdmin"
         input: InviteEnterpriseAdminInput!
     ): InviteEnterpriseAdminPayload
+    "Links a project to a repository."
+    linkProjectV2ToRepository(
+        "Parameters for LinkProjectV2ToRepository"
+        input: LinkProjectV2ToRepositoryInput!
+    ): LinkProjectV2ToRepositoryPayload
+    "Links a project to a team."
+    linkProjectV2ToTeam(
+        "Parameters for LinkProjectV2ToTeam"
+        input: LinkProjectV2ToTeamInput!
+    ): LinkProjectV2ToTeamPayload
     "Creates a repository link for a project."
     linkRepositoryToProject(
         "Parameters for LinkRepositoryToProject"
@@ -7691,6 +7925,11 @@ type Mutation {
         "Parameters for PinIssue"
         input: PinIssueInput!
     ): PinIssuePayload
+    "Publish an existing sponsorship tier that is currently still a draft to a GitHub Sponsors profile."
+    publishSponsorsTier(
+        "Parameters for PublishSponsorsTier"
+        input: PublishSponsorsTierInput!
+    ): PublishSponsorsTierPayload
     "Regenerates the identity provider recovery codes for an enterprise"
     regenerateEnterpriseIdentityProviderRecoveryCodes(
         "Parameters for RegenerateEnterpriseIdentityProviderRecoveryCodes"
@@ -7811,7 +8050,7 @@ type Mutation {
         "Parameters for SetUserInteractionLimit"
         input: SetUserInteractionLimitInput!
     ): SetUserInteractionLimitPayload
-    "Start a repository migration."
+    "Starts a GitHub Enterprise Importer (GEI) repository migration."
     startRepositoryMigration(
         "Parameters for StartRepositoryMigration"
         input: StartRepositoryMigrationInput!
@@ -7821,11 +8060,21 @@ type Mutation {
         "Parameters for SubmitPullRequestReview"
         input: SubmitPullRequestReviewInput!
     ): SubmitPullRequestReviewPayload
+    "Transfer an organization from one enterprise to another enterprise."
+    transferEnterpriseOrganization(
+        "Parameters for TransferEnterpriseOrganization"
+        input: TransferEnterpriseOrganizationInput!
+    ): TransferEnterpriseOrganizationPayload
     "Transfer an issue to a different repository"
     transferIssue(
         "Parameters for TransferIssue"
         input: TransferIssueInput!
     ): TransferIssuePayload
+    "Unarchives a ProjectV2Item"
+    unarchiveProjectV2Item(
+        "Parameters for UnarchiveProjectV2Item"
+        input: UnarchiveProjectV2ItemInput!
+    ): UnarchiveProjectV2ItemPayload
     "Unarchives a repository."
     unarchiveRepository(
         "Parameters for UnarchiveRepository"
@@ -7841,6 +8090,16 @@ type Mutation {
         "Parameters for UnfollowUser"
         input: UnfollowUserInput!
     ): UnfollowUserPayload
+    "Unlinks a project from a repository."
+    unlinkProjectV2FromRepository(
+        "Parameters for UnlinkProjectV2FromRepository"
+        input: UnlinkProjectV2FromRepositoryInput!
+    ): UnlinkProjectV2FromRepositoryPayload
+    "Unlinks a project to a team."
+    unlinkProjectV2FromTeam(
+        "Parameters for UnlinkProjectV2FromTeam"
+        input: UnlinkProjectV2FromTeamInput!
+    ): UnlinkProjectV2FromTeamPayload
     "Deletes a repository link from a project."
     unlinkRepositoryFromProject(
         "Parameters for UnlinkRepositoryFromProject"
@@ -8055,17 +8314,17 @@ type Mutation {
     updateProjectDraftIssue(
         "Parameters for UpdateProjectDraftIssue"
         input: UpdateProjectDraftIssueInput!
-    ): UpdateProjectDraftIssuePayload @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): UpdateProjectDraftIssuePayload @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Updates an existing project (beta)."
     updateProjectNext(
         "Parameters for UpdateProjectNext"
         input: UpdateProjectNextInput!
-    ): UpdateProjectNextPayload @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): UpdateProjectNextPayload @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Updates a field of an item from a Project."
     updateProjectNextItemField(
         "Parameters for UpdateProjectNextItemField"
         input: UpdateProjectNextItemFieldInput!
-    ): UpdateProjectNextItemFieldPayload @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): UpdateProjectNextItemFieldPayload @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Updates an existing project (beta)."
     updateProjectV2(
         "Parameters for UpdateProjectV2"
@@ -9503,6 +9762,19 @@ type Organization implements Actor & MemberStatusable & Node & PackageOwner & Pr
     location: String
     "The organization's login name."
     login: String!
+    "A list of all mannequins for this organization."
+    mannequins(
+        "Returns the elements in the list that come after the specified cursor."
+        after: String,
+        "Returns the elements in the list that come before the specified cursor."
+        before: String,
+        "Returns the first _n_ elements from the list."
+        first: Int,
+        "Returns the last _n_ elements from the list."
+        last: Int,
+        "Ordering options for mannequins returned from the connection."
+        orderBy: MannequinOrder = {field: CREATED_AT, direction: ASC}
+    ): MannequinConnection!
     "Get the status messages members of this entity have set that are either public or visible only to the organization."
     memberStatuses(
         "Returns the elements in the list that come after the specified cursor."
@@ -9608,7 +9880,7 @@ type Organization implements Actor & MemberStatusable & Node & PackageOwner & Pr
     projectNext(
         "The project (beta) number."
         number: Int!
-    ): ProjectNext @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): ProjectNext @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Find a project by number."
     projectV2(
         "The project number."
@@ -9645,7 +9917,7 @@ type Organization implements Actor & MemberStatusable & Node & PackageOwner & Pr
         query: String,
         "How to order the returned projects (beta)."
         sortBy: ProjectNextOrderField = TITLE
-    ): ProjectNextConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): ProjectNextConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The HTTP path listing organization's projects"
     projectsResourcePath: URI!
     "The HTTP URL listing organization's projects"
@@ -9799,12 +10071,18 @@ type Organization implements Actor & MemberStatusable & Node & PackageOwner & Pr
         before: String,
         "Returns the first _n_ elements from the list."
         first: Int,
+        "Whether to include those events where this sponsorable acted as the sponsor. Defaults to only including events where this sponsorable was the recipient of a sponsorship."
+        includeAsSponsor: Boolean = false,
         "Returns the last _n_ elements from the list."
         last: Int,
         "Ordering options for activity returned from the connection."
         orderBy: SponsorsActivityOrder = {field: TIMESTAMP, direction: DESC},
-        "Filter activities returned to only those that occurred in the most recent specified time period. Set to ALL to avoid filtering by when the activity occurred."
-        period: SponsorsActivityPeriod = MONTH
+        "Filter activities returned to only those that occurred in the most recent specified time period. Set to ALL to avoid filtering by when the activity occurred. Will be ignored if `since` or `until` is given."
+        period: SponsorsActivityPeriod = MONTH,
+        "Filter activities to those that occurred on or after this time."
+        since: DateTime,
+        "Filter activities to those that occurred before this time."
+        until: DateTime
     ): SponsorsActivityConnection!
     "The GitHub Sponsors listing for this user or organization."
     sponsorsListing: SponsorsListing
@@ -9850,6 +10128,8 @@ type Organization implements Actor & MemberStatusable & Node & PackageOwner & Pr
         first: Int,
         "Returns the last _n_ elements from the list."
         last: Int,
+        "Filter sponsorships returned to those for the specified maintainers. That is, the recipient of the sponsorship is a user or organization with one of the given logins."
+        maintainerLogins: [String!],
         "Ordering options for sponsorships returned from this connection. If left blank, the sponsorships will be ordered based on relevancy to the viewer."
         orderBy: SponsorshipOrder
     ): SponsorshipConnection!
@@ -10744,17 +11024,17 @@ type ProjectEdge {
 "New projects that manage issues, pull requests and drafts using tables and boards."
 type ProjectNext implements Closable & Node & Updatable {
     "Returns true if the project is closed."
-    closed: Boolean! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    closed: Boolean! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Identifies the date and time when the object was closed."
     closedAt: DateTime
     "Identifies the date and time when the object was created."
-    createdAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    createdAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The actor who originally created the project."
-    creator: Actor @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    creator: Actor @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Identifies the primary key from the database."
-    databaseId: Int @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    databaseId: Int @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The project's description."
-    description: String @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    description: String @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "List of fields in the project"
     fields(
         "Returns the elements in the list that come after the specified cursor."
@@ -10765,7 +11045,7 @@ type ProjectNext implements Closable & Node & Updatable {
         first: Int,
         "Returns the last _n_ elements from the list."
         last: Int
-    ): ProjectNextFieldConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): ProjectNextFieldConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     id: ID!
     "List of items in the project"
     items(
@@ -10777,13 +11057,13 @@ type ProjectNext implements Closable & Node & Updatable {
         first: Int,
         "Returns the last _n_ elements from the list."
         last: Int
-    ): ProjectNextItemConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): ProjectNextItemConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The project's number."
-    number: Int! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    number: Int! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The project's owner. Currently limited to organizations and users."
-    owner: ProjectNextOwner! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    owner: ProjectNextOwner! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Returns true if the project is public."
-    public: Boolean! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    public: Boolean! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The repositories the project is linked to."
     repositories(
         "Returns the elements in the list that come after the specified cursor."
@@ -10794,17 +11074,17 @@ type ProjectNext implements Closable & Node & Updatable {
         first: Int,
         "Returns the last _n_ elements from the list."
         last: Int
-    ): RepositoryConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): RepositoryConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The HTTP path for this project"
-    resourcePath: URI! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    resourcePath: URI! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The project's short description."
-    shortDescription: String @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    shortDescription: String @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The project's name."
-    title: String @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    title: String @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Identifies the date and time when the object was last updated."
-    updatedAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    updatedAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The HTTP URL for this project"
-    url: URI! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    url: URI! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Check if the current viewer can update this object."
     viewerCanUpdate: Boolean!
     "List of views in the project"
@@ -10817,7 +11097,7 @@ type ProjectNext implements Closable & Node & Updatable {
         first: Int,
         "Returns the last _n_ elements from the list."
         last: Int
-    ): ProjectViewConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): ProjectViewConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
 }
 
 "The connection type for ProjectNext."
@@ -10843,20 +11123,20 @@ type ProjectNextEdge {
 "A field inside a project."
 type ProjectNextField implements Node & ProjectNextFieldCommon {
     "Identifies the date and time when the object was created."
-    createdAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    createdAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The field's type."
-    dataType: ProjectNextFieldType! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    dataType: ProjectNextFieldType! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Identifies the primary key from the database."
-    databaseId: Int @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    databaseId: Int @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     id: ID!
     "The project field's name."
-    name: String! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    name: String! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The project that contains this field."
-    project: ProjectNext! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    project: ProjectNext! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The field's settings."
-    settings: String @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    settings: String @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Identifies the date and time when the object was last updated."
-    updatedAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    updatedAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
 }
 
 "The connection type for ProjectNextField."
@@ -10882,13 +11162,13 @@ type ProjectNextFieldEdge {
 "An item within a new Project."
 type ProjectNextItem implements Node {
     "The content of the referenced draft issue, issue, or pull request"
-    content: ProjectNextItemContent @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    content: ProjectNextItemContent @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Identifies the date and time when the object was created."
-    createdAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    createdAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The actor who created the item."
-    creator: Actor @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    creator: Actor @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Identifies the primary key from the database."
-    databaseId: Int @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    databaseId: Int @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "List of field values"
     fieldValues(
         "Returns the elements in the list that come after the specified cursor."
@@ -10899,18 +11179,18 @@ type ProjectNextItem implements Node {
         first: Int,
         "Returns the last _n_ elements from the list."
         last: Int
-    ): ProjectNextItemFieldValueConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): ProjectNextItemFieldValueConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     id: ID!
     "Whether the item is archived."
-    isArchived: Boolean! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    isArchived: Boolean! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The project that contains this item."
-    project: ProjectNext! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    project: ProjectNext! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The title of the item"
-    title: String @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    title: String @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The type of the item."
-    type: ProjectItemType! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    type: ProjectItemType! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Identifies the date and time when the object was last updated."
-    updatedAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    updatedAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
 }
 
 "The connection type for ProjectNextItem."
@@ -10936,20 +11216,20 @@ type ProjectNextItemEdge {
 "An value of a field in an item of a new Project."
 type ProjectNextItemFieldValue implements Node {
     "Identifies the date and time when the object was created."
-    createdAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    createdAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The actor who created the item."
-    creator: Actor @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    creator: Actor @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Identifies the primary key from the database."
-    databaseId: Int @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    databaseId: Int @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     id: ID!
     "The project field that contains this value."
-    projectField: ProjectNextField! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    projectField: ProjectNextField! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The project item that contains this value."
-    projectItem: ProjectNextItem! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    projectItem: ProjectNextItem! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Identifies the date and time when the object was last updated."
-    updatedAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    updatedAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The value of a field"
-    value: String @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    value: String @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
 }
 
 "The connection type for ProjectNextItemFieldValue."
@@ -11059,12 +11339,30 @@ type ProjectV2 implements Closable & Node & Updatable {
     resourcePath: URI!
     "The project's short description."
     shortDescription: String
+    "The teams the project is linked to."
+    teams(
+        "Returns the elements in the list that come after the specified cursor."
+        after: String,
+        "Returns the elements in the list that come before the specified cursor."
+        before: String,
+        "Returns the first _n_ elements from the list."
+        first: Int,
+        "Returns the last _n_ elements from the list."
+        last: Int,
+        "Ordering options for teams returned from this connection."
+        orderBy: TeamOrder = {field: NAME, direction: ASC}
+    ): TeamConnection!
     "The project's name."
     title: String!
     "Identifies the date and time when the object was last updated."
     updatedAt: DateTime!
     "The HTTP URL for this project"
     url: URI!
+    "A view of the project"
+    view(
+        "The number of a view belonging to the project"
+        number: Int!
+    ): ProjectV2View
     "Check if the current viewer can update this object."
     viewerCanUpdate: Boolean!
     "List of views in the project"
@@ -11533,6 +11831,34 @@ type ProjectV2SortByEdge {
     node: ProjectV2SortBy
 }
 
+"Represents a sort by field and direction."
+type ProjectV2SortByField {
+    "The direction of the sorting. Possible values are ASC and DESC."
+    direction: OrderDirection!
+    "The field by which items are sorted."
+    field: ProjectV2FieldConfiguration!
+}
+
+"The connection type for ProjectV2SortByField."
+type ProjectV2SortByFieldConnection {
+    "A list of edges."
+    edges: [ProjectV2SortByFieldEdge]
+    "A list of nodes."
+    nodes: [ProjectV2SortByField]
+    "Information to aid in pagination."
+    pageInfo: PageInfo!
+    "Identifies the total count of items in the connection."
+    totalCount: Int!
+}
+
+"An edge in a connection."
+type ProjectV2SortByFieldEdge {
+    "A cursor for use in pagination."
+    cursor: String!
+    "The item at the end of the edge."
+    node: ProjectV2SortByField
+}
+
 "A view within a ProjectV2."
 type ProjectV2View implements Node {
     "Identifies the date and time when the object was created."
@@ -11566,7 +11892,20 @@ type ProjectV2View implements Node {
         last: Int,
         "Ordering options for the project v2 fields returned from the connection."
         orderBy: ProjectV2FieldOrder = {field: POSITION, direction: ASC}
-    ): ProjectV2FieldConnection
+    ): ProjectV2FieldConnection @deprecated(reason: "The `ProjectV2View#order_by` API is deprecated in favour of the more capable `ProjectV2View#group_by_field` API. Check out the `ProjectV2View#group_by_fields` API as an example for the more capable alternative. Removal on 2023-04-01 UTC.")
+    "The view's group-by field."
+    groupByFields(
+        "Returns the elements in the list that come after the specified cursor."
+        after: String,
+        "Returns the elements in the list that come before the specified cursor."
+        before: String,
+        "Returns the first _n_ elements from the list."
+        first: Int,
+        "Returns the last _n_ elements from the list."
+        last: Int,
+        "Ordering options for the project v2 fields returned from the connection."
+        orderBy: ProjectV2FieldOrder = {field: POSITION, direction: ASC}
+    ): ProjectV2FieldConfigurationConnection
     id: ID!
     "The project view's layout."
     layout: ProjectV2ViewLayout!
@@ -11586,7 +11925,18 @@ type ProjectV2View implements Node {
         first: Int,
         "Returns the last _n_ elements from the list."
         last: Int
-    ): ProjectV2SortByConnection
+    ): ProjectV2SortByConnection @deprecated(reason: "The `ProjectV2View#sort_by` API is deprecated in favour of the more capable `ProjectV2View#sort_by_fields` API. Check out the `ProjectV2View#sort_by_fields` API as an example for the more capable alternative. Removal on 2023-04-01 UTC.")
+    "The view's sort-by config."
+    sortByFields(
+        "Returns the elements in the list that come after the specified cursor."
+        after: String,
+        "Returns the elements in the list that come before the specified cursor."
+        before: String,
+        "Returns the first _n_ elements from the list."
+        first: Int,
+        "Returns the last _n_ elements from the list."
+        last: Int
+    ): ProjectV2SortByFieldConnection
     "Identifies the date and time when the object was last updated."
     updatedAt: DateTime!
     "The view's vertical-group-by field."
@@ -11601,7 +11951,20 @@ type ProjectV2View implements Node {
         last: Int,
         "Ordering options for the project v2 fields returned from the connection."
         orderBy: ProjectV2FieldOrder = {field: POSITION, direction: ASC}
-    ): ProjectV2FieldConnection
+    ): ProjectV2FieldConnection @deprecated(reason: "The `ProjectV2View#vertical_group_by` API is deprecated in favour of the more capable `ProjectV2View#vertical_group_by_fields` API. Check out the `ProjectV2View#vertical_group_by_fields` API as an example for the more capable alternative. Removal on 2023-04-01 UTC.")
+    "The view's vertical-group-by field."
+    verticalGroupByFields(
+        "Returns the elements in the list that come after the specified cursor."
+        after: String,
+        "Returns the elements in the list that come before the specified cursor."
+        before: String,
+        "Returns the first _n_ elements from the list."
+        first: Int,
+        "Returns the last _n_ elements from the list."
+        last: Int,
+        "Ordering options for the project v2 fields returned from the connection."
+        orderBy: ProjectV2FieldOrder = {field: POSITION, direction: ASC}
+    ): ProjectV2FieldConfigurationConnection
     "The view's visible fields."
     visibleFields(
         "Returns the elements in the list that come after the specified cursor."
@@ -11640,30 +12003,30 @@ type ProjectV2ViewEdge {
 "A view within a Project."
 type ProjectView implements Node {
     "Identifies the date and time when the object was created."
-    createdAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    createdAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Identifies the primary key from the database."
-    databaseId: Int @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    databaseId: Int @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The project view's filter."
-    filter: String @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    filter: String @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The view's group-by field."
-    groupBy: [Int!] @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    groupBy: [Int!] @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     id: ID!
     "The project view's layout."
-    layout: ProjectViewLayout! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    layout: ProjectViewLayout! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The project view's name."
-    name: String! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    name: String! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The project view's number."
-    number: Int! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    number: Int! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The project that contains this view."
-    project: ProjectNext! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    project: ProjectNext! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The view's sort-by config."
-    sortBy: [SortBy!] @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    sortBy: [SortBy!] @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Identifies the date and time when the object was last updated."
-    updatedAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    updatedAt: DateTime! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The view's vertical-group-by field."
-    verticalGroupBy: [Int!] @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    verticalGroupBy: [Int!] @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The view's visible fields."
-    visibleFields: [Int!] @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    visibleFields: [Int!] @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
 }
 
 "The connection type for ProjectView."
@@ -11721,6 +12084,14 @@ type PublicKeyEdge {
     cursor: String!
     "The item at the end of the edge."
     node: PublicKey
+}
+
+"Autogenerated return type of PublishSponsorsTier"
+type PublishSponsorsTierPayload {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The tier that was published."
+    sponsorsTier: SponsorsTier
 }
 
 "A repository pull request."
@@ -11956,7 +12327,7 @@ type PullRequest implements Assignable & Closable & Comment & Labelable & Lockab
     projectNext(
         "The project (beta) number."
         number: Int!
-    ): ProjectNext @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): ProjectNext @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "List of project (beta) items associated with this pull request."
     projectNextItems(
         "Returns the elements in the list that come after the specified cursor."
@@ -11969,7 +12340,7 @@ type PullRequest implements Assignable & Closable & Comment & Labelable & Lockab
         includeArchived: Boolean = true,
         "Returns the last _n_ elements from the list."
         last: Int
-    ): ProjectNextItemConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): ProjectNextItemConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Find a project by number."
     projectV2(
         "The project number."
@@ -11989,7 +12360,7 @@ type PullRequest implements Assignable & Closable & Comment & Labelable & Lockab
         query: String,
         "How to order the returned projects (beta)."
         sortBy: ProjectNextOrderField = TITLE
-    ): ProjectNextConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): ProjectNextConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "A list of projects under the owner."
     projectsV2(
         "Returns the elements in the list that come after the specified cursor."
@@ -12109,6 +12480,8 @@ type PullRequest implements Assignable & Closable & Comment & Labelable & Lockab
     title: String!
     "Identifies the pull request title rendered to HTML."
     titleHTML: HTML!
+    "Returns a count of how many comments this pull request has received."
+    totalCommentsCount: Int
     "Identifies the date and time when the object was last updated."
     updatedAt: DateTime!
     "The HTTP URL for this pull request."
@@ -13203,6 +13576,11 @@ type Ref implements Node {
     ): PullRequestConnection!
     "Branch protection rules for this ref"
     branchProtectionRule: BranchProtectionRule
+    "Compares the current ref as a base ref to another head ref, if the comparison can be made."
+    compare(
+        "The head ref to compare against."
+        headRef: String!
+    ): Comparison
     id: ID!
     "The ref name."
     name: String!
@@ -13531,6 +13909,8 @@ type RemoveReactionPayload {
     clientMutationId: String
     "The reaction object."
     reaction: Reaction
+    "The reaction groups for the subject."
+    reactionGroups: [ReactionGroup!]
     "The reactable subject."
     subject: Reactable
 }
@@ -14713,10 +15093,14 @@ type Repository implements Node & PackageOwner & ProjectOwner & ProjectV2Recent 
     ): RepositoryConnection!
     "The funding links for this repository"
     fundingLinks: [FundingLink!]!
+    "Indicates if the repository has the Discussions feature enabled."
+    hasDiscussionsEnabled: Boolean!
     "Indicates if the repository has issues feature enabled."
     hasIssuesEnabled: Boolean!
     "Indicates if the repository has the Projects feature enabled."
     hasProjectsEnabled: Boolean!
+    "Whether vulnerability alerts are enabled for the repository."
+    hasVulnerabilityAlertsEnabled: Boolean!
     "Indicates if the repository has wiki feature enabled."
     hasWikiEnabled: Boolean!
     "The repository's URL."
@@ -14930,7 +15314,7 @@ type Repository implements Node & PackageOwner & ProjectOwner & ProjectV2Recent 
     projectNext(
         "The ProjectNext number."
         number: Int!
-    ): ProjectNext @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): ProjectNext @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Finds and returns the Project according to the provided Project number."
     projectV2(
         "The Project number."
@@ -14967,7 +15351,7 @@ type Repository implements Node & PackageOwner & ProjectOwner & ProjectV2Recent 
         query: String,
         "How to order the returned project (beta) objects."
         sortBy: ProjectNextOrderField = TITLE
-    ): ProjectNextConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): ProjectNextConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The HTTP path listing the repository's projects"
     projectsResourcePath: URI!
     "The HTTP URL listing the repository's projects"
@@ -15099,7 +15483,7 @@ type Repository implements Node & PackageOwner & ProjectOwner & ProjectV2Recent 
     "How the default commit title will be generated when squash merging a pull request."
     squashMergeCommitTitle: SquashMergeCommitTitle!
     "Whether a squash merge commit can use the pull request title as default."
-    squashPrTitleUsedAsDefault: Boolean!
+    squashPrTitleUsedAsDefault: Boolean! @deprecated(reason: "`squashPrTitleUsedAsDefault` will be removed. Use `Repository.squashMergeCommitTitle` instead. Removal on 2023-04-01 UTC.")
     "The SSH URL to clone this repository"
     sshUrl: GitSSHRemote!
     """
@@ -15319,24 +15703,26 @@ type RepositoryInvitationEdge {
     node: RepositoryInvitation
 }
 
-"An Octoshift repository migration."
+"A GitHub Enterprise Importer (GEI) repository migration."
 type RepositoryMigration implements Migration & Node {
-    "The Octoshift migration flag to continue on error."
+    "The migration flag to continue on error."
     continueOnError: Boolean!
     "Identifies the date and time when the object was created."
     createdAt: DateTime!
+    "Identifies the primary key from the database."
+    databaseId: String
     "The reason the migration failed."
     failureReason: String
     id: ID!
     "The URL for the migration log (expires 1 day after migration completes)."
     migrationLogUrl: URI
-    "The Octoshift migration source."
+    "The migration source."
     migrationSource: MigrationSource!
     "The target repository name."
     repositoryName: String!
-    "The Octoshift migration source URL."
+    "The migration source URL."
     sourceUrl: URI!
-    "The Octoshift migration state."
+    "The migration state."
     state: MigrationState!
 }
 
@@ -15498,7 +15884,7 @@ type RepositoryVulnerabilityAlert implements Node & RepositoryNode {
     "The user who dismissed the alert"
     dismisser: User
     "The reason the alert was marked as fixed."
-    fixReason: String @deprecated(reason: "The `fixReason` field is being removed. You can still use `fixedAt` and `dismissReason`. Removal on 2022-10-01 UTC.")
+    fixReason: String @deprecated(reason: "The `fixReason` field is being removed. You can still use `fixedAt` and `dismissReason`. Removal on 2023-04-01 UTC.")
     "When was the alert fixed?"
     fixedAt: DateTime
     id: ID!
@@ -16152,8 +16538,23 @@ type SponsorsGoal {
 type SponsorsListing implements Node {
     "The current goal the maintainer is trying to reach with GitHub Sponsors, if any."
     activeGoal: SponsorsGoal
+    "The name of the country or region with the maintainer's bank account or fiscal host. Will only return a value when queried by the maintainer themselves, or by an admin of the sponsorable organization."
+    billingCountryOrRegion: String
+    "The email address used by GitHub to contact the sponsorable about their GitHub Sponsors profile. Will only return a value when queried by the maintainer themselves, or by an admin of the sponsorable organization."
+    contactEmailAddress: String
     "Identifies the date and time when the object was created."
     createdAt: DateTime!
+    "The HTTP path for the Sponsors dashboard for this Sponsors listing."
+    dashboardResourcePath: URI!
+    "The HTTP URL for the Sponsors dashboard for this Sponsors listing."
+    dashboardUrl: URI!
+    "The records featured on the GitHub Sponsors profile."
+    featuredItems(
+        "The types of featured items to return."
+        featureableTypes: [SponsorsListingFeaturedItemFeatureableType!] = [REPOSITORY, USER]
+    ): [SponsorsListingFeaturedItem!]!
+    "The fiscal host used for payments, if any. Will only return a value when queried by the maintainer themselves, or by an admin of the sponsorable organization."
+    fiscalHost: Organization
     "The full description of the listing."
     fullDescription: String!
     "The full description of the listing rendered to HTML."
@@ -16165,6 +16566,10 @@ type SponsorsListing implements Node {
     name: String!
     "A future date on which this listing is eligible to receive a payout."
     nextPayoutDate: Date
+    "The name of the country or region where the maintainer resides. Will only return a value when queried by the maintainer themselves, or by an admin of the sponsorable organization."
+    residenceCountryOrRegion: String
+    "The HTTP path for this Sponsors listing."
+    resourcePath: URI!
     "The short description of the listing."
     shortDescription: String!
     "The short name of the listing."
@@ -16184,6 +16589,25 @@ type SponsorsListing implements Node {
         "Ordering options for Sponsors tiers returned from the connection."
         orderBy: SponsorsTierOrder = {field: MONTHLY_PRICE_IN_CENTS, direction: ASC}
     ): SponsorsTierConnection
+    "The HTTP URL for this Sponsors listing."
+    url: URI!
+}
+
+"A record that is promoted on a GitHub Sponsors profile."
+type SponsorsListingFeaturedItem implements Node {
+    "Identifies the date and time when the object was created."
+    createdAt: DateTime!
+    "Will either be a description from the sponsorable maintainer about why they featured this item, or the item's description itself, such as a user's bio from their GitHub profile page."
+    description: String
+    "The record that is featured on the GitHub Sponsors profile."
+    featureable: SponsorsListingFeatureableItem!
+    id: ID!
+    "The position of this featured item on the GitHub Sponsors profile with a lower position indicating higher precedence. Starts at 1."
+    position: Int!
+    "The GitHub Sponsors profile that features this record."
+    sponsorsListing: SponsorsListing!
+    "Identifies the date and time when the object was last updated."
+    updatedAt: DateTime!
 }
 
 "A GitHub Sponsors tier associated with a GitHub Sponsors listing."
@@ -16217,7 +16641,13 @@ type SponsorsTier implements Node {
 
 "SponsorsTier information only visible to users that can administer the associated Sponsors listing."
 type SponsorsTierAdminInfo {
-    "The sponsorships associated with this tier."
+    "Indicates whether this tier is still a work in progress by the sponsorable and not yet published to the associated GitHub Sponsors profile. Draft tiers cannot be used for new sponsorships and will not be in use on existing sponsorships. Draft tiers cannot be seen by anyone but the admins of the GitHub Sponsors profile."
+    isDraft: Boolean!
+    "Indicates whether this tier is published to the associated GitHub Sponsors profile. Published tiers are visible to anyone who can see the GitHub Sponsors profile, and are available for use in sponsorships if the GitHub Sponsors profile is publicly visible."
+    isPublished: Boolean!
+    "Indicates whether this tier has been retired from the associated GitHub Sponsors profile. Retired tiers are no longer shown on the GitHub Sponsors profile and cannot be chosen for new sponsorships. Existing sponsorships may still use retired tiers if the sponsor selected the tier before it was retired."
+    isRetired: Boolean!
+    "The sponsorships using this tier."
     sponsorships(
         "Returns the elements in the list that come after the specified cursor."
         after: String,
@@ -16225,7 +16655,7 @@ type SponsorsTierAdminInfo {
         before: String,
         "Returns the first _n_ elements from the list."
         first: Int,
-        "Whether or not to include private sponsorships in the result set"
+        "Whether or not to return private sponsorships using this tier. Defaults to only returning public sponsorships on this tier."
         includePrivate: Boolean = false,
         "Returns the last _n_ elements from the list."
         last: Int,
@@ -16408,7 +16838,7 @@ type StarredRepositoryEdge {
 type StartRepositoryMigrationPayload {
     "A unique identifier for the client performing the mutation."
     clientMutationId: String
-    "The new Octoshift repository migration."
+    "The new repository migration."
     repositoryMigration: RepositoryMigration
 }
 
@@ -16542,8 +16972,12 @@ type Submodule {
     gitUrl: URI!
     "The name of the submodule in .gitmodules"
     name: String!
+    "The name of the submodule in .gitmodules (Base64-encoded)"
+    nameRaw: Base64String!
     "The path in the superproject that this submodule is located in"
     path: String!
+    "The path in the superproject that this submodule is located in (Base64-encoded)"
+    pathRaw: Base64String!
     "The commit revision of the subproject repository being tracked by the submodule"
     subprojectCommitOid: GitObjectID
 }
@@ -16743,6 +17177,28 @@ type Team implements MemberStatusable & Node & Subscribable {
     parentTeam: Team
     "The level of privacy the team has."
     privacy: TeamPrivacy!
+    "Finds and returns the project according to the provided project number."
+    projectV2(
+        "The Project number."
+        number: Int!
+    ): ProjectV2
+    "List of projects this team has collaborator access to."
+    projectsV2(
+        "Returns the elements in the list that come after the specified cursor."
+        after: String,
+        "Returns the elements in the list that come before the specified cursor."
+        before: String,
+        "Filtering options for projects returned from this connection"
+        filterBy: ProjectV2Filters = {},
+        "Returns the first _n_ elements from the list."
+        first: Int,
+        "Returns the last _n_ elements from the list."
+        last: Int,
+        "How to order the returned projects."
+        orderBy: ProjectV2Order = {field: NUMBER, direction: DESC},
+        "The query to search projects by."
+        query: String = ""
+    ): ProjectV2Connection!
     "A list of repositories this team has access to."
     repositories(
         "Returns the elements in the list that come after the specified cursor."
@@ -17433,6 +17889,14 @@ type Topic implements Node & Starrable {
     viewerHasStarred: Boolean!
 }
 
+"Autogenerated return type of TransferEnterpriseOrganization"
+type TransferEnterpriseOrganizationPayload {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The organization for which a transfer was initiated."
+    organization: Organization
+}
+
 "Autogenerated return type of TransferIssue"
 type TransferIssuePayload {
     "A unique identifier for the client performing the mutation."
@@ -17477,18 +17941,24 @@ type TreeEntry {
     extension: String
     "Whether or not this tree entry is generated"
     isGenerated: Boolean!
+    "The programming language this file is written in."
+    language: Language
     "Number of lines in the file."
     lineCount: Int
     "Entry file mode."
     mode: Int!
     "Entry file name."
     name: String!
+    "Entry file name. (Base64-encoded)"
+    nameRaw: Base64String!
     "Entry file object."
     object: GitObject
     "Entry file Git object ID."
     oid: GitObjectID!
     "The full path of the file."
     path: String
+    "The full path of the file. (Base64-encoded)"
+    pathRaw: Base64String
     "The Repository the tree entry belongs to"
     repository: Repository!
     "Entry byte size"
@@ -17497,6 +17967,14 @@ type TreeEntry {
     submodule: Submodule
     "Entry file type."
     type: String!
+}
+
+"Autogenerated return type of UnarchiveProjectV2Item"
+type UnarchiveProjectV2ItemPayload {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The item unarchived from the project."
+    item: ProjectV2Item
 }
 
 "Autogenerated return type of UnarchiveRepository"
@@ -17567,6 +18045,22 @@ type UnlabeledEvent implements Node {
     label: Label!
     "Identifies the `Labelable` associated with the event."
     labelable: Labelable!
+}
+
+"Autogenerated return type of UnlinkProjectV2FromRepository"
+type UnlinkProjectV2FromRepositoryPayload {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The repository the project is no longer linked to."
+    repository: Repository
+}
+
+"Autogenerated return type of UnlinkProjectV2FromTeam"
+type UnlinkProjectV2FromTeamPayload {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The team the project is unlinked from"
+    team: Team
 }
 
 "Autogenerated return type of UnlinkRepositoryFromProject"
@@ -17996,7 +18490,7 @@ type UpdateProjectNextItemFieldPayload {
     "A unique identifier for the client performing the mutation."
     clientMutationId: String
     "The updated item."
-    projectNextItem: ProjectNextItem @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    projectNextItem: ProjectNextItem @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
 }
 
 "Autogenerated return type of UpdateProjectNext"
@@ -18004,7 +18498,7 @@ type UpdateProjectNextPayload {
     "A unique identifier for the client performing the mutation."
     clientMutationId: String
     "The updated Project."
-    projectNext: ProjectNext @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    projectNext: ProjectNext @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
 }
 
 "Autogenerated return type of UpdateProject"
@@ -18428,7 +18922,7 @@ type User implements Actor & Node & PackageOwner & ProfileOwner & ProjectNextOwn
     projectNext(
         "The project (beta) number."
         number: Int!
-    ): ProjectNext @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): ProjectNext @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Find a project by number."
     projectV2(
         "The project number."
@@ -18465,7 +18959,7 @@ type User implements Actor & Node & PackageOwner & ProfileOwner & ProjectNextOwn
         query: String,
         "How to order the returned projects (beta)."
         sortBy: ProjectNextOrderField = TITLE
-    ): ProjectNextConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ): ProjectNextConnection! @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The HTTP path listing user's projects"
     projectsResourcePath: URI!
     "The HTTP URL listing user's projects"
@@ -18664,12 +19158,18 @@ type User implements Actor & Node & PackageOwner & ProfileOwner & ProjectNextOwn
         before: String,
         "Returns the first _n_ elements from the list."
         first: Int,
+        "Whether to include those events where this sponsorable acted as the sponsor. Defaults to only including events where this sponsorable was the recipient of a sponsorship."
+        includeAsSponsor: Boolean = false,
         "Returns the last _n_ elements from the list."
         last: Int,
         "Ordering options for activity returned from the connection."
         orderBy: SponsorsActivityOrder = {field: TIMESTAMP, direction: DESC},
-        "Filter activities returned to only those that occurred in the most recent specified time period. Set to ALL to avoid filtering by when the activity occurred."
-        period: SponsorsActivityPeriod = MONTH
+        "Filter activities returned to only those that occurred in the most recent specified time period. Set to ALL to avoid filtering by when the activity occurred. Will be ignored if `since` or `until` is given."
+        period: SponsorsActivityPeriod = MONTH,
+        "Filter activities to those that occurred on or after this time."
+        since: DateTime,
+        "Filter activities to those that occurred before this time."
+        until: DateTime
     ): SponsorsActivityConnection!
     "The GitHub Sponsors listing for this user or organization."
     sponsorsListing: SponsorsListing
@@ -18715,6 +19215,8 @@ type User implements Actor & Node & PackageOwner & ProfileOwner & ProjectNextOwn
         first: Int,
         "Returns the last _n_ elements from the list."
         last: Int,
+        "Filter sponsorships returned to those for the specified maintainers. That is, the recipient of the sponsorship is a user or organization with one of the given logins."
+        maintainerLogins: [String!],
         "Ordering options for sponsorships returned from this connection. If left blank, the sponsorships will be ordered based on relevancy to the viewer."
         orderBy: SponsorshipOrder
     ): SponsorshipConnection!
@@ -19019,7 +19521,7 @@ type Workflow implements Node {
 }
 
 "A workflow run."
-type WorkflowRun implements Node {
+type WorkflowRun implements Node & UniformResourceLocatable {
     "The check suite this workflow run belongs to."
     checkSuite: CheckSuite!
     "Identifies the date and time when the object was created."
@@ -19239,6 +19741,18 @@ enum CommitContributionOrderField {
     OCCURRED_AT
 }
 
+"The status of a git comparison between two refs."
+enum ComparisonStatus {
+    "The head ref is ahead of the base ref."
+    AHEAD
+    "The head ref is behind the base ref."
+    BEHIND
+    "The head ref is both ahead and behind of the base ref, indicating git history has diverged."
+    DIVERGED
+    "The head ref and base ref are identical."
+    IDENTICAL
+}
+
 "Varying levels of contributions from none to many."
 enum ContributionLevel {
     "Lowest 25% of days of contributions."
@@ -19281,6 +19795,8 @@ enum DependencyGraphEcosystem {
     NUGET
     "Python packages hosted at PyPI.org"
     PIP
+    "Dart packages hosted at pub.dev"
+    PUB
     "Ruby gems hosted at RubyGems.org"
     RUBYGEMS
     "Rust crates"
@@ -19803,6 +20319,14 @@ enum LockReason {
     TOO_HEATED
 }
 
+"Properties by which mannequins can be ordered."
+enum MannequinOrderField {
+    "Order mannequins why when they were created."
+    CREATED_AT
+    "Order mannequins alphabetically by their source login."
+    LOGIN
+}
+
 "The possible default commit messages for merges."
 enum MergeCommitMessage {
     "Default to a blank commit message."
@@ -19831,7 +20355,7 @@ enum MergeableState {
     UNKNOWN
 }
 
-"Represents the different Octoshift migration sources."
+"Represents the different GitHub Enterprise Importer (GEI) migration sources."
 enum MigrationSourceType {
     "An Azure DevOps migration source."
     AZURE_DEVOPS
@@ -19841,21 +20365,21 @@ enum MigrationSourceType {
     GITHUB_ARCHIVE
 }
 
-"The Octoshift migration state."
+"The GitHub Enterprise Importer (GEI) migration state."
 enum MigrationState {
-    "The Octoshift migration has failed."
+    "The migration has failed."
     FAILED
-    "The Octoshift migration has invalid credentials."
+    "The migration has invalid credentials."
     FAILED_VALIDATION
-    "The Octoshift migration is in progress."
+    "The migration is in progress."
     IN_PROGRESS
-    "The Octoshift migration has not started."
+    "The migration has not started."
     NOT_STARTED
-    "The Octoshift migration needs to have its credentials validated."
+    "The migration needs to have its credentials validated."
     PENDING_VALIDATION
-    "The Octoshift migration has been queued."
+    "The migration has been queued."
     QUEUED
-    "The Octoshift migration has succeeded."
+    "The migration has succeeded."
     SUCCEEDED
 }
 
@@ -20122,15 +20646,15 @@ enum PackageType {
     "A docker image."
     DOCKER @deprecated(reason: "DOCKER will be removed from this enum as this type will be migrated to only be used by the Packages REST API. Removal on 2021-06-21 UTC.")
     "A maven package."
-    MAVEN
+    MAVEN @deprecated(reason: "MAVEN will be removed from this enum as this type will be migrated to only be used by the Packages REST API. Removal on 2023-02-10 UTC.")
     "An npm package."
-    NPM
+    NPM @deprecated(reason: "NPM will be removed from this enum as this type will be migrated to only be used by the Packages REST API. Removal on 2022-11-21 UTC.")
     "A nuget package."
-    NUGET
+    NUGET @deprecated(reason: "NUGET will be removed from this enum as this type will be migrated to only be used by the Packages REST API. Removal on 2022-11-21 UTC.")
     "A python package."
     PYPI
     "A rubygems package."
-    RUBYGEMS
+    RUBYGEMS @deprecated(reason: "RUBYGEMS will be removed from this enum as this type will be migrated to only be used by the Packages REST API. Removal on 2022-12-28 UTC.")
 }
 
 "Properties by which package version connections can be ordered."
@@ -20248,43 +20772,45 @@ enum ProjectItemType {
 "The type of a project next field."
 enum ProjectNextFieldType {
     "Assignees"
-    ASSIGNEES @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ASSIGNEES @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Date"
-    DATE @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    DATE @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Iteration"
-    ITERATION @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    ITERATION @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Labels"
-    LABELS @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    LABELS @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Linked Pull Requests"
-    LINKED_PULL_REQUESTS @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    LINKED_PULL_REQUESTS @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Milestone"
-    MILESTONE @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    MILESTONE @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Number"
-    NUMBER @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    NUMBER @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Repository"
-    REPOSITORY @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    REPOSITORY @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Reviewers"
-    REVIEWERS @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    REVIEWERS @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Single Select"
-    SINGLE_SELECT @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    SINGLE_SELECT @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Text"
-    TEXT @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    TEXT @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Title"
-    TITLE @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    TITLE @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
+    "Tracked by"
+    TRACKED_BY @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "Tracks"
-    TRACKS @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    TRACKS @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
 }
 
 "Properties by which the return project can be ordered."
 enum ProjectNextOrderField {
     "The project's date and time of creation"
-    CREATED_AT @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    CREATED_AT @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The project's number"
-    NUMBER @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    NUMBER @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The project's title"
-    TITLE @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    TITLE @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
     "The project's date and time of update"
-    UPDATED_AT @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2022-10-01 UTC.")
+    UPDATED_AT @deprecated(reason: "The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement. Removal on 2023-01-01 UTC.")
 }
 
 "Properties by which project connections can be ordered."
@@ -20353,6 +20879,8 @@ enum ProjectV2FieldType {
     TEXT
     "Title"
     TITLE
+    "Tracked by"
+    TRACKED_BY
     "Tracks"
     TRACKS
 }
@@ -20391,6 +20919,14 @@ enum ProjectV2OrderField {
     TITLE
     "The project's date and time of update"
     UPDATED_AT
+}
+
+"The possible states of a project v2."
+enum ProjectV2State {
+    "A project v2 that has been closed"
+    CLOSED
+    "A project v2 that is still open"
+    OPEN
 }
 
 "The layout of a project v2 view."
@@ -20823,6 +21359,8 @@ enum RepositoryLockReason {
     MOVING
     "The repository is locked due to a rename."
     RENAME
+    "The repository is locked due to a trade controls related reason."
+    TRADE_RESTRICTION
 }
 
 "Possible directions in which to order a list of repository migrations when provided an `orderBy` argument."
@@ -20995,6 +21533,8 @@ enum SecurityAdvisoryEcosystem {
     NUGET
     "Python packages hosted at PyPI.org"
     PIP
+    "Dart packages hosted at pub.dev"
+    PUB
     "Ruby gems hosted at RubyGems.org"
     RUBYGEMS
     "Rust crates"
@@ -21083,12 +21623,516 @@ enum SponsorsActivityPeriod {
     WEEK
 }
 
+"Represents countries or regions for billing and residence for a GitHub Sponsors profile."
+enum SponsorsCountryOrRegionCode {
+    "Andorra"
+    AD
+    "United Arab Emirates"
+    AE
+    "Afghanistan"
+    AF
+    "Antigua and Barbuda"
+    AG
+    "Anguilla"
+    AI
+    "Albania"
+    AL
+    "Armenia"
+    AM
+    "Angola"
+    AO
+    "Antarctica"
+    AQ
+    "Argentina"
+    AR
+    "American Samoa"
+    AS
+    "Austria"
+    AT
+    "Australia"
+    AU
+    "Aruba"
+    AW
+    "Åland"
+    AX
+    "Azerbaijan"
+    AZ
+    "Bosnia and Herzegovina"
+    BA
+    "Barbados"
+    BB
+    "Bangladesh"
+    BD
+    "Belgium"
+    BE
+    "Burkina Faso"
+    BF
+    "Bulgaria"
+    BG
+    "Bahrain"
+    BH
+    "Burundi"
+    BI
+    "Benin"
+    BJ
+    "Saint Barthélemy"
+    BL
+    "Bermuda"
+    BM
+    "Brunei Darussalam"
+    BN
+    "Bolivia"
+    BO
+    "Bonaire, Sint Eustatius and Saba"
+    BQ
+    "Brazil"
+    BR
+    "Bahamas"
+    BS
+    "Bhutan"
+    BT
+    "Bouvet Island"
+    BV
+    "Botswana"
+    BW
+    "Belarus"
+    BY
+    "Belize"
+    BZ
+    "Canada"
+    CA
+    "Cocos (Keeling) Islands"
+    CC
+    "Congo (Kinshasa)"
+    CD
+    "Central African Republic"
+    CF
+    "Congo (Brazzaville)"
+    CG
+    "Switzerland"
+    CH
+    "Côte d'Ivoire"
+    CI
+    "Cook Islands"
+    CK
+    "Chile"
+    CL
+    "Cameroon"
+    CM
+    "China"
+    CN
+    "Colombia"
+    CO
+    "Costa Rica"
+    CR
+    "Cape Verde"
+    CV
+    "Curaçao"
+    CW
+    "Christmas Island"
+    CX
+    "Cyprus"
+    CY
+    "Czech Republic"
+    CZ
+    "Germany"
+    DE
+    "Djibouti"
+    DJ
+    "Denmark"
+    DK
+    "Dominica"
+    DM
+    "Dominican Republic"
+    DO
+    "Algeria"
+    DZ
+    "Ecuador"
+    EC
+    "Estonia"
+    EE
+    "Egypt"
+    EG
+    "Western Sahara"
+    EH
+    "Eritrea"
+    ER
+    "Spain"
+    ES
+    "Ethiopia"
+    ET
+    "Finland"
+    FI
+    "Fiji"
+    FJ
+    "Falkland Islands"
+    FK
+    "Micronesia"
+    FM
+    "Faroe Islands"
+    FO
+    "France"
+    FR
+    "Gabon"
+    GA
+    "United Kingdom"
+    GB
+    "Grenada"
+    GD
+    "Georgia"
+    GE
+    "French Guiana"
+    GF
+    "Guernsey"
+    GG
+    "Ghana"
+    GH
+    "Gibraltar"
+    GI
+    "Greenland"
+    GL
+    "Gambia"
+    GM
+    "Guinea"
+    GN
+    "Guadeloupe"
+    GP
+    "Equatorial Guinea"
+    GQ
+    "Greece"
+    GR
+    "South Georgia and South Sandwich Islands"
+    GS
+    "Guatemala"
+    GT
+    "Guam"
+    GU
+    "Guinea-Bissau"
+    GW
+    "Guyana"
+    GY
+    "Hong Kong"
+    HK
+    "Heard and McDonald Islands"
+    HM
+    "Honduras"
+    HN
+    "Croatia"
+    HR
+    "Haiti"
+    HT
+    "Hungary"
+    HU
+    "Indonesia"
+    ID
+    "Ireland"
+    IE
+    "Israel"
+    IL
+    "Isle of Man"
+    IM
+    "India"
+    IN
+    "British Indian Ocean Territory"
+    IO
+    "Iraq"
+    IQ
+    "Iran"
+    IR
+    "Iceland"
+    IS
+    "Italy"
+    IT
+    "Jersey"
+    JE
+    "Jamaica"
+    JM
+    "Jordan"
+    JO
+    "Japan"
+    JP
+    "Kenya"
+    KE
+    "Kyrgyzstan"
+    KG
+    "Cambodia"
+    KH
+    "Kiribati"
+    KI
+    "Comoros"
+    KM
+    "Saint Kitts and Nevis"
+    KN
+    "Korea, South"
+    KR
+    "Kuwait"
+    KW
+    "Cayman Islands"
+    KY
+    "Kazakhstan"
+    KZ
+    "Laos"
+    LA
+    "Lebanon"
+    LB
+    "Saint Lucia"
+    LC
+    "Liechtenstein"
+    LI
+    "Sri Lanka"
+    LK
+    "Liberia"
+    LR
+    "Lesotho"
+    LS
+    "Lithuania"
+    LT
+    "Luxembourg"
+    LU
+    "Latvia"
+    LV
+    "Libya"
+    LY
+    "Morocco"
+    MA
+    "Monaco"
+    MC
+    "Moldova"
+    MD
+    "Montenegro"
+    ME
+    "Saint Martin (French part)"
+    MF
+    "Madagascar"
+    MG
+    "Marshall Islands"
+    MH
+    "Macedonia"
+    MK
+    "Mali"
+    ML
+    "Myanmar"
+    MM
+    "Mongolia"
+    MN
+    "Macau"
+    MO
+    "Northern Mariana Islands"
+    MP
+    "Martinique"
+    MQ
+    "Mauritania"
+    MR
+    "Montserrat"
+    MS
+    "Malta"
+    MT
+    "Mauritius"
+    MU
+    "Maldives"
+    MV
+    "Malawi"
+    MW
+    "Mexico"
+    MX
+    "Malaysia"
+    MY
+    "Mozambique"
+    MZ
+    "Namibia"
+    NA
+    "New Caledonia"
+    NC
+    "Niger"
+    NE
+    "Norfolk Island"
+    NF
+    "Nigeria"
+    NG
+    "Nicaragua"
+    NI
+    "Netherlands"
+    NL
+    "Norway"
+    NO
+    "Nepal"
+    NP
+    "Nauru"
+    NR
+    "Niue"
+    NU
+    "New Zealand"
+    NZ
+    "Oman"
+    OM
+    "Panama"
+    PA
+    "Peru"
+    PE
+    "French Polynesia"
+    PF
+    "Papua New Guinea"
+    PG
+    "Philippines"
+    PH
+    "Pakistan"
+    PK
+    "Poland"
+    PL
+    "Saint Pierre and Miquelon"
+    PM
+    "Pitcairn"
+    PN
+    "Puerto Rico"
+    PR
+    "Palestine"
+    PS
+    "Portugal"
+    PT
+    "Palau"
+    PW
+    "Paraguay"
+    PY
+    "Qatar"
+    QA
+    "Reunion"
+    RE
+    "Romania"
+    RO
+    "Serbia"
+    RS
+    "Russian Federation"
+    RU
+    "Rwanda"
+    RW
+    "Saudi Arabia"
+    SA
+    "Solomon Islands"
+    SB
+    "Seychelles"
+    SC
+    "Sudan"
+    SD
+    "Sweden"
+    SE
+    "Singapore"
+    SG
+    "Saint Helena"
+    SH
+    "Slovenia"
+    SI
+    "Svalbard and Jan Mayen Islands"
+    SJ
+    "Slovakia"
+    SK
+    "Sierra Leone"
+    SL
+    "San Marino"
+    SM
+    "Senegal"
+    SN
+    "Somalia"
+    SO
+    "Suriname"
+    SR
+    "South Sudan"
+    SS
+    "Sao Tome and Principe"
+    ST
+    "El Salvador"
+    SV
+    "Sint Maarten (Dutch part)"
+    SX
+    "Swaziland"
+    SZ
+    "Turks and Caicos Islands"
+    TC
+    "Chad"
+    TD
+    "French Southern Lands"
+    TF
+    "Togo"
+    TG
+    "Thailand"
+    TH
+    "Tajikistan"
+    TJ
+    "Tokelau"
+    TK
+    "Timor-Leste"
+    TL
+    "Turkmenistan"
+    TM
+    "Tunisia"
+    TN
+    "Tonga"
+    TO
+    "Turkey"
+    TR
+    "Trinidad and Tobago"
+    TT
+    "Tuvalu"
+    TV
+    "Taiwan"
+    TW
+    "Tanzania"
+    TZ
+    "Ukraine"
+    UA
+    "Uganda"
+    UG
+    "United States Minor Outlying Islands"
+    UM
+    "United States of America"
+    US
+    "Uruguay"
+    UY
+    "Uzbekistan"
+    UZ
+    "Vatican City"
+    VA
+    "Saint Vincent and the Grenadines"
+    VC
+    "Venezuela"
+    VE
+    "Virgin Islands, British"
+    VG
+    "Virgin Islands, U.S."
+    VI
+    "Vietnam"
+    VN
+    "Vanuatu"
+    VU
+    "Wallis and Futuna Islands"
+    WF
+    "Samoa"
+    WS
+    "Yemen"
+    YE
+    "Mayotte"
+    YT
+    "South Africa"
+    ZA
+    "Zambia"
+    ZM
+    "Zimbabwe"
+    ZW
+}
+
 "The different kinds of goals a GitHub Sponsors member can have."
 enum SponsorsGoalKind {
     "The goal is about getting a certain amount in USD from sponsorships each month."
     MONTHLY_SPONSORSHIP_AMOUNT
     "The goal is about reaching a certain number of sponsors."
     TOTAL_SPONSORS_COUNT
+}
+
+"The different kinds of records that can be featured on a GitHub Sponsors profile page."
+enum SponsorsListingFeaturedItemFeatureableType {
+    "A repository owned by the user or organization with the GitHub Sponsors profile."
+    REPOSITORY
+    "A user who belongs to the organization with the GitHub Sponsors profile."
+    USER
 }
 
 "Properties by which Sponsors tiers connections can be ordered."
@@ -21393,6 +22437,20 @@ input AddDiscussionPollVoteInput {
     pollOptionId: ID!
 }
 
+"Autogenerated input type of AddEnterpriseOrganizationMember"
+input AddEnterpriseOrganizationMemberInput {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The ID of the enterprise which owns the organization."
+    enterpriseId: ID!
+    "The ID of the organization the users will be added to."
+    organizationId: ID!
+    "The role to assign the users in the organization"
+    role: OrganizationMemberRole
+    "The IDs of the enterprise members to add."
+    userIds: [ID!]!
+}
+
 "Autogenerated input type of AddEnterpriseSupportEntitlement"
 input AddEnterpriseSupportEntitlementInput {
     "A unique identifier for the client performing the mutation."
@@ -21441,7 +22499,7 @@ input AddProjectDraftIssueInput {
 
     The IDs of the assignees of the draft issue.
 
-    **Upcoming Change on 2022-10-01 UTC**
+    **Upcoming Change on 2023-01-01 UTC**
     **Description:** `assigneeIds` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement.
     **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API.
     """
@@ -21450,7 +22508,7 @@ input AddProjectDraftIssueInput {
 
     The body of the draft issue.
 
-    **Upcoming Change on 2022-10-01 UTC**
+    **Upcoming Change on 2023-01-01 UTC**
     **Description:** `body` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement.
     **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API.
     """
@@ -21461,7 +22519,7 @@ input AddProjectDraftIssueInput {
 
     The ID of the Project to add the draft issue to. This field is required.
 
-    **Upcoming Change on 2022-10-01 UTC**
+    **Upcoming Change on 2023-01-01 UTC**
     **Description:** `projectId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement.
     **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API.
     """
@@ -21470,7 +22528,7 @@ input AddProjectDraftIssueInput {
 
     The title of the draft issue. This field is required.
 
-    **Upcoming Change on 2022-10-01 UTC**
+    **Upcoming Change on 2023-01-01 UTC**
     **Description:** `title` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement.
     **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API.
     """
@@ -21485,7 +22543,7 @@ input AddProjectNextItemInput {
 
     The content id of the item (Issue or PullRequest). This field is required.
 
-    **Upcoming Change on 2022-10-01 UTC**
+    **Upcoming Change on 2023-01-01 UTC**
     **Description:** `contentId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement.
     **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API.
     """
@@ -21494,7 +22552,7 @@ input AddProjectNextItemInput {
 
     The ID of the Project to add the item to. This field is required.
 
-    **Upcoming Change on 2022-10-01 UTC**
+    **Upcoming Change on 2023-01-01 UTC**
     **Description:** `projectId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement.
     **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API.
     """
@@ -21639,6 +22697,16 @@ input ApproveVerifiableDomainInput {
     clientMutationId: String
     "The ID of the verifiable domain to approve."
     id: ID!
+}
+
+"Autogenerated input type of ArchiveProjectV2Item"
+input ArchiveProjectV2ItemInput {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The ID of the ProjectV2Item to archive."
+    itemId: ID!
+    "The ID of the Project to archive the item from."
+    projectId: ID!
 }
 
 "Autogenerated input type of ArchiveRepository"
@@ -21948,6 +23016,18 @@ input ConvertPullRequestToDraftInput {
     pullRequestId: ID!
 }
 
+"Autogenerated input type of CreateAttributionInvitation"
+input CreateAttributionInvitationInput {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The Node ID of the owner scoping the reattributable data."
+    ownerId: ID!
+    "The Node ID of the account owning the data to reattribute."
+    sourceId: ID!
+    "The Node ID of the account which may claim the data."
+    targetId: ID!
+}
+
 "Autogenerated input type of CreateBranchProtectionRule"
 input CreateBranchProtectionRuleInput {
     "Can this branch be deleted."
@@ -21966,12 +23046,18 @@ input CreateBranchProtectionRuleInput {
     dismissesStaleReviews: Boolean
     "Can admins overwrite branch protection."
     isAdminEnforced: Boolean
+    "Whether users can pull changes from upstream when the branch is locked. Set to `true` to allow fork syncing. Set to `false` to prevent fork syncing."
+    lockAllowsFetchAndMerge: Boolean
+    "Whether to set the branch as read-only. If this is true, users will not be able to push to the branch."
+    lockBranch: Boolean
     "The glob-like pattern used to determine matching branches."
     pattern: String!
     "A list of User, Team, or App IDs allowed to push to matching branches."
     pushActorIds: [ID!]
     "The global relay id of the repository in which a new branch protection rule should be created in."
     repositoryId: ID!
+    "Whether the most recent push must be approved by someone other than the person who pushed it"
+    requireLastPushApproval: Boolean
     "Number of approving reviews required to update matching branches."
     requiredApprovingReviewCount: Int
     "List of required status check contexts that must pass for commits to be accepted to matching branches."
@@ -22128,21 +23214,35 @@ input CreateIssueInput {
     title: String!
 }
 
+"Autogenerated input type of CreateLinkedBranch"
+input CreateLinkedBranchInput {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "ID of the issue to link to."
+    issueId: ID!
+    "The name of the new branch. Defaults to issue number and title."
+    name: String
+    "The commit SHA to base the new branch on."
+    oid: GitObjectID!
+    "ID of the repository to create the branch in. Defaults to the issue repository."
+    repositoryId: ID
+}
+
 "Autogenerated input type of CreateMigrationSource"
 input CreateMigrationSourceInput {
-    "The Octoshift migration source access token."
+    "The migration source access token."
     accessToken: String
     "A unique identifier for the client performing the mutation."
     clientMutationId: String
     "The GitHub personal access token of the user importing to the target repository."
     githubPat: String
-    "The Octoshift migration source name."
+    "The migration source name."
     name: String!
-    "The ID of the organization that will own the Octoshift migration source."
+    "The ID of the organization that will own the migration source."
     ownerId: ID!
-    "The Octoshift migration source type."
+    "The migration source type."
     type: MigrationSourceType!
-    "The Octoshift migration source URL."
+    "The migration source URL."
     url: String!
 }
 
@@ -22168,6 +23268,10 @@ input CreateProjectV2Input {
     clientMutationId: String
     "The owner ID to create the project under."
     ownerId: ID!
+    "The repository to link the project to."
+    repositoryId: ID
+    "The team to link the project to. The team will be granted read permissions."
+    teamId: ID
     "The title of the project."
     title: String!
 }
@@ -22193,6 +23297,8 @@ input CreatePullRequestInput {
     in the same network, namespace `head_ref_name` with a user like this: `username:branch`.
     """
     headRefName: String!
+    "The Node ID of the head repository."
+    headRepositoryId: ID
     "Indicates whether maintainers can modify the pull request."
     maintainerCanModify: Boolean = true
     "The Node ID of the repository."
@@ -22235,6 +23341,26 @@ input CreateRepositoryInput {
     template: Boolean = false
     "Indicates the repository's visibility level."
     visibility: RepositoryVisibility!
+}
+
+"Autogenerated input type of CreateSponsorsListing"
+input CreateSponsorsListingInput {
+    "The country or region where the sponsorable's bank account is located. Required if fiscalHostLogin is not specified, ignored when fiscalHostLogin is specified."
+    billingCountryOrRegionCode: SponsorsCountryOrRegionCode
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The email address we should use to contact you about the GitHub Sponsors profile being created. This will not be shared publicly. Must be a verified email address already on your GitHub account. Only relevant when the sponsorable is yourself. Defaults to your primary email address on file if omitted."
+    contactEmail: String
+    "The username of the supported fiscal host's GitHub organization, if you want to receive sponsorship payouts through a fiscal host rather than directly to a bank account. For example, 'Open-Source-Collective' for Open Source Collective or 'numfocus' for numFOCUS. Case insensitive. See https://docs.github.com/sponsors/receiving-sponsorships-through-github-sponsors/using-a-fiscal-host-to-receive-github-sponsors-payouts for more information."
+    fiscalHostLogin: String
+    "The URL for your profile page on the fiscal host's website, e.g., https://opencollective.com/babel or https://numfocus.org/project/bokeh. Required if fiscalHostLogin is specified."
+    fiscallyHostedProjectProfileUrl: String
+    "Provide an introduction to serve as the main focus that appears on your GitHub Sponsors profile. It's a great opportunity to help potential sponsors learn more about you, your work, and why their sponsorship is important to you. GitHub-flavored Markdown is supported."
+    fullDescription: String
+    "The country or region where the sponsorable resides. This is for tax purposes. Required if the sponsorable is yourself, ignored when sponsorableLogin specifies an organization."
+    residenceCountryOrRegionCode: SponsorsCountryOrRegionCode
+    "The username of the organization to create a GitHub Sponsors profile for, if desired. Defaults to creating a GitHub Sponsors profile for the authenticated user if omitted."
+    sponsorableLogin: String
 }
 
 "Autogenerated input type of CreateSponsorsTier"
@@ -22387,6 +23513,14 @@ input DeleteIssueInput {
     issueId: ID!
 }
 
+"Autogenerated input type of DeleteLinkedBranch"
+input DeleteLinkedBranchInput {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The ID of the linked branch"
+    linkedBranchId: ID!
+}
+
 "Autogenerated input type of DeleteProjectCard"
 input DeleteProjectCardInput {
     "The id of the card to delete."
@@ -22419,7 +23553,7 @@ input DeleteProjectNextItemInput {
 
     The ID of the item to be removed. This field is required.
 
-    **Upcoming Change on 2022-10-01 UTC**
+    **Upcoming Change on 2023-01-01 UTC**
     **Description:** `itemId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement.
     **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API.
     """
@@ -22428,7 +23562,7 @@ input DeleteProjectNextItemInput {
 
     The ID of the Project from which the item should be removed. This field is required.
 
-    **Upcoming Change on 2022-10-01 UTC**
+    **Upcoming Change on 2023-01-01 UTC**
     **Description:** `projectId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement.
     **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API.
     """
@@ -22577,11 +23711,11 @@ input EnablePullRequestAutoMergeInput {
     authorEmail: String
     "A unique identifier for the client performing the mutation."
     clientMutationId: String
-    "Commit body to use for the commit when the PR is mergable; if omitted, a default message will be used."
+    "Commit body to use for the commit when the PR is mergable; if omitted, a default message will be used. NOTE: when merging with a merge queue any input value for commit message is ignored."
     commitBody: String
-    "Commit headline to use for the commit when the PR is mergable; if omitted, a default message will be used."
+    "Commit headline to use for the commit when the PR is mergable; if omitted, a default message will be used. NOTE: when merging with a merge queue any input value for commit headline is ignored."
     commitHeadline: String
-    "The merge method to use. If omitted, defaults to `MERGE`"
+    "The merge method to use. If omitted, defaults to `MERGE`. NOTE: when merging with a merge queue any input value for merge method is ignored."
     mergeMethod: PullRequestMergeMethod = MERGE
     "ID of the pull request to enable auto-merge on."
     pullRequestId: ID!
@@ -22894,6 +24028,26 @@ input LanguageOrder {
     field: LanguageOrderField!
 }
 
+"Autogenerated input type of LinkProjectV2ToRepository"
+input LinkProjectV2ToRepositoryInput {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The ID of the project to link to the repository."
+    projectId: ID!
+    "The ID of the repository to link to the project."
+    repositoryId: ID!
+}
+
+"Autogenerated input type of LinkProjectV2ToTeam"
+input LinkProjectV2ToTeamInput {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The ID of the project to link to the team."
+    projectId: ID!
+    "The ID of the team to link to the project."
+    teamId: ID!
+}
+
 "Autogenerated input type of LinkRepositoryToProject"
 input LinkRepositoryToProjectInput {
     "A unique identifier for the client performing the mutation."
@@ -22912,6 +24066,14 @@ input LockLockableInput {
     lockReason: LockReason
     "ID of the item to be locked."
     lockableId: ID!
+}
+
+"Ordering options for mannequins."
+input MannequinOrder {
+    "The ordering direction."
+    direction: OrderDirection!
+    "The field to order mannequins by."
+    field: MannequinOrderField!
 }
 
 "Autogenerated input type of MarkDiscussionCommentAsAnswer"
@@ -23092,6 +24254,12 @@ input ProjectV2FieldValue {
     text: String
 }
 
+"Ways in which to filter lists of projects."
+input ProjectV2Filters {
+    "List project v2 filtered by the state given."
+    state: ProjectV2State
+}
+
 "Ordering options for project v2 item field value connections"
 input ProjectV2ItemFieldValueOrder {
     "The ordering direction."
@@ -23122,6 +24290,14 @@ input ProjectV2ViewOrder {
     direction: OrderDirection!
     "The field to order the project v2 views by."
     field: ProjectV2ViewOrderField!
+}
+
+"Autogenerated input type of PublishSponsorsTier"
+input PublishSponsorsTierInput {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The ID of the draft tier to publish."
+    tierId: ID!
 }
 
 "Ways in which lists of issues can be ordered upon return."
@@ -23524,19 +24700,19 @@ input StarOrder {
 
 "Autogenerated input type of StartRepositoryMigration"
 input StartRepositoryMigrationInput {
-    "The Octoshift migration source access token."
+    "The migration source access token."
     accessToken: String!
     "A unique identifier for the client performing the mutation."
     clientMutationId: String
-    "Whether to continue the migration on error"
+    "Whether to continue the migration on error. Defaults to `false`."
     continueOnError: Boolean
-    "The signed URL to access the user-uploaded git archive"
+    "The signed URL to access the user-uploaded git archive."
     gitArchiveUrl: String
     "The GitHub personal access token of the user importing to the target repository."
     githubPat: String
     "Whether to lock the source repository."
     lockSource: Boolean
-    "The signed URL to access the user-uploaded metadata archive"
+    "The signed URL to access the user-uploaded metadata archive."
     metadataArchiveUrl: String
     "The ID of the organization that will own the imported repository."
     ownerId: ID!
@@ -23544,9 +24720,9 @@ input StartRepositoryMigrationInput {
     repositoryName: String!
     "Whether to skip migrating releases for the repository."
     skipReleases: Boolean
-    "The ID of the Octoshift migration source."
+    "The ID of the migration source."
     sourceId: ID!
-    "The Octoshift migration source repository URL."
+    "The URL of the source repository."
     sourceRepositoryUrl: URI!
     "The visibility of the imported repository."
     targetRepoVisibility: String
@@ -23606,6 +24782,16 @@ input TeamRepositoryOrder {
     field: TeamRepositoryOrderField!
 }
 
+"Autogenerated input type of TransferEnterpriseOrganization"
+input TransferEnterpriseOrganizationInput {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The ID of the enterprise where the organization should be transferred."
+    destinationEnterpriseId: ID!
+    "The ID of the organization to transfer."
+    organizationId: ID!
+}
+
 "Autogenerated input type of TransferIssue"
 input TransferIssueInput {
     "A unique identifier for the client performing the mutation."
@@ -23616,6 +24802,16 @@ input TransferIssueInput {
     issueId: ID!
     "The Node ID of the repository the issue should be transferred to"
     repositoryId: ID!
+}
+
+"Autogenerated input type of UnarchiveProjectV2Item"
+input UnarchiveProjectV2ItemInput {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The ID of the ProjectV2Item to unarchive."
+    itemId: ID!
+    "The ID of the Project to archive the item from."
+    projectId: ID!
 }
 
 "Autogenerated input type of UnarchiveRepository"
@@ -23640,6 +24836,26 @@ input UnfollowUserInput {
     clientMutationId: String
     "ID of the user to unfollow."
     userId: ID!
+}
+
+"Autogenerated input type of UnlinkProjectV2FromRepository"
+input UnlinkProjectV2FromRepositoryInput {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The ID of the project to unlink from the repository."
+    projectId: ID!
+    "The ID of the repository to unlink from the project."
+    repositoryId: ID!
+}
+
+"Autogenerated input type of UnlinkProjectV2FromTeam"
+input UnlinkProjectV2FromTeamInput {
+    "A unique identifier for the client performing the mutation."
+    clientMutationId: String
+    "The ID of the project to unlink from the team."
+    projectId: ID!
+    "The ID of the team to unlink from the project."
+    teamId: ID!
 }
 
 "Autogenerated input type of UnlinkRepositoryFromProject"
@@ -23732,10 +24948,16 @@ input UpdateBranchProtectionRuleInput {
     dismissesStaleReviews: Boolean
     "Can admins overwrite branch protection."
     isAdminEnforced: Boolean
+    "Whether users can pull changes from upstream when the branch is locked. Set to `true` to allow fork syncing. Set to `false` to prevent fork syncing."
+    lockAllowsFetchAndMerge: Boolean
+    "Whether to set the branch as read-only. If this is true, users will not be able to push to the branch."
+    lockBranch: Boolean
     "The glob-like pattern used to determine matching branches."
     pattern: String
     "A list of User, Team, or App IDs allowed to push to matching branches."
     pushActorIds: [ID!]
+    "Whether the most recent push must be approved by someone other than the person who pushed it"
+    requireLastPushApproval: Boolean
     "Number of approving reviews required to update matching branches."
     requiredApprovingReviewCount: Int
     "List of required status check contexts that must pass for commits to be accepted to matching branches."
@@ -24184,7 +25406,7 @@ input UpdateProjectNextInput {
 
     Set the project to closed or open.
 
-    **Upcoming Change on 2022-10-01 UTC**
+    **Upcoming Change on 2023-01-01 UTC**
     **Description:** `closed` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement.
     **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API.
     """
@@ -24193,7 +25415,7 @@ input UpdateProjectNextInput {
 
     Set the readme description of the project.
 
-    **Upcoming Change on 2022-10-01 UTC**
+    **Upcoming Change on 2023-01-01 UTC**
     **Description:** `description` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement.
     **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API.
     """
@@ -24202,7 +25424,7 @@ input UpdateProjectNextInput {
 
     The ID of the Project to update. This field is required.
 
-    **Upcoming Change on 2022-10-01 UTC**
+    **Upcoming Change on 2023-01-01 UTC**
     **Description:** `projectId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement.
     **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API.
     """
@@ -24211,7 +25433,7 @@ input UpdateProjectNextInput {
 
     Set the project to public or private.
 
-    **Upcoming Change on 2022-10-01 UTC**
+    **Upcoming Change on 2023-01-01 UTC**
     **Description:** `public` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement.
     **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API.
     """
@@ -24220,7 +25442,7 @@ input UpdateProjectNextInput {
 
     Set the short description of the project.
 
-    **Upcoming Change on 2022-10-01 UTC**
+    **Upcoming Change on 2023-01-01 UTC**
     **Description:** `shortDescription` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement.
     **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API.
     """
@@ -24229,7 +25451,7 @@ input UpdateProjectNextInput {
 
     Set the title of the project.
 
-    **Upcoming Change on 2022-10-01 UTC**
+    **Upcoming Change on 2023-01-01 UTC**
     **Description:** `title` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement.
     **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API.
     """
@@ -24244,7 +25466,7 @@ input UpdateProjectNextItemFieldInput {
 
     The id of the field to be updated.
 
-    **Upcoming Change on 2022-10-01 UTC**
+    **Upcoming Change on 2023-01-01 UTC**
     **Description:** `fieldId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement.
     **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API.
     """
@@ -24253,7 +25475,7 @@ input UpdateProjectNextItemFieldInput {
 
     The id of the item to be updated. This field is required.
 
-    **Upcoming Change on 2022-10-01 UTC**
+    **Upcoming Change on 2023-01-01 UTC**
     **Description:** `itemId` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement.
     **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API.
     """
@@ -24264,7 +25486,7 @@ input UpdateProjectNextItemFieldInput {
 
     The value which will be set on the field. This field is required.
 
-    **Upcoming Change on 2022-10-01 UTC**
+    **Upcoming Change on 2023-01-01 UTC**
     **Description:** `value` will be removed. Follow the ProjectV2 guide at https://github.blog/changelog/2022-06-23-the-new-github-issues-june-23rd-update/, to find a suitable replacement.
     **Reason:** The `ProjectNext` API is deprecated in favour of the more capable `ProjectV2` API.
     """
@@ -24407,6 +25629,8 @@ input UpdateRepositoryInput {
     clientMutationId: String
     "A new description for the repository. Pass an empty string to erase the existing description."
     description: String
+    "Indicates if the repository should have the discussions feature enabled."
+    hasDiscussionsEnabled: Boolean
     "Indicates if the repository should have the issues feature enabled."
     hasIssuesEnabled: Boolean
     "Indicates if the repository should have the project boards feature enabled."

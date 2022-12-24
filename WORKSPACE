@@ -738,8 +738,8 @@ go_repository(
 go_repository(
     name = "com_github_microcosm_cc_bluemonday",
     importpath = "github.com/microcosm-cc/bluemonday",
-    sum = "h1:Z1a//hgsQ4yjC+8zEkV8IWySkXnsxmdSY642CTFQb5Y=",
-    version = "v1.0.17",
+    sum = "h1:dNH3e4PSyE4vNX+KlRGHT5KrSvjeUkoNPwEORjffHJg=",
+    version = "v1.0.21",
 )
 
 go_repository(
@@ -1151,15 +1151,15 @@ go_repository(
 go_repository(
     name = "org_golang_x_mod",
     importpath = "golang.org/x/mod",
-    sum = "h1:RM4zey1++hCTbCVQfnWeKs9/IEsaBLA8vTkd0WVtmH4=",
-    version = "v0.3.0",
+    sum = "h1:kQgndtyPBW/JIYERgdxfwMYh3AVStj88WQTlNDi2a+o=",
+    version = "v0.6.0-dev.0.20220106191415-9b9b3d81d5e3",
 )
 
 go_repository(
     name = "org_golang_x_net",
     importpath = "golang.org/x/net",
-    sum = "h1:O7DYs+zxREGLKzKoMQrtrEacpb0ZVXA5rIwylE2Xchk=",
-    version = "v0.0.0-20220127200216-cd36cc0744dd",
+    sum = "h1:6e93nYa3hNqAvLr0pD4PN1fFS+gKzp2zAXqrnTCstqU=",
+    version = "v0.0.0-20221002022538-bcab6841153b",
 )
 
 go_repository(
@@ -1179,8 +1179,8 @@ go_repository(
 go_repository(
     name = "org_golang_x_sys",
     importpath = "golang.org/x/sys",
-    sum = "h1:OH54vjqzRWmbJ62fjuhxy7AxFFgoHN0/DPc/UrL8cAs=",
-    version = "v0.0.0-20220319134239-a9b59b0215f8",
+    sum = "h1:WIoqL4EROvwiPdUtaip4VcDdpZ4kha7wBWZrbVKCIZg=",
+    version = "v0.0.0-20220728004956-3c1f35247d10",
 )
 
 go_repository(
@@ -1207,8 +1207,8 @@ go_repository(
 go_repository(
     name = "org_golang_x_tools",
     importpath = "golang.org/x/tools",
-    sum = "h1:W07d4xkoAUSNOkOzdzXCdFGxT7o2rW4q8M34tB2i//k=",
-    version = "v0.0.0-20200825202427-b303f430e36d",
+    sum = "h1:QjFRCZxdOhBJ/UNgnBZLbNV13DlbnK0quyivTnXJM20=",
+    version = "v0.1.10",
 )
 
 go_repository(

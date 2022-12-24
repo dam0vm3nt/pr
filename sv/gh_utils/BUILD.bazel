@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "gh_utils",
+    srcs = ["github_utils.go"],
+    importpath = "github.com/vballestra/sv/sv/gh_utils",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_khan_genqlient//graphql"],
+)

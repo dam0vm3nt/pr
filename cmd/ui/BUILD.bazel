@@ -13,6 +13,7 @@ go_library(
     importpath = "github.com/vballestra/sv/cmd/ui",
     visibility = ["//visibility:public"],
     deps = [
+        "//cmd/ui/simpleEditor",
         "//sv",
         "@com_github_bluekeyes_go_gitdiff//gitdiff",
         "@com_github_charmbracelet_bubbles//viewport",
@@ -20,6 +21,7 @@ go_library(
         "@com_github_charmbracelet_glamour//:glamour",
         "@com_github_charmbracelet_lipgloss//:lipgloss",
         "@com_github_erikgeiser_promptkit//confirmation",
+        "@com_github_itchyny_timefmt_go//:timefmt-go",
         "@com_github_pterm_pterm//:pterm",
         "@com_github_treilik_bubbleboxer//:bubbleboxer",
     ],

@@ -141,6 +141,21 @@ type BitbucketPullRequestWrapper struct {
 	client *BitBucketSv
 }
 
+func (b BitbucketPullRequestWrapper) Merge() error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (b BitbucketPullRequestWrapper) StartReview() (Review, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (b BitbucketPullRequestWrapper) GetPendingReview() (Review, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (b BitbucketPullRequestWrapper) CreateComment(path string, commitId string, line int, isNew bool, body string) (Comment, error) {
 	//TODO implement me
 	panic("implement me")

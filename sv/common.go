@@ -20,6 +20,9 @@ type PullRequest interface {
 	ReplyToComment(comment Comment, replyText string) (Comment, error)
 	CreateComment(path string, commitId string, line int, isNew bool, body string) (Comment, error)
 	GetLastCommitId() string
+	GetPendingReview() (Review, error)
+	StartReview() (Review, error)
+	Merge() error
 }
 
 type Comment interface {
@@ -45,9 +48,15 @@ type Check interface {
 }
 
 type Review interface {
+	GetId() string
 	GetState() string
 	GetAuthor() string
 	GetSubmitedAt() time.Time
+	Dismiss() error
+	Close(comment *string) error
+	Approve(comment *string) error
+	RequestChanges(comment *string) error
+	Cancel() error
 }
 
 type CommentContent interface {

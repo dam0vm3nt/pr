@@ -18,7 +18,7 @@ type pullRequestHeader struct {
 }
 
 func (p pullRequestHeader) measureHeight() int {
-	return min1(p.maxChecks, len(p.data.checks)) + min1(len(p.data.reviews), p.maxReviews) + 4
+	return min1(p.maxChecks, len(p.data.checks)) + min1(len(p.data.reviews), p.maxReviews) + 4 + 1
 }
 
 func (p pullRequestHeader) Init() tea.Cmd {
