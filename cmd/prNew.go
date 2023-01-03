@@ -65,6 +65,6 @@ func init() {
 	prNewCmd.Flags().StringVarP(&newPrDescription, "description", "d", "", "New PR optional description")
 	prNewCmd.Flags().StringVarP(&newPrBaseBranch, "base", "b", "", "The base branch (required)")
 	prNewCmd.Flags().StringVarP(&newPrDestBranch, "head", "H", "", "The (optional) head branch")
-	prNewCmd.Flags().StringSliceVarP(&newPrReviwers, "reviewer", "r", []string{}, "Optional list of reviewers requested")
+	prNewCmd.Flags().StringSliceVarP(&newPrReviwers, "reviewer", "R", []string{}, "Optional list of reviewers requested")
 	prNewCmd.Flags().StringSliceVarP(&newPrLabels, "label", "l", []string{}, "Optional list of labels")
 }
