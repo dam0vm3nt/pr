@@ -31,7 +31,7 @@ var prNewCmd = &cobra.Command{
 			newPrDescriptionOpt = &newPrDescription
 		}
 
-		if pr, err := sv.CreatePullRequest(newPrBaseBranch, newPrDestBranch, newPrTitle, newPrDescriptionOpt); err != nil {
+		if pr, err := sv.CreatePullRequest(newPrBaseBranch, newPrDestBranch, newPrTitle, newPrDescriptionOpt, newPrLabels, newPrReviwers); err != nil {
 			pterm.Fatal.Printfln("couldn't create a new pr : %v", err)
 		} else {
 			pterm.Info.Printfln("New Pr created.\nId: %v\nStatus: %v", pr.GetId(), pr.GetStatus())
@@ -45,6 +45,10 @@ var newPrDescription = ""
 var newPrBaseBranch = ""
 
 var newPrDestBranch = ""
+
+var newPrReviwers = make([]string, 0)
+
+var newPrLabels = make([]string, 0)
 
 func init() {
 	prCmd.AddCommand(prNewCmd)
@@ -61,4 +65,6 @@ func init() {
 	prNewCmd.Flags().StringVarP(&newPrDescription, "description", "d", "", "New PR optional description")
 	prNewCmd.Flags().StringVarP(&newPrBaseBranch, "base", "b", "", "The base branch (required)")
 	prNewCmd.Flags().StringVarP(&newPrDestBranch, "head", "H", "", "The (optional) head branch")
+	prNewCmd.Flags().StringSliceVarP(&newPrReviwers, "reviewer", "r", []string{}, "Optional list of reviewers requested")
+	prNewCmd.Flags().StringSliceVarP(&newPrLabels, "label", "l", []string{}, "Optional list of labels")
 }

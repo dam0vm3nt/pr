@@ -78,7 +78,7 @@ type Sv interface {
 	PullRequestStatus() (<-chan PullRequestStatus, error)
 	Fetch() error
 	GetRepositoryFullName() string
-	CreatePullRequest(baseBranch string, headBranch string, title string, description *string) (PullRequestStatus, error)
+	CreatePullRequest(baseBranch string, headBranch string, title string, description *string, labels []string, reviewers []string) (PullRequestStatus, error)
 	GetCurrentBranch() (string, error)
 }
 

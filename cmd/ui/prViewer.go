@@ -842,7 +842,7 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 					p.pullRequest.pendingReview = rev
 					return p, renderPrCmd
 				}
-			} else if yes, err := confirmation.New(fmt.Sprintf("Want to approve rev %s ?", rev.GetId()), confirmation.Yes).RunPrompt(); !yes || err != nil {
+			} else if yes, err := confirmation.New(fmt.Sprintf("Want to request changes for PR %s ?", rev.GetId()), confirmation.Yes).RunPrompt(); !yes || err != nil {
 				return p, nil
 			} else if text, err := launchEditor("",
 				simpleEditor.WithWidth{pterm.GetTerminalWidth()},
@@ -1138,7 +1138,7 @@ func (prv *PullRequestView) renderPullRequest() {
 
 			pendingReviewStyle := lipgloss.NewStyle().Width(content.viewport.Width).Background(lipgloss.Color("#00e0e0")).ColorWhitespace(true).Foreground(lipgloss.Color("#000000"))
 			if perev := pr.pendingReview; perev != nil {
-				header.header.printf(pendingReviewStyle.Render(fmt.Sprintf("PENDING REVIEW %s SUBMITTED AT %s (C='CANCEL', S='SUBMIT', M='APPROVE', R='REQ. CHANGES')", perev.GetId(), timefmt.Format(perev.GetSubmitedAt(), "%02d/%02m/%Y %H:%M:%S"))))
+				header.header.printf(pendingReviewStyle.Render(fmt.Sprintf("PENDING REVIEW %s SUBMITTED AT %s (C='CANCEL', S='SUBMIT', A='APPROVE', R='REQ. CHANGES')", perev.GetId(), timefmt.Format(perev.GetSubmitedAt(), "%02d/%02m/%Y %H:%M:%S"))))
 			} else {
 				header.header.printf("NO PENDING REVIEW (R='Create a new one')")
 			}

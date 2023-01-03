@@ -3,8 +3,7 @@ query pullRequestComments($number:Int!, $owner: String!, $name: String!, $commen
         pullRequest(number: $number) {
             comments(first: 100, after: $commentAfter){
                 pageInfo {
-                    hasNextPage
-                    endCursor
+                    ...NextPageInfo
                 }
 
                 totalCount
@@ -15,6 +14,11 @@ query pullRequestComments($number:Int!, $owner: String!, $name: String!, $commen
         }
     }
 
+}
+
+fragment NextPageInfo on PageInfo {
+    hasNextPage
+    endCursor
 }
 
 fragment CommentInfo on Comment {
@@ -89,6 +93,7 @@ query singleStatus($ids: [ID!]!) {
 }
 
 fragment singleStatusPullRequest   on PullRequest{
+    id
     number
     title
     state
@@ -106,6 +111,14 @@ fragment singleStatusPullRequest   on PullRequest{
     reviews(first: 5) {
         nodes {
             ...ReviewInfo
+        }
+    }
+    reviewRequests(first: 10) {
+        totalCount
+        nodes {
+            requestedReviewer {
+                ...UserInfo
+            }
         }
     }
     commits(last: 1) {
@@ -296,4 +309,54 @@ mutation createPullRequest($repoId: ID!, $branchName: String!, $baseBranch: Stri
     }
 }
 
+query getUserIdByLogin($login: String!) {
+    user(login: $login) {
+        id
+    }
+}
 
+query getLabelByName($label: String!, $owner: String!, $repo: String!) {
+    repository(owner:$owner, name: $repo ) {
+        label(name: $label) {
+            ...LabelInfo
+        }
+    }
+}
+
+query searchLabels($query: String!, $owner: String!, $repo: String!, $cursor: String) {
+    repository(owner:$owner, name: $repo ) {
+        labels(query: $query, first: 10, after: $cursor) {
+            totalCount
+            nodes {
+                ...LabelInfo
+            }
+            pageInfo {
+                ...NextPageInfo
+            }
+        }
+    }
+}
+
+fragment LabelInfo on Label {
+    id
+    color
+    description
+}
+
+mutation editPullRequestReviewers($id: ID!,$reviewers: [ID!]) {
+    requestReviews(input: {pullRequestId: $id, userIds: $reviewers}) {
+        clientMutationId
+        pullRequest {
+            ...singleStatusPullRequest
+        }
+    }
+}
+
+mutation editPullRequest($id: ID!, $labels: [ID!]) {
+    updatePullRequest(input: {pullRequestId: $id, labelIds: $labels}) {
+        clientMutationId
+        pullRequest {
+            ...singleStatusPullRequest
+        }
+    }
+}

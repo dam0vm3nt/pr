@@ -41,14 +41,101 @@ type GitHubSv struct {
 	sshKeySelector *regexp.Regexp
 }
 
-func (g *GitHubSv) CreatePullRequest(baseBranch string, headBranch string, title string, description *string) (PullRequestStatus, error) {
+type idOrError struct {
+	string
+	error
+}
+
+func toUserIdsChan(repo *GitHubSv, logins []string) <-chan idOrError {
+	ch := make(chan idOrError)
+
+	go func() {
+		for _, login := range logins {
+			if resp, err := getUserIdByLogin(repo.ctx, login); err != nil {
+				ch <- idOrError{error: err}
+				break
+			} else {
+				ch <- idOrError{string: resp.User.Id}
+			}
+		}
+		close(ch)
+	}()
+
+	return ch
+}
+
+func toLabelIdsChan(repo *GitHubSv, labels []string) <-chan idOrError {
+	ch := make(chan idOrError)
+
+	go func() {
+		for _, label := range labels {
+			if resp, err := getLabelByName(repo.ctx, label, repo.owner, repo.repo); err != nil {
+				ch <- idOrError{error: err}
+				break
+			} else {
+				ch <- idOrError{string: resp.Repository.Label.Id}
+			}
+		}
+		close(ch)
+	}()
+
+	return ch
+}
+
+func toUserIds(repo *GitHubSv, logins []string) ([]string, error) {
+	return toIds(func() <-chan idOrError {
+		return toUserIdsChan(repo, logins)
+	})
+}
+
+func toLabelIds(repo *GitHubSv, labels []string) ([]string, error) {
+	return toIds(func() <-chan idOrError {
+		return toLabelIdsChan(repo, labels)
+	})
+}
+
+func toIds(iter func() <-chan idOrError) ([]string, error) {
+	userIds := make([]string, 0)
+
+	for res := range iter() {
+		if res.error != nil {
+			return nil, res.error
+		}
+		userIds = append(userIds, res.string)
+	}
+
+	return userIds, nil
+}
+
+func (g *GitHubSv) CreatePullRequest(baseBranch string, headBranch string, title string, description *string, labels []string, reviewers []string) (PullRequestStatus, error) {
 	// First get the repository id
-	if resp, err := repositoryId(g.ctx, g.owner, g.repo); err != nil {
+	if labelIds, err := toLabelIds(g, labels); err != nil {
+		return nil, err
+	} else if reviewerIds, err := toUserIds(g, reviewers); err != nil {
+		return nil, err
+	} else if resp, err := repositoryId(g.ctx, g.owner, g.repo); err != nil {
 		return nil, err
 	} else if resp2, err := createPullRequest(g.ctx, resp.Repository.Id, headBranch, baseBranch, title, description); err != nil {
 		return nil, err
 	} else {
 		pr := resp2.CreatePullRequest.PullRequest.singleStatusPullRequest
+		// If we have labels add them
+		if len(labelIds) > 0 {
+			if resp3, err := editPullRequest(g.ctx, pr.Id, labelIds); err != nil {
+				pterm.Debug.Printfln("cannot add labels: %v", err)
+			} else {
+				pr = resp3.UpdatePullRequest.PullRequest.singleStatusPullRequest
+			}
+		}
+		// If we have reviewers add them
+		if len(reviewerIds) > 0 {
+			if resp3, err := editPullRequestReviewers(g.ctx, pr.Id, reviewerIds); err != nil {
+				pterm.Debug.Printfln("cannot add reviewers: %v", err)
+			} else {
+				pr = resp3.RequestReviews.PullRequest.singleStatusPullRequest
+			}
+		}
+
 		return &GitHubPullRequestStatusWrapper{
 			singleStatusPullRequest: &pr,
 			isMine:                  true,
