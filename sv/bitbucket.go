@@ -28,6 +28,16 @@ type BitBucketSv struct {
 	localRepo string
 }
 
+func (b *BitBucketSv) GetCurrentBranch() (string, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (b *BitBucketSv) CreatePullRequest(baseBranch string, headBranch string, title string, description *string) (PullRequestStatus, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (b *BitBucketSv) GetRepositoryFullName() string {
 	return fmt.Sprintf("%s/%s", b.workspace, b.repoSlug)
 }
@@ -139,6 +149,21 @@ func (b *BitBucketSv) ListPullRequests(prsQuery string) (<-chan PullRequest, err
 type BitbucketPullRequestWrapper struct {
 	*bitbucket.Pullrequest
 	client *BitBucketSv
+}
+
+func (b BitbucketPullRequestWrapper) Merge() error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (b BitbucketPullRequestWrapper) StartReview() (Review, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (b BitbucketPullRequestWrapper) GetPendingReview() (Review, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (b BitbucketPullRequestWrapper) CreateComment(path string, commitId string, line int, isNew bool, body string) (Comment, error) {

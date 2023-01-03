@@ -10,7 +10,6 @@ import (
 	"github.com/pterm/pterm"
 	"github.com/vballestra/sv/cmd/ui"
 	"github.com/vballestra/sv/sv"
-	"os/exec"
 	"strings"
 	"time"
 )
@@ -329,43 +328,6 @@ func fetchAndReloadCmd(pr sv.PullRequest) tea.Cmd {
 	}
 }
 
-func execGitFetch() error {
-	if path, err := exec.LookPath("git"); err != nil {
-		return err
-	} else {
-		cmd := exec.Command(path, "fetch")
-		// cmd.Stdin = os.Stdin
-		// cmd.Stdout = os.Stdout
-		if err = cmd.Start(); err != nil {
-			return err
-		}
-		if err = cmd.Wait(); err != nil {
-			if err, ok := err.(*exec.ExitError); ok {
-				if err.ExitCode() != 1 {
-					return err
-				} else {
-					// We can ignore exit code 1 from fetch.
-					return nil
-				}
-			}
-			return err
-		}
-
-		return nil
-	}
-
-}
-
-func forceFetch(repo sv.Sv) error {
-	if err := repo.Fetch(); err == nil {
-		return nil
-	} else if err := execGitFetch(); err == nil {
-		return nil
-	} else {
-		return err
-	}
-}
-
 func (m showPrMsg) Update(view PrStatusView) (tea.Model, tea.Cmd) {
 	w := make(chan modelAndCmd)
 	go func() {
@@ -373,7 +335,7 @@ func (m showPrMsg) Update(view PrStatusView) (tea.Model, tea.Cmd) {
 		if err := ui.ShowPr(m.pullRequest); err != nil {
 			if _, ok := err.(*sv.MissingCommitError); ok {
 				// Let's try updating the archive
-				if err := forceFetch(view.sv); err == nil {
+				if err := sv.ForceFetch(view.sv); err == nil {
 					cmds = append(cmds, showPrCmd(view.sv, fmt.Sprintf("%d", m.pullRequest.GetId())))
 				} else {
 					cmds = append(cmds, showStatusErrorCmd(fmt.Sprintf("Error while showing load pr %d : %s", m.pullRequest.GetId(), err)))

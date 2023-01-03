@@ -6,6 +6,7 @@ go_library(
         "bitbucket.go",
         "common.go",
         "github.go",
+        "github_queries_gen.go",
         "pager.go",
     ],
     cgo = True,
@@ -13,6 +14,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//bitbucket",
+        "//sv/gh_utils",
         "@com_github_antihax_optional//:optional",
         "@com_github_bluekeyes_go_gitdiff//gitdiff",
         "@com_github_briandowns_spinner//:spinner",
@@ -21,6 +23,7 @@ go_library(
         "@com_github_go_git_go_git_v5//plumbing",
         "@com_github_go_git_go_git_v5//plumbing/transport/ssh",
         "@com_github_google_go_github_v43//github",
+        "@com_github_khan_genqlient//graphql",
         "@com_github_pterm_pterm//:pterm",
         "@com_github_shurcool_githubv4//:githubv4",
         "@com_github_xanzy_ssh_agent//:ssh-agent",

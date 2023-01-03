@@ -1,0 +1,299 @@
+query pullRequestComments($number:Int!, $owner: String!, $name: String!, $commentAfter: String) {
+    repository(owner: $owner,name: $name) {
+        pullRequest(number: $number) {
+            comments(first: 100, after: $commentAfter){
+                pageInfo {
+                    hasNextPage
+                    endCursor
+                }
+
+                totalCount
+                nodes {
+                    ...CommentInfo
+                }
+            }
+        }
+    }
+
+}
+
+fragment CommentInfo on Comment {
+    ...CommonCommentInfo
+    ...ReactionsInfo
+}
+
+fragment CommonCommentInfo on Comment {
+    id
+    author {
+        ...UserInfo
+    }
+    raw: body
+    bodyText
+    bodyHTML
+    createdAt
+}
+
+fragment ReviewInfo on PullRequestReview {
+    ...CommonCommentInfo
+    state
+}
+
+fragment UserInfo on Actor {
+    displayName: login
+}
+
+
+fragment ReactionsInfo on Reactable {
+    reactions(first: 20) {
+        totalCount
+        nodes {
+            content
+            createdAt
+            user {
+                ...UserInfo
+            }
+        }
+    }
+}
+
+query myLogin {
+    viewer {
+        login
+    }
+}
+
+
+query requestedReviews($prQuery: String!, $after: String)
+{
+    search(query: $prQuery, type: ISSUE, first: 5, after: $after) {
+        issueCount
+        pageInfo {
+            endCursor
+            hasNextPage
+        }
+        edges {
+            node {
+                ... on Node {
+                    id
+                }
+            }
+        }
+    }
+}
+
+
+query singleStatus($ids: [ID!]!) {
+    nodes(ids: $ids) {
+        ...singleStatusPullRequest
+    }
+}
+
+fragment singleStatusPullRequest   on PullRequest{
+    number
+    title
+    state
+    repository {
+        name
+        owner {
+            login
+        }
+    }
+    author {
+        login
+    }
+    baseRefName
+    headRefName
+    reviews(first: 5) {
+        nodes {
+            ...ReviewInfo
+        }
+    }
+    commits(last: 1) {
+        nodes {
+            commit {
+                statusCheckRollup {
+                    contexts {
+                        checkRunCountsByState {
+                            state
+                            count
+                        }
+                        statusContextCountsByState {
+                            state
+                            count
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+}
+
+
+mutation newReview($prId: ID!) {
+    addPullRequestReview(input: {pullRequestId: $prId}) {
+        pullRequestReview {
+            ...ReviewInfo
+        }
+    }
+}
+
+mutation mergePullRequest($prId: ID!) {
+    mergePullRequest(input: {pullRequestId: $prId, mergeMethod: SQUASH}) {
+        clientMutationId
+    }
+}
+
+query currentPendingReview($prId: ID!, $author: String) {
+    node(id: $prId) {
+        ...on PullRequest {
+            reviews(author: $author, states: [PENDING], last: 1) {
+                nodes {
+                    ...ReviewInfo
+                }
+            }
+        }
+    }
+}
+
+mutation replyTo($revId: ID!, $commentId: ID!, $body: String!) {
+    addPullRequestReviewComment(
+        input: {pullRequestReviewId: $revId, inReplyTo: $commentId, body: $body}
+    ) {
+        comment {
+            id
+        }
+    }
+}
+
+
+mutation closeReview($revId: ID!) {
+    submitPullRequestReview(input: {pullRequestReviewId: $revId, event: COMMENT}) {
+        clientMutationId
+    }
+}
+
+mutation closeReviewWithEvent($revId: ID!, $event: PullRequestReviewEvent!, $comment: String) {
+    submitPullRequestReview(input: {pullRequestReviewId: $revId, event: $event, body: $comment}) {
+        clientMutationId
+    }
+}
+
+mutation cancelReview($revId: ID!) {
+    deletePullRequestReview(input: {pullRequestReviewId: $revId}) {
+        clientMutationId
+    }
+}
+
+fragment StatusContextCase on StatusContext {
+    context,
+    state,
+    targetUrl
+}
+
+fragment CheckRunCase on CheckRun {
+    name,
+    status,
+    conclusion,
+    startedAt,
+    completedAt,
+    detailsUrl
+}
+
+query GetChecksAndStatus($name: String!, $owner: String!, $number: Int!) {
+    repository(name: $name, owner: $owner) {
+        pullRequest(number: $number) {
+            statusCheckRollup: commits(last: 1) {
+                nodes {
+                    commit {
+                        statusCheckRollup {
+                            contexts(first:100) {
+                                nodes {
+                                    __typename
+                                    ...StatusContextCase
+                                    ...CheckRunCase
+                                },
+                                pageInfo{hasNextPage,endCursor}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+query PullRequestsList($name: String!, $owner: String!, $number: Int!) {
+    repository(name: $name, owner: $owner) {
+        pullRequest(number: $number) {
+            reviews(first: 100) {
+                nodes {
+                    author { login }
+                    body
+                    bodyHTML
+                    bodyText
+                    state
+                    submittedAt
+                }
+            }
+        }
+    }
+}
+
+
+query pullRequestThreads($number:Int!, $owner: String!, $name: String!, $commentAfter: String) {
+    repository(owner: $owner,name: $name) {
+        pullRequest(number: $number) {
+            reviewThreads(first:5, after: $commentAfter) {
+                pageInfo {
+                    endCursor
+                    hasNextPage
+                }
+                totalCount
+                nodes {
+                    line
+                    originalLine
+                    path
+                    diffSide
+
+                    startLine
+                    startDiffSide
+                    originalStartLine
+
+                    isOutdated
+
+                    comments(first: 100) {
+                        pageInfo {
+                            endCursor
+                            hasNextPage
+                        }
+                        totalCount
+                        nodes {
+                            replyTo {
+                                id
+                            }
+                            ...CommentInfo
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+query repositoryId($owner: String!, $name: String!) {
+    repository(owner: $owner, name: $name) {
+        id
+    }
+}
+
+mutation createPullRequest($repoId: ID!, $branchName: String!, $baseBranch: String!, $title: String!, $description: String) {
+    createPullRequest(input: {headRefName: $branchName, baseRefName: $baseBranch, title: $title, body: $description, repositoryId: $repoId}) {
+        clientMutationId
+        pullRequest {
+            ... singleStatusPullRequest
+        }
+    }
+}
+
+

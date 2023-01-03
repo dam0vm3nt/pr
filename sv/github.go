@@ -1,3 +1,4 @@
+//go:generate go run github.com/Khan/genqlient
 package sv
 
 import "C"
@@ -6,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Khan/genqlient/graphql"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"github.com/briandowns/spinner"
 	"github.com/cli/cli/v2/api"
@@ -15,6 +17,7 @@ import (
 	gh "github.com/google/go-github/v43/github"
 	"github.com/pterm/pterm"
 	"github.com/shurcooL/githubv4"
+	"github.com/vballestra/sv/sv/gh_utils"
 	sshagent "github.com/xanzy/ssh-agent"
 	ssh2 "golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
@@ -36,6 +39,21 @@ type GitHubSv struct {
 	localRepo      string
 	host           string
 	sshKeySelector *regexp.Regexp
+}
+
+func (g *GitHubSv) CreatePullRequest(baseBranch string, headBranch string, title string, description *string) (PullRequestStatus, error) {
+	// First get the repository id
+	if resp, err := repositoryId(g.ctx, g.owner, g.repo); err != nil {
+		return nil, err
+	} else if resp2, err := createPullRequest(g.ctx, resp.Repository.Id, headBranch, baseBranch, title, description); err != nil {
+		return nil, err
+	} else {
+		pr := resp2.CreatePullRequest.PullRequest.singleStatusPullRequest
+		return &GitHubPullRequestStatusWrapper{
+			singleStatusPullRequest: &pr,
+			isMine:                  true,
+		}, nil
+	}
 }
 
 func (g *GitHubSv) GetRepositoryFullName() string {
@@ -113,7 +131,7 @@ func (g *GitHubSv) PullRequestStatus() (<-chan PullRequestStatus, error) {
 }
 
 type GitHubPullRequestStatusWrapper struct {
-	PullRequestStatusResponse
+	*singleStatusPullRequest
 	isMine bool
 }
 
@@ -122,11 +140,11 @@ func (g GitHubPullRequestStatusWrapper) IsMine() bool {
 }
 
 func (g GitHubPullRequestStatusWrapper) GetAuthor() string {
-	return g.Author.Login
+	return (*g.Author).GetLogin()
 }
 
 func (g GitHubPullRequestStatusWrapper) GetRepository() string {
-	return fmt.Sprintf("%s/%s", g.Repository.Owner.Login, g.Repository.Name)
+	return fmt.Sprintf("%s/%s", g.Repository.Owner.GetLogin(), g.Repository.Name)
 }
 
 func (g GitHubPullRequestStatusWrapper) GetId() interface{} {
@@ -138,7 +156,7 @@ func (g GitHubPullRequestStatusWrapper) GetTitle() string {
 }
 
 func (g GitHubPullRequestStatusWrapper) GetStatus() string {
-	return g.State
+	return string(g.State)
 }
 
 func (g GitHubPullRequestStatusWrapper) GetBranchName() string {
@@ -152,17 +170,14 @@ func (g GitHubPullRequestStatusWrapper) GetBaseName() string {
 func (g GitHubPullRequestStatusWrapper) GetReviews() []Review {
 	rev := make([]Review, 0)
 	for _, r := range g.Reviews.Nodes {
-		rev = append(rev, GitHubReview{api.PullRequestReview{
-			Author: api.Author{
-				Login: r.Author.Login,
-			},
-			AuthorAssociation:   "",
-			Body:                "",
-			SubmittedAt:         nil,
-			IncludesCreatedEdit: false,
-			ReactionGroups:      nil,
-			State:               r.State,
-			URL:                 "",
+		var author PullRequestsListRepositoryPullRequestReviewsPullRequestReviewConnectionNodesPullRequestReviewAuthorActor = &PullRequestsListRepositoryPullRequestReviewsPullRequestReviewConnectionNodesPullRequestReviewAuthorUser{
+			Login: (*r.Author).GetDisplayName(),
+		}
+		rev = append(rev, GitHubReview{&PullRequestsListRepositoryPullRequestReviewsPullRequestReviewConnectionNodesPullRequestReview{
+			Author:      &author,
+			Body:        "",
+			SubmittedAt: nil,
+			State:       r.State,
 		}})
 	}
 
@@ -171,18 +186,34 @@ func (g GitHubPullRequestStatusWrapper) GetReviews() []Review {
 
 func (g GitHubPullRequestStatusWrapper) GetChecksByStatus() map[string]int {
 	states := make(map[string]int)
-	for _, s := range g.Commits.Nodes[0].Commit.StatusCheckRollup.Contexts.CheckRunCountsByState {
-		states[s.State] = s.Count
+	if rollups := g.Commits.Nodes[0].Commit.StatusCheckRollup; rollups != nil {
+		for _, s := range rollups.Contexts.CheckRunCountsByState {
+			states[string(s.State)] = s.Count
+		}
 	}
 	return states
 }
 
 func (g GitHubPullRequestStatusWrapper) GetContextByStatus() map[string]int {
 	states := make(map[string]int)
-	for _, s := range g.Commits.Nodes[0].Commit.StatusCheckRollup.Contexts.StatusContextCountsByState {
-		states[s.State] = s.Count
+	if rollups := g.Commits.Nodes[0].Commit.StatusCheckRollup; rollups != nil {
+		for _, s := range rollups.Contexts.StatusContextCountsByState {
+			states[string(s.State)] = s.Count
+		}
 	}
 	return states
+}
+
+func (g *GitHubSv) GetCurrentBranch() (string, error) {
+	if rep, err := git.PlainOpen(g.localRepo); err != nil {
+		return "", err
+	} else if hd, err := rep.Head(); err != nil {
+		return "", err
+	} else if hd.Name().IsBranch() {
+		return hd.Name().Short(), nil
+	} else {
+		return "", fmt.Errorf("current reference '%v' is not a branch", hd.Name())
+	}
 }
 
 func (g *GitHubSv) Fetch() error {
@@ -193,9 +224,9 @@ func (g *GitHubSv) Fetch() error {
 	if sshagent.Available() {
 
 		if a, _, err := sshagent.New(); err != nil {
-			return fmt.Errorf("error creating SSH agent: %q", err)
+			return fmt.Errorf("error creating SSH agent: %w", err)
 		} else if sigs, err := a.Signers(); err != nil {
-			return fmt.Errorf("While getting signers", err)
+			return fmt.Errorf("while getting signers : %w", err)
 		} else {
 			newSigs := make([]ssh2.Signer, 0)
 			for _, s := range sigs {
@@ -226,15 +257,16 @@ func (g *GitHubSv) Fetch() error {
 				return err
 
 			} else {
-				return fmt.Errorf("Couldn't find any suitable keys, won't try to fetch the repo '%s'", g.localRepo)
+				return fmt.Errorf("couldn't find any suitable keys, won't try to fetch the repo '%s'", g.localRepo)
 			}
 		}
 	} else {
-		return errors.New("Please use ssh agent")
+		return errors.New("please use ssh agent")
 	}
 }
 
 const githubDefaultHost = "github.com"
+const githubDefaultGraphQLUrl = "https://api.github.com/graphql"
 
 func (g *GitHubSv) GetPullRequest(id string) (PullRequest, error) {
 	num, _ := strconv.ParseInt(id, 10, 32)
@@ -258,6 +290,10 @@ func NewGitHubSv(token string, repo string, sshKeyComment string, owner string, 
 	// Reading owner and repo from local workspace remote
 
 	if re, err := regexp.Compile(sshKeyComment); err == nil {
+
+		cl2 := graphql.NewClient(githubDefaultGraphQLUrl, tc)
+
+		ctx = gh_utils.InitContext(ctx, cl2)
 
 		return &GitHubSv{
 			ctx:            ctx,
@@ -305,6 +341,104 @@ type GitHubPullRequest struct {
 	sv *GitHubSv
 }
 
+func (g GitHubPullRequest) Merge() error {
+	_, err := mergePullRequest(g.sv.ctx, g.GetNodeID())
+	return err
+}
+
+func (g GitHubPullRequest) StartReview() (Review, error) {
+
+	if _, err := newReview(g.sv.ctx, g.GetNodeID()); err != nil {
+		return nil, err
+	} else {
+		return g.GetPendingReview()
+	}
+}
+
+func (g GitHubPullRequest) GetPendingReview() (Review, error) {
+	if login, err := g.sv.currentLogin(); err != nil {
+		return nil, err
+	} else if resp, err := currentPendingReview(g.sv.ctx, g.GetNodeID(), &login); err != nil {
+		return nil, err
+	} else if rev, ok := (*resp.Node).(*currentPendingReviewNodePullRequest); !ok {
+		return nil, errors.New(fmt.Sprintf("bad response, we didn't get a pull request with node id '%s'", g.GetNodeID()))
+	} else if l := len(rev.Reviews.Nodes); l != 1 {
+		if l > 1 {
+			return nil, errors.New(fmt.Sprintf("bad response, more than one pending review? %d > 1", l))
+		}
+		// No error but no reviews
+		return nil, nil
+	} else {
+		return &GitHubReviewInfoWrapper{rev.Reviews.Nodes[0].ReviewInfo, g.sv}, nil
+	}
+}
+
+func (g GitHubPullRequest) createOrGetPendingReview() (Review, bool, error) {
+	if rev, err := g.GetPendingReview(); err != nil {
+		return nil, false, err
+	} else if rev != nil {
+		return rev, false, nil
+	} else if resp, err := newReview(g.sv.ctx, g.GetNodeID()); err != nil {
+		return nil, false, err
+	} else {
+		return &GitHubReviewInfoWrapper{resp.AddPullRequestReview.PullRequestReview.ReviewInfo, g.sv}, true, nil
+	}
+}
+
+type GitHubReviewInfoWrapper struct {
+	ReviewInfo
+	sv *GitHubSv
+}
+
+func (g *GitHubReviewInfoWrapper) Cancel() error {
+	_, err := cancelReview(g.sv.ctx, g.Id)
+	return err
+}
+
+func (g *GitHubReviewInfoWrapper) Dismiss() error {
+	if _, err := closeReviewWithEvent(g.sv.ctx, g.Id, PullRequestReviewEventDismiss, nil); err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
+func (g *GitHubReviewInfoWrapper) Close(comment *string) error {
+	if _, err := closeReviewWithEvent(g.sv.ctx, g.Id, PullRequestReviewEventComment, comment); err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
+func (g *GitHubReviewInfoWrapper) Approve(comment *string) error {
+	if _, err := closeReviewWithEvent(g.sv.ctx, g.Id, PullRequestReviewEventApprove, comment); err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
+func (g *GitHubReviewInfoWrapper) RequestChanges(comment *string) error {
+	if _, err := closeReviewWithEvent(g.sv.ctx, g.Id, PullRequestReviewEventRequestChanges, comment); err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
+func (g *GitHubReviewInfoWrapper) GetState() string {
+	return string(g.State)
+}
+
+func (g *GitHubReviewInfoWrapper) GetAuthor() string {
+	return (*g.Author).GetDisplayName()
+}
+
+func (g *GitHubReviewInfoWrapper) GetSubmitedAt() time.Time {
+	return g.CreatedAt
+}
+
 func (g GitHubPullRequest) GetLastCommitId() string {
 	return g.Head.GetSHA()
 }
@@ -331,27 +465,12 @@ func (g GitHubPullRequest) CreateComment(path string, commitId string, line int,
 	}
 }
 
-func (g *GitHubSv) graphQL(query string, variables map[string]interface{}, data interface{}) error {
-	return g.gqlClient.GraphQL(g.host, query, variables, data)
-}
-
 func (g *GitHubSv) currentLogin() (string, error) {
-	loginQuery := `query myLogin {
-    viewer {
-        login
-    }
-}`
-	var resp struct {
-		Viewer struct {
-			Login string
-		}
-	}
-
-	if err := g.graphQL(loginQuery, nil, &resp); err != nil {
+	if resp, err := myLogin(g.ctx); err != nil {
 		return "", err
+	} else {
+		return resp.Viewer.Login, nil
 	}
-
-	return resp.Viewer.Login, nil
 }
 
 type IssueResNode struct {
@@ -362,58 +481,23 @@ type IssueResNode struct {
 	Number int
 }
 
-func (g *GitHubSv) searchIssueNodes(nodeQuery string) <-chan IssueResNode {
-	searchQuery := `query requestedReviews($prQuery: String!, $after: String)
-{
-    search(query: $prQuery, type: ISSUE, first: 5, after: $after) {
-        issueCount
-        pageInfo {
-            endCursor
-            hasNextPage
-        }
-        edges {
-            node {
-                ... on Node {
-                    id
-                }
-            }
-        }
-    }
-}`
-	args := make(map[string]interface{})
-	args["prQuery"] = nodeQuery
+func (g *GitHubSv) searchIssueNodes(nodeQuery string) <-chan requestedReviewsSearchSearchResultItemConnectionEdgesSearchResultItemEdgeNodeSearchResultItem {
 
-	res := make(chan IssueResNode)
+	res := make(chan requestedReviewsSearchSearchResultItemConnectionEdgesSearchResultItemEdgeNodeSearchResultItem)
 
 	go func() {
-
-		var resp struct {
-			Search struct {
-				IssueCount int
-				PageInfo   struct {
-					EndCursor   string
-					HasNextPage bool
-				}
-				Edges []struct {
-					Node IssueResNode
-				}
-			}
-		}
-
 		cont := true
+		var after *string
 		for cont {
-			if err := g.graphQL(searchQuery, args, &resp); err == nil {
-
-				for _, n := range resp.Search.Edges {
-					res <- n.Node
+			if rs, err := requestedReviews(g.ctx, nodeQuery, after); err == nil {
+				for _, e := range rs.Search.Edges {
+					res <- *e.Node
 				}
-
-				if resp.Search.PageInfo.HasNextPage {
-					args["after"] = resp.Search.PageInfo.EndCursor
+				if rs.Search.PageInfo.HasNextPage {
+					after = rs.Search.PageInfo.EndCursor
 				} else {
 					cont = false
 				}
-
 			} else {
 				cont = false
 			}
@@ -426,79 +510,37 @@ func (g *GitHubSv) searchIssueNodes(nodeQuery string) <-chan IssueResNode {
 }
 
 func (g *GitHubSv) searchForPrStatus(prQuery string, isMine bool) (<-chan PullRequestStatus, error) {
-	singlePrQuery := `
-query singleStatus($ids: [ID!]!) {
-    nodes(ids: $ids) {
-        ... on PullRequest {
-
-            number
-            title
-            state
-			repository {
-                name
-                owner {
-                    login
-                }
-            }
-            author {
-                login
-            }
-            baseRefName
-            headRefName
-            reviews(first: 5) {
-                nodes {
-                    author {
-                        login
-                    }
-                    state
-                }
-            }
-            commits(last: 1) {
-                nodes {
-                    commit {
-                        statusCheckRollup {
-                            contexts {
-                                checkRunCountsByState {
-                                    state
-                                    count
-                                }
-                                statusContextCountsByState {
-                                    state
-                                    count
-                                }
-                            }
-                        }
-                    }
-                }
-
-            }
-        }
-    }
-}
-`
-	var resp struct {
-		Nodes []PullRequestStatusResponse
-	}
 
 	ch := make(chan PullRequestStatus)
 	go func() {
 
 		ids := make([]string, 0)
 		for nd := range g.searchIssueNodes(prQuery) {
-			ids = append(ids, nd.Id)
+			if nx, ok := nd.(*requestedReviewsSearchSearchResultItemConnectionEdgesSearchResultItemEdgeNodePullRequest); ok && nx != nil {
+				ids = append(ids, nx.Id)
+			}
 			if len(ids) > 5 {
-				if err := g.graphQL(singlePrQuery, map[string]interface{}{"ids": ids}, &resp); err == nil {
+				if resp, err := singleStatus(g.ctx, ids); err == nil {
 					for _, pr := range resp.Nodes {
-						ch <- GitHubPullRequestStatusWrapper{pr, isMine}
+						if pr != nil {
+							if spr, ok := (*pr).(*singleStatusNodesPullRequest); ok {
+								ch <- GitHubPullRequestStatusWrapper{&spr.singleStatusPullRequest, isMine}
+							}
+						}
 					}
 				}
+
 				ids = make([]string, 0)
 			}
 		}
 
-		if err := g.graphQL(singlePrQuery, map[string]interface{}{"ids": ids}, &resp); err == nil {
+		if resp, err := singleStatus(g.ctx, ids); err == nil {
 			for _, pr := range resp.Nodes {
-				ch <- GitHubPullRequestStatusWrapper{pr, isMine}
+				if pr != nil {
+					if spr, ok := (*pr).(*singleStatusNodesPullRequest); ok {
+						ch <- GitHubPullRequestStatusWrapper{&spr.singleStatusPullRequest, isMine}
+					}
+				}
 			}
 		}
 
@@ -509,74 +551,21 @@ query singleStatus($ids: [ID!]!) {
 }
 
 func (g GitHubPullRequest) ReplyToComment(comment Comment, replyText string) (Comment, error) {
+
 	if c, ok := comment.(GitHubQLThreadCommentWrapper); ok {
-		newDiscussionMutation := `
-mutation newReview($prId: ID!) {
-  addPullRequestReview(input: {pullRequestId: $prId}) { 
-    pullRequestReview {
-      id
-    }
-  }
-}
-`
-		var newDiscussionMutationResponse struct {
-			AddPullRequestReview struct {
-				PullRequestReview struct {
-					Id string
-				}
-			}
-		}
 
-		if err := g.sv.gqlClient.GraphQL(g.sv.host, newDiscussionMutation, map[string]interface{}{"prId": g.GetNodeID()}, &newDiscussionMutationResponse); err != nil {
+		if rev, isNew, err := g.createOrGetPendingReview(); err != nil {
 			return nil, err
-		}
-
-		mutation := `
-mutation replyTo($revId: ID!, $commentId: ID!, $body: String!) {
-  addPullRequestReviewComment(
-    input: {pullRequestReviewId: $revId, inReplyTo: $commentId, body: $body}
-  ) { 
-    comment {
-      id
-    }
-  }
-}`
-		var resp1 struct {
-			AddPullRequestReviewComment struct {
-				Comment struct {
-					Id string
-				}
-			}
-		}
-
-		if err := g.sv.gqlClient.GraphQL(g.sv.host, mutation, map[string]interface{}{
-			"commentId": c.comment.Id,
-			"revId":     newDiscussionMutationResponse.AddPullRequestReview.PullRequestReview.Id,
-			"body":      replyText}, &resp1); err != nil {
+		} else if _, err := replyTo(g.sv.ctx, rev.GetId(), c.comment.Id, replyText); err != nil {
 			return nil, err
-		}
-
-		// Finally close the review and return
-
-		closeReviewMutation := `
-mutation closeReview($revId: ID!) {
-  submitPullRequestReview(input: {pullRequestReviewId: $revId, event: COMMENT}) {
-    clientMutationId
-  }
-}`
-		var closeReviewMutationResponse struct {
-			SubmitPullRequestReview struct {
-				ClientMutationId *string
+		} else if isNew {
+			if _, err := closeReview(g.sv.ctx, rev.GetId()); err != nil {
+				return nil, err
 			}
-		}
-
-		if err := g.sv.gqlClient.GraphQL(g.sv.host, closeReviewMutation, map[string]interface{}{
-			"revId": newDiscussionMutationResponse.AddPullRequestReview.PullRequestReview.Id,
-		}, &closeReviewMutationResponse); err != nil {
-			return nil, err
 		}
 
 		return nil, nil
+
 	} else if c, ok := comment.(GitHubCommentWrapper); ok {
 		if cmt, _, err := g.sv.client.PullRequests.CreateComment(g.sv.ctx, g.sv.owner, g.sv.repo, g.GetNumber(), &gh.PullRequestComment{
 			InReplyTo: c.ID,
@@ -590,65 +579,14 @@ mutation closeReview($revId: ID!) {
 			return nil, err
 		}
 	} else {
-		return nil, fmt.Errorf("Illegal argument: not a github comment")
+		return nil, fmt.Errorf("illegal argument: not a github comment")
 	}
 }
 
 func (g GitHubPullRequest) GetChecks() ([]Check, error) {
-	type response struct {
-		Repository *struct {
-			PullRequest *struct {
-				StatusCheckRollup *struct {
-					Nodes []*struct {
-						Commit *struct {
-							StatusCheckRollup *struct {
-								Contexts *struct {
-									Nodes []*api.CheckContext
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
 
-	var resp1 response
+	resp1, err := GetChecksAndStatus(g.sv.ctx, g.sv.repo, g.sv.owner, g.GetNumber())
 
-	err := g.sv.gqlClient.GraphQL(g.sv.host, `
-query GetRepos($name: String!, $owner: String!, $number: Int!) {
-	repository(name: $name, owner: $owner) {
-		pullRequest(number: $number) {
-			statusCheckRollup: commits(last: 1) {
-				nodes {
-					commit {
-						statusCheckRollup {
-							contexts(first:100) {
-								nodes {
-									__typename
-									...on StatusContext {
-										context,
-										state,
-										targetUrl
-									},
-									...on CheckRun {
-										name,
-										status,
-										conclusion,
-										startedAt,
-										completedAt,
-										detailsUrl
-									}
-								},
-								pageInfo{hasNextPage,endCursor}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-}`, map[string]interface{}{"name": g.sv.repo, "owner": g.sv.owner, "number": g.GetNumber()}, &resp1)
 	if err != nil {
 		pterm.Fatal.Println(err)
 	}
@@ -656,10 +594,12 @@ query GetRepos($name: String!, $owner: String!, $number: Int!) {
 
 	for _, rollups := range resp1.Repository.PullRequest.StatusCheckRollup.Nodes {
 
-		if rollups != nil && rollups.Commit != nil && rollups.Commit.StatusCheckRollup != nil && rollups.Commit.StatusCheckRollup.Contexts != nil {
+		if rollups != nil && rollups.Commit.StatusCheckRollup != nil {
 			for _, checks := range rollups.Commit.StatusCheckRollup.Contexts.Nodes {
-				if (checks.State != "" || checks.Status != "") && checks.Name != "" {
-					result = append(result, GitHubCheck{checks})
+				if cr, ok := (*checks).(*GetChecksAndStatusRepositoryPullRequestStatusCheckRollupPullRequestCommitConnectionNodesPullRequestCommitCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesCheckRun); ok {
+					result = append(result, &GitHubCheckRun{cr.CheckRunCase})
+				} else if sc, ok := (*checks).(*GetChecksAndStatusRepositoryPullRequestStatusCheckRollupPullRequestCommitConnectionNodesPullRequestCommitCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusContext); ok {
+					result = append(result, &GitHubCheck{sc.StatusContextCase})
 				}
 			}
 		}
@@ -670,64 +610,42 @@ query GetRepos($name: String!, $owner: String!, $number: Int!) {
 }
 
 type GitHubCheck struct {
-	*api.CheckContext
+	StatusContextCase
 }
 
-func (g GitHubCheck) GetUrl() string {
-	if g.TypeName == "CheckRun" {
-		return g.DetailsURL
-	}
-	return g.TargetURL
+type GitHubCheckRun struct {
+	CheckRunCase
+}
+
+func (v *GitHubCheckRun) GetStatus() string {
+	return string(v.Status)
+}
+
+func (v *GitHubCheckRun) GetUrl() string {
+	return *v.DetailsUrl
+}
+
+func (g *GitHubCheck) GetUrl() string {
+	return *g.TargetUrl
+
 }
 
 func (g GitHubCheck) GetName() string {
-	if g.TypeName == "CheckRun" {
-		return g.Name
-	}
 	return g.Context
 }
 
 func (g GitHubCheck) GetStatus() string {
-	if g.TypeName == "CheckRun" {
-		if g.Status != "COMPLETED" {
-			return g.Status
-		}
-		return g.Conclusion
-	}
-	return g.State
+	return string(g.State)
 }
 
 func (g GitHubPullRequest) GetReviews() ([]Review, error) {
-	type response struct {
-		Repository *struct {
-			PullRequest *struct {
-				Reviews *api.PullRequestReviews
-			}
-		}
-	}
 
-	var resp1 response
-
-	err := g.sv.gqlClient.GraphQL(g.sv.host, `
-query GetRepos($name: String!, $owner: String!, $number: Int!) {
-	repository(name: $name, owner: $owner) {
-		pullRequest(number: $number) {
-			reviews(first: 100) {
-				nodes {
-					author { login }
-					body
-					bodyHTML
-					bodyText
-					state
-					submittedAt	
-				}
-			}
-		}
-	}
-}`, map[string]interface{}{"name": g.sv.repo, "owner": g.sv.owner, "number": g.GetNumber()}, &resp1)
+	resp1, err := PullRequestsList(g.sv.ctx, g.sv.repo, g.sv.owner, g.GetNumber())
 	if err != nil {
-		pterm.Fatal.Println(err)
+		pterm.Debug.Println(err)
+		return nil, err
 	}
+
 	result := make([]Review, 0)
 
 	for _, rev := range resp1.Repository.PullRequest.Reviews.Nodes {
@@ -742,15 +660,47 @@ query GetRepos($name: String!, $owner: String!, $number: Int!) {
 }
 
 type GitHubReview struct {
-	api.PullRequestReview
+	*PullRequestsListRepositoryPullRequestReviewsPullRequestReviewConnectionNodesPullRequestReview
+}
+
+func (g GitHubReview) Cancel() error {
+	return errors.New("cannot operate on other's reviews")
+}
+
+func (g GitHubReview) Dismiss() error {
+	return errors.New("cannot operate on other's reviews")
+}
+
+func (g GitHubReview) Close(comment *string) error {
+	return errors.New("cannot operate on other's reviews")
+}
+
+func (g GitHubReview) Approve(comment *string) error {
+	return errors.New("cannot operate on other's reviews")
+}
+
+func (g GitHubReview) RequestChanges(comment *string) error {
+	return errors.New("cannot operate on other's reviews")
+}
+
+func (g GitHubReview) GetId() string {
+	return ""
 }
 
 func (g GitHubReview) GetState() string {
-	return g.State
+	return string(g.State)
 }
 
 func (g GitHubReview) GetAuthor() string {
-	return g.Author.Login
+	if aa := g.PullRequestsListRepositoryPullRequestReviewsPullRequestReviewConnectionNodesPullRequestReview.GetAuthor(); aa != nil {
+		if a := *aa; a != nil {
+			return a.GetLogin()
+		} else {
+			return ""
+		}
+	} else {
+		return ""
+	}
 }
 
 func (g GitHubReview) GetSubmitedAt() time.Time {
@@ -761,34 +711,26 @@ func (g GitHubReview) GetSubmitedAt() time.Time {
 	}
 }
 
-type UserInfo struct {
-	Login string
-}
-
-func (u UserInfo) GetDisplayName() string {
-	return u.Login
-}
-
 type ReactionInfo struct {
 	Content   githubv4.ReactionContent
 	CreatedAt time.Time
 	User      UserInfo
 }
 
-func (r ReactionInfo) GetAuthor() Author {
+func (r *ReactionsInfoReactionsReactionConnectionNodesReaction) GetAuthor() Author {
 	return r.User
 }
 
-func (r ReactionInfo) GetCreatedOn() time.Time {
+func (r *ReactionsInfoReactionsReactionConnectionNodesReaction) GetCreatedOn() time.Time {
 	return r.CreatedAt
 }
 
-type ReactionsInfo struct {
+type ReactionsInfoOld struct {
 	TotalCount int
 	Nodes      []ReactionInfo
 }
 
-func (i ReactionsInfo) toReactions() Reactions {
+func (i *ReactionsInfoReactionsReactionConnection) toReactions() Reactions {
 	res := make(Reactions)
 
 	for _, r := range i.Nodes {
@@ -802,20 +744,6 @@ func (i ReactionsInfo) toReactions() Reactions {
 	}
 
 	return res
-}
-
-type CommentInfo struct {
-	Id        string
-	Author    UserInfo
-	Body      string
-	BodyText  string
-	BodyHTML  string
-	Reactions ReactionsInfo
-	CreatedAt time.Time
-}
-
-func (c CommentInfo) GetRaw() string {
-	return c.Body
 }
 
 type PageInfo struct {
@@ -836,144 +764,36 @@ type PullRequestCommentResponse struct {
 }
 
 type PullRequestCommentOrError struct {
-	Comment CommentInfo
+	Comment pullRequestCommentsRepositoryPullRequestCommentsIssueCommentConnectionNodesIssueComment
 	error   error
 }
 
 type PullRequestThreadOrError struct {
-	PullRequestThread PullRequestThread
+	PullRequestThread pullRequestThreadsRepositoryPullRequestReviewThreadsPullRequestReviewThreadConnectionNodesPullRequestReviewThread
 	error             error
 }
 
-type PullRequestThreadComment struct {
-	CommentInfo
-	ReplyTo *struct {
-		Id *string
-	}
-}
-
-type PullRequestThread struct {
-	Line              *int
-	OriginalLine      *int
-	Path              string
-	DiffSide          *githubv4.DiffSide
-	StartLine         *int
-	StartDiffSide     *githubv4.DiffSide
-	OriginalStartLine *int
-	IsOutdated        bool
-	Comments          struct {
-		PageInfo   PageInfo
-		TotalCount int
-		Nodes      []PullRequestThreadComment
-	}
-}
-
 func (g GitHubPullRequest) getPullRequestThreadComments() <-chan PullRequestThreadOrError {
-	query := `query pullRequestThreads($number:Int!, $owner: String!, $name: String!, $commentAfter: String) {
-    repository(owner: $owner,name: $name) {
-        pullRequest(number: $number) {
-            reviewThreads(first:5, after: $commentAfter) {
-                pageInfo {
-                    endCursor
-                    hasNextPage
-                }
-                totalCount
-                nodes {
-                    line
-                    originalLine
-                    path
-                    diffSide
-
-                    startLine
-                    startDiffSide
-                    originalStartLine
-
-                    isOutdated
-
-                    comments(first: 100) {
-                        pageInfo {
-                            endCursor
-                            hasNextPage
-                        }
-                        totalCount
-                        nodes {
-                            replyTo {
-                                id
-                            }
-                            ...ReviewInfo
-                            ...ReactionsInfo
-                        }
-
-                    }
-                }
-            }
-        }
-    }
-
-}
-
-
-
-fragment ReviewInfo on Comment {
-    id
-    author {
-        login
-    }
-    body
-    bodyText
-    bodyHTML
-    createdAt
-}
-
-fragment ReactionsInfo on Reactable {
-    reactions(first: 20) {
-        totalCount
-        nodes {
-            content
-            createdAt
-            user {
-                login
-            }
-        }
-    }
-}
-`
-	args := map[string]interface{}{
-		"number": g.Number,
-		"owner":  g.sv.owner,
-		"name":   g.sv.repo,
-	}
 
 	ch := make(chan PullRequestThreadOrError)
 
 	go func() {
 		cont := true
-		var resp struct {
-			Repository struct {
-				PullRequest struct {
-					ReviewThreads struct {
-						PageInfo   PageInfo
-						TotalCount int
-						Nodes      []PullRequestThread
-					}
-				}
-			}
-		}
+
+		var commentAfter *string
 		for cont {
-			if err := g.sv.graphQL(query, args, &resp); err != nil {
+
+			if rs, err := pullRequestThreads(g.sv.ctx, *g.Number, g.sv.owner, g.sv.repo, commentAfter); err != nil {
 				cont = false
 				ch <- PullRequestThreadOrError{error: err}
-			}
-
-			for _, c := range resp.Repository.PullRequest.ReviewThreads.Nodes {
-				ch <- PullRequestThreadOrError{PullRequestThread: c}
-			}
-			if resp.Repository.PullRequest.ReviewThreads.PageInfo.HasNextPage {
-				args["commentAfter"] = resp.Repository.PullRequest.ReviewThreads.PageInfo.EndCursor
 			} else {
-				cont = false
-			}
+				for _, c := range rs.Repository.PullRequest.ReviewThreads.Nodes {
+					ch <- PullRequestThreadOrError{PullRequestThread: *c}
+				}
 
+				commentAfter = rs.Repository.PullRequest.ReviewThreads.PageInfo.EndCursor
+				cont = rs.Repository.PullRequest.ReviewThreads.PageInfo.HasNextPage
+			}
 		}
 		close(ch)
 	}()
@@ -982,78 +802,24 @@ fragment ReactionsInfo on Reactable {
 }
 
 func (g GitHubPullRequest) getPullRequestComments() <-chan PullRequestCommentOrError {
-	query := `
-query pullRequestComments($number:Int!, $owner: String!, $name: String!, $commentAfter: String) {
-    repository(owner: $owner,name: $name) {
-        pullRequest(number: $number) {
-            comments(first: 100, after: $commentAfter){
-                pageInfo {
-                    hasNextPage
-                    endCursor
-                }
-
-                totalCount
-                nodes {
-					id
-                    ...ReactionsInfo
-                    ...ReviewInfo
-                }
-            }
-        }
-    }
-
-}
-
-fragment ReviewInfo on Comment {
-    id
-    author {
-        login
-    }
-    body
-    bodyText
-    bodyHTML
-    createdAt
-}
-
-fragment ReactionsInfo on Reactable {
-    reactions(first: 20) {
-        totalCount
-        nodes {
-            content
-            createdAt
-            user {
-                login
-            }
-        }
-    }
-}
-`
-	args := map[string]interface{}{
-		"number": g.Number,
-		"owner":  g.sv.owner,
-		"name":   g.sv.repo,
-	}
 
 	ch := make(chan PullRequestCommentOrError)
 
 	go func() {
 		cont := true
-		var resp PullRequestCommentResponse
+		var commentAfter *string
 		for cont {
-			if err := g.sv.graphQL(query, args, &resp); err != nil {
+
+			if rs, err := pullRequestComments(g.sv.ctx, *g.Number, g.sv.owner, g.sv.repo, commentAfter); err != nil {
 				cont = false
 				ch <- PullRequestCommentOrError{error: err}
-			}
-
-			for _, c := range resp.Repository.PullRequest.Comments.Nodes {
-				ch <- PullRequestCommentOrError{c, nil}
-			}
-			if resp.Repository.PullRequest.Comments.PageInfo.HasNextPage {
-				args["commentAfter"] = resp.Repository.PullRequest.Comments.PageInfo.EndCursor
 			} else {
-				cont = false
+				for _, c := range rs.Repository.PullRequest.Comments.Nodes {
+					ch <- PullRequestCommentOrError{Comment: *c}
+				}
+				commentAfter = rs.Repository.PullRequest.Comments.PageInfo.EndCursor
+				cont = rs.Repository.PullRequest.Comments.PageInfo.HasNextPage
 			}
-
 		}
 		close(ch)
 	}()
@@ -1063,36 +829,40 @@ fragment ReactionsInfo on Reactable {
 }
 
 type GitHubQLThreadCommentWrapper struct {
-	thread  PullRequestThread
-	comment PullRequestThreadComment
+	thread  pullRequestThreadsRepositoryPullRequestReviewThreadsPullRequestReviewThreadConnectionNodesPullRequestReviewThread
+	comment pullRequestThreadsRepositoryPullRequestReviewThreadsPullRequestReviewThreadConnectionNodesPullRequestReviewThreadCommentsPullRequestReviewCommentConnectionNodesPullRequestReviewComment
 }
 
 func (g GitHubQLThreadCommentWrapper) GetReactions() Reactions {
-	return g.comment.GetReactions()
+	return g.comment.Reactions.toReactions()
 }
 
 func (g GitHubQLThreadCommentWrapper) GetContent() CommentContent {
-	return g.comment.CommentInfo
+	return &g.comment
 }
 
 func (g GitHubQLThreadCommentWrapper) GetParentId() interface{} {
 	if g.comment.ReplyTo != nil {
-		return *(g.comment.ReplyTo.Id)
+		return g.comment.ReplyTo.Id
 	} else {
 		return nil
 	}
 }
 
 func (g GitHubQLThreadCommentWrapper) GetId() interface{} {
-	return g.comment.Id
+	return g.comment.GetId()
 }
 
 func (g GitHubQLThreadCommentWrapper) GetUser() Author {
-	return g.comment.Author
+	if au := g.comment.GetAuthor(); au != nil {
+		return *au
+	}
+
+	return nil
 }
 
 func (g GitHubQLThreadCommentWrapper) GetCreatedOn() time.Time {
-	return g.comment.CreatedAt
+	return g.comment.GetCreatedAt()
 }
 
 func (g GitHubPullRequest) GetCommentsByLine() ([]Comment, map[string]map[int64][]Comment, error) {
@@ -1114,7 +884,7 @@ func (g GitHubPullRequest) GetCommentsByLine() ([]Comment, map[string]map[int64]
 
 		for _, c := range th.Comments.Nodes {
 			//commentsById[c.Id] = &c.CommentInfo
-			cmt := GitHubQLThreadCommentWrapper{th, c}
+			cmt := GitHubQLThreadCommentWrapper{th, *c}
 
 			path := th.Path
 			byLine, ok := commentMap[path]
@@ -1126,7 +896,7 @@ func (g GitHubPullRequest) GetCommentsByLine() ([]Comment, map[string]map[int64]
 			var line int64
 
 			if th.Line != nil {
-				if *th.DiffSide == githubv4.DiffSideRight {
+				if th.DiffSide == DiffSideRight {
 					line = -int64(*th.Line)
 				} else {
 					line = int64(*th.Line)
@@ -1151,7 +921,7 @@ func (g GitHubPullRequest) GetCommentsByLine() ([]Comment, map[string]map[int64]
 		if re.error != nil {
 			return nil, nil, re.error
 		}
-		prComments = append(prComments, GithubQLCommentWrapper{re.Comment})
+		prComments = append(prComments, GithubQLCommentWrapper{&re.Comment})
 	}
 
 	return prComments, commentMap, nil
@@ -1161,12 +931,20 @@ type GithubQLCommentWrapper struct {
 	CommentInfo
 }
 
-func (g CommentInfo) GetReactions() Reactions {
-	return g.Reactions.toReactions()
+func (g GithubQLCommentWrapper) GetId() interface{} {
+	return g.CommentInfo.GetId()
+}
+
+func (g GithubQLCommentWrapper) GetReactions() Reactions {
+	if ci, ok := g.CommentInfo.(*pullRequestCommentsRepositoryPullRequestCommentsIssueCommentConnectionNodesIssueComment); ok {
+		return ci.Reactions.toReactions()
+	} else {
+		return nil
+	}
 }
 
 func (g GithubQLCommentWrapper) GetRaw() string {
-	return g.Body
+	return g.CommentInfo.GetRaw()
 }
 
 func (g GithubQLCommentWrapper) GetContent() CommentContent {
@@ -1177,16 +955,16 @@ func (g GithubQLCommentWrapper) GetParentId() interface{} {
 	return nil
 }
 
-func (g GithubQLCommentWrapper) GetId() interface{} {
-	return g.Id
-}
-
 func (g GithubQLCommentWrapper) GetUser() Author {
-	return g.Author
+	if au := g.CommentInfo.GetAuthor(); au != nil {
+		return *au
+	} else {
+		return nil
+	}
 }
 
 func (g GithubQLCommentWrapper) GetCreatedOn() time.Time {
-	return g.CreatedAt
+	return g.GetCreatedAt()
 }
 
 type GitHubCommentWrapper struct {
@@ -1234,7 +1012,7 @@ type MissingCommitError struct {
 }
 
 func (m *MissingCommitError) Error() string {
-	return fmt.Sprintf("Cannot find commit hash: %s. Cause: %s", m.missingHash, m.cause.Error())
+	return fmt.Sprintf("Cannot find commit hash: %s. Cause: %v", m.missingHash, m.cause.Error())
 }
 
 func (g GitHubPullRequest) GetDiff() ([]*gitdiff.File, error) {

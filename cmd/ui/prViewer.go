@@ -8,8 +8,10 @@ import (
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/erikgeiser/promptkit/confirmation"
+	"github.com/itchyny/timefmt-go"
 	"github.com/pterm/pterm"
 	boxer "github.com/treilik/bubbleboxer"
+	"github.com/vballestra/sv/cmd/ui/simpleEditor"
 	"github.com/vballestra/sv/sv"
 	"math"
 	"os"
@@ -30,12 +32,13 @@ type Heading struct {
 
 type pullRequestData struct {
 	sv.PullRequest
-	checks       []sv.Check
-	reviews      []sv.Review
-	prComments   []sv.Comment
-	commentMap   map[string]map[int64][]sv.Comment
-	files        []*gitdiff.File
-	lastCommitId string
+	checks        []sv.Check
+	reviews       []sv.Review
+	prComments    []sv.Comment
+	commentMap    map[string]map[int64][]sv.Comment
+	files         []*gitdiff.File
+	lastCommitId  string
+	pendingReview sv.Review
 }
 
 func (d *pullRequestData) addComment(path string, old int64, new int64, isNew bool, comment sv.Comment) {
@@ -64,6 +67,9 @@ func loadPullRequestData(pr sv.PullRequest) (*pullRequestData, error) {
 	} else if reviews, err := pr.GetReviews(); err != nil {
 		pterm.Warning.Println("Couldn't read the checks ", err)
 		return nil, err
+	} else if pending, err := pr.GetPendingReview(); err != nil {
+		pterm.Warning.Println("Couldn't read the pending review ", err)
+		return nil, err
 	} else if prComments, commentMap, err := pr.GetCommentsByLine(); err != nil {
 		return nil, err
 	} else if files, err := pr.GetDiff(); err != nil {
@@ -75,7 +81,8 @@ func loadPullRequestData(pr sv.PullRequest) (*pullRequestData, error) {
 			prComments,
 			commentMap,
 			files,
-			pr.GetLastCommitId()}, nil
+			pr.GetLastCommitId(),
+			pending}, nil
 	}
 }
 
@@ -748,7 +755,10 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 			input := confirmation.New(fmt.Sprintf("Want to comment line %05d/%05d", msg.code.old, msg.code.new), confirmation.Yes)
 			if yes, err := input.RunPrompt(); yes && err == nil {
 				// Do nothing for now
-				if comment, err := launchEditor(""); err == nil && comment != "" {
+				if comment, err := launchEditor("",
+					simpleEditor.WithWidth{pterm.GetTerminalWidth()},
+					simpleEditor.WithTitle{"New Comment"},
+					simpleEditor.WithPlaceholder{"Edit comment"}); err == nil && comment != "" {
 					isNew := msg.code.code.New()
 					fn := getFileName(msg.code.file)
 					lineNum := int(msg.code.new)
@@ -768,10 +778,13 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 		case replyComment:
 			if _, data := bookmarkAt(&p, COMMENT_CATEGORY, msg.line); data != nil {
 				if comment, ok := data.(sv.Comment); ok {
-					input := confirmation.New(fmt.Sprintf("Whant to reply to comment by %s", comment.GetUser().GetDisplayName()), confirmation.Yes)
+					input := confirmation.New(fmt.Sprintf("Want to reply to comment by %s", comment.GetUser().GetDisplayName()), confirmation.Yes)
 					if yes, err := input.RunPrompt(); yes && err == nil {
 						// Do nothing for now
-						if replyText, err := launchEditor(""); err == nil {
+						if replyText, err := launchEditor("",
+							simpleEditor.WithWidth{pterm.GetTerminalWidth()},
+							simpleEditor.WithTitle{"Reply to Comment"},
+							simpleEditor.WithPlaceholder{"Edit comment"}); err == nil {
 							if _, err := p.pullRequest.ReplyToComment(comment, replyText); err != nil {
 								return p, showErrCmd(err)
 							} else {
@@ -821,6 +834,73 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 			return p, tea.Quit
 		case "esc":
 			return p, tea.Quit
+		case "R":
+			if rev := p.pullRequest.pendingReview; rev == nil {
+				if rev, err := p.pullRequest.StartReview(); err != nil {
+					return p, showErrCmd(err)
+				} else {
+					p.pullRequest.pendingReview = rev
+					return p, renderPrCmd
+				}
+			} else if yes, err := confirmation.New(fmt.Sprintf("Want to approve rev %s ?", rev.GetId()), confirmation.Yes).RunPrompt(); !yes || err != nil {
+				return p, nil
+			} else if text, err := launchEditor("",
+				simpleEditor.WithWidth{pterm.GetTerminalWidth()},
+				simpleEditor.WithTitle{"Request changes"},
+				simpleEditor.WithPlaceholder{"Edit review comment"}); err != nil {
+				return p, nil
+			} else if err := rev.RequestChanges(&text); err != nil {
+				return p, showErrCmd(err)
+			} else {
+				return p, p.reloadPullRequest()
+			}
+		case "C":
+			if rev := p.pullRequest.pendingReview; rev != nil {
+				if yes, err := confirmation.New(fmt.Sprintf("Want to cancel rev %s ?", rev.GetId()), confirmation.Yes).RunPrompt(); !yes || err != nil {
+					return p, nil
+				} else if err := rev.Cancel(); err != nil {
+					return p, showErrCmd(err)
+				} else {
+					p.pullRequest.pendingReview = nil
+					return p, renderPrCmd
+				}
+			}
+		case "S":
+			if rev := p.pullRequest.pendingReview; rev != nil {
+				if yes, err := confirmation.New(fmt.Sprintf("Want to submit rev %s ?", rev.GetId()), confirmation.Yes).RunPrompt(); !yes || err != nil {
+					return p, nil
+				} else if err := rev.Close(nil); err != nil {
+					return p, showErrCmd(err)
+				} else {
+					p.pullRequest.pendingReview = nil
+					return p, p.reloadPullRequest()
+				}
+			}
+		case "M":
+			if yes, err := confirmation.New(fmt.Sprintf("Want to merge rev %v ?", p.pullRequest.GetId()), confirmation.Yes).RunPrompt(); !yes || err != nil {
+				return p, nil
+			} else if err := p.pullRequest.Merge(); err != nil {
+				return p, showErrCmd(err)
+			} else {
+				return p, p.reloadPullRequest()
+			}
+
+		case "A":
+			if rev := p.pullRequest.pendingReview; rev != nil {
+				if text, err := launchEditor("",
+					simpleEditor.WithWidth{pterm.GetTerminalWidth()},
+					simpleEditor.WithTitle{"Request changes"},
+					simpleEditor.WithPlaceholder{"Edit review comment"}); err != nil {
+					return p, showErrCmd(err)
+				} else if yes, err := confirmation.New(fmt.Sprintf("Want to approve rev %v ?", rev.GetId()), confirmation.Yes).RunPrompt(); !yes || err != nil {
+					return p, nil
+				} else if err := rev.Approve(&text); err != nil {
+					return p, showErrCmd(err)
+				} else {
+					p.pullRequest.pendingReview = nil
+					return p, p.reloadPullRequest()
+				}
+			}
 		case "v":
 			newMode := p.layoutMode.withFileView(!p.layoutMode.showFileView)
 			if tree, err := layoutWidgets(&p.boxer, newMode); err == nil {
@@ -902,39 +982,47 @@ func (p PullRequestView) Update(m tea.Msg) (tea.Model, tea.Cmd) {
 	return p, tea.Batch(cmds...)
 }
 
-func launchEditor(initialText string) (string, error) {
-	if file, err := os.CreateTemp("", "comment-*.txt"); err == nil {
-		if _, err = file.WriteString(initialText); err != nil {
-			return "", err
-		}
-		file.Close()
-		defer os.Remove(file.Name())
+var useEditor = false
 
-		// Run editor
-		var editorPath string
-		if editorPath = os.Getenv("EDITOR"); editorPath == "" {
-			editorPath = "vim"
-		}
+func launchEditor(initialText string, opts ...simpleEditor.Opts) (string, error) {
 
-		cmd := exec.Command(editorPath, file.Name())
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		if err = cmd.Start(); err != nil {
-			return "", err
-		}
-		if err = cmd.Wait(); err != nil {
-			return "", err
-		}
+	if useEditor {
+		if file, err := os.CreateTemp("", "comment-*.txt"); err == nil {
+			if _, err = file.WriteString(initialText); err != nil {
+				return "", err
+			}
+			file.Close()
+			defer os.Remove(file.Name())
 
-		// Read back the file and write it
-		if content, err := os.ReadFile(file.Name()); err == nil {
-			return string(content[:]), nil
+			// Run editor
+			var editorPath string
+			if editorPath = os.Getenv("EDITOR"); editorPath == "" {
+				editorPath = "vim"
+			}
+
+			cmd := exec.Command(editorPath, file.Name())
+			cmd.Stdin = os.Stdin
+			cmd.Stdout = os.Stdout
+			if err = cmd.Start(); err != nil {
+				return "", err
+			}
+			if err = cmd.Wait(); err != nil {
+				return "", err
+			}
+
+			// Read back the file and write it
+			if content, err := os.ReadFile(file.Name()); err == nil {
+				return string(content[:]), nil
+			} else {
+				return "", err
+			}
+
 		} else {
 			return "", err
 		}
-
 	} else {
-		return "", err
+		opts = append(opts, simpleEditor.WithValue{initialText})
+		return simpleEditor.RunEditor(opts...)
 	}
 }
 
@@ -1046,6 +1134,13 @@ func (prv *PullRequestView) renderPullRequest() {
 				if n >= header.maxReviews-1 {
 					break
 				}
+			}
+
+			pendingReviewStyle := lipgloss.NewStyle().Width(content.viewport.Width).Background(lipgloss.Color("#00e0e0")).ColorWhitespace(true).Foreground(lipgloss.Color("#000000"))
+			if perev := pr.pendingReview; perev != nil {
+				header.header.printf(pendingReviewStyle.Render(fmt.Sprintf("PENDING REVIEW %s SUBMITTED AT %s (C='CANCEL', S='SUBMIT', M='APPROVE', R='REQ. CHANGES')", perev.GetId(), timefmt.Format(perev.GetSubmitedAt(), "%02d/%02m/%Y %H:%M:%S"))))
+			} else {
+				header.header.printf("NO PENDING REVIEW (R='Create a new one')")
 			}
 
 			prv.PrintComments(content, header, prv.pullRequest.prComments, content.viewport.Width)
