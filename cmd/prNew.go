@@ -57,7 +57,7 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	prNewCmd.Flags().StringVarP(&newPrTitle, "title", "t", "", "The new PR title")
+	prNewCmd.Flags().StringVarP(&newPrTitle, "title", "T", "", "The new PR title")
 	prNewCmd.Flags().StringVarP(&newPrDescription, "description", "d", "", "New PR optional description")
 	prNewCmd.Flags().StringVarP(&newPrBaseBranch, "base", "b", "", "The base branch (required)")
 	prNewCmd.Flags().StringVarP(&newPrDestBranch, "head", "h", "", "The (optional) head branch")
