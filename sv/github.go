@@ -41,6 +41,21 @@ type GitHubSv struct {
 	sshKeySelector *regexp.Regexp
 }
 
+func (g *GitHubSv) CreatePullRequest(baseBranch string, headBranch string, title string, description *string) (PullRequestStatus, error) {
+	// First get the repository id
+	if resp, err := repositoryId(g.ctx, g.owner, g.repo); err != nil {
+		return nil, err
+	} else if resp2, err := createPullRequest(g.ctx, resp.Repository.Id, headBranch, baseBranch, title, description); err != nil {
+		return nil, err
+	} else {
+		pr := resp2.CreatePullRequest.PullRequest.singleStatusPullRequest
+		return &GitHubPullRequestStatusWrapper{
+			singleStatusPullRequest: &pr,
+			isMine:                  true,
+		}, nil
+	}
+}
+
 func (g *GitHubSv) GetRepositoryFullName() string {
 	return fmt.Sprintf("%s/%s", g.owner, g.repo)
 }
@@ -116,7 +131,7 @@ func (g *GitHubSv) PullRequestStatus() (<-chan PullRequestStatus, error) {
 }
 
 type GitHubPullRequestStatusWrapper struct {
-	*singleStatusNodesPullRequest
+	*singleStatusPullRequest
 	isMine bool
 }
 
@@ -187,6 +202,18 @@ func (g GitHubPullRequestStatusWrapper) GetContextByStatus() map[string]int {
 		}
 	}
 	return states
+}
+
+func (g *GitHubSv) GetCurrentBranch() (string, error) {
+	if rep, err := git.PlainOpen(g.localRepo); err != nil {
+		return "", err
+	} else if hd, err := rep.Head(); err != nil {
+		return "", err
+	} else if hd.Name().IsBranch() {
+		return hd.Name().Short(), nil
+	} else {
+		return "", fmt.Errorf("current reference '%v' is not a branch", hd.Name())
+	}
 }
 
 func (g *GitHubSv) Fetch() error {
@@ -497,7 +524,7 @@ func (g *GitHubSv) searchForPrStatus(prQuery string, isMine bool) (<-chan PullRe
 					for _, pr := range resp.Nodes {
 						if pr != nil {
 							if spr, ok := (*pr).(*singleStatusNodesPullRequest); ok {
-								ch <- GitHubPullRequestStatusWrapper{spr, isMine}
+								ch <- GitHubPullRequestStatusWrapper{&spr.singleStatusPullRequest, isMine}
 							}
 						}
 					}
@@ -511,7 +538,7 @@ func (g *GitHubSv) searchForPrStatus(prQuery string, isMine bool) (<-chan PullRe
 			for _, pr := range resp.Nodes {
 				if pr != nil {
 					if spr, ok := (*pr).(*singleStatusNodesPullRequest); ok {
-						ch <- GitHubPullRequestStatusWrapper{spr, isMine}
+						ch <- GitHubPullRequestStatusWrapper{&spr.singleStatusPullRequest, isMine}
 					}
 				}
 			}

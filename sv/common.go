@@ -2,6 +2,7 @@ package sv
 
 import (
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
+	"os/exec"
 	"time"
 )
 
@@ -77,6 +78,8 @@ type Sv interface {
 	PullRequestStatus() (<-chan PullRequestStatus, error)
 	Fetch() error
 	GetRepositoryFullName() string
+	CreatePullRequest(baseBranch string, headBranch string, title string, description *string) (PullRequestStatus, error)
+	GetCurrentBranch() (string, error)
 }
 
 type PullRequestStatus interface {
@@ -91,4 +94,41 @@ type PullRequestStatus interface {
 	GetAuthor() string
 	GetRepository() string
 	IsMine() bool
+}
+
+func execGitFetch() error {
+	if path, err := exec.LookPath("git"); err != nil {
+		return err
+	} else {
+		cmd := exec.Command(path, "fetch")
+		// cmd.Stdin = os.Stdin
+		// cmd.Stdout = os.Stdout
+		if err = cmd.Start(); err != nil {
+			return err
+		}
+		if err = cmd.Wait(); err != nil {
+			if err, ok := err.(*exec.ExitError); ok {
+				if err.ExitCode() != 1 {
+					return err
+				} else {
+					// We can ignore exit code 1 from fetch.
+					return nil
+				}
+			}
+			return err
+		}
+
+		return nil
+	}
+
+}
+
+func ForceFetch(repo Sv) error {
+	if err := repo.Fetch(); err == nil {
+		return nil
+	} else if err := execGitFetch(); err == nil {
+		return nil
+	} else {
+		return err
+	}
 }

@@ -12,6 +12,7 @@ go_library(
         "prShow.go",
         "prStatus.go",
         "root.go",
+        "prNew.go",
     ],
     importpath = "github.com/vballestra/sv/cmd",
     visibility = ["//visibility:public"],

@@ -28,6 +28,16 @@ type BitBucketSv struct {
 	localRepo string
 }
 
+func (b *BitBucketSv) GetCurrentBranch() (string, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (b *BitBucketSv) CreatePullRequest(baseBranch string, headBranch string, title string, description *string) (PullRequestStatus, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (b *BitBucketSv) GetRepositoryFullName() string {
 	return fmt.Sprintf("%s/%s", b.workspace, b.repoSlug)
 }

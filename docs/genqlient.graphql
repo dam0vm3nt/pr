@@ -281,4 +281,19 @@ query pullRequestThreads($number:Int!, $owner: String!, $name: String!, $comment
     }
 }
 
+query repositoryId($owner: String!, $name: String!) {
+    repository(owner: $owner, name: $name) {
+        id
+    }
+}
+
+mutation createPullRequest($repoId: ID!, $branchName: String!, $baseBranch: String!, $title: String!, $description: String) {
+    createPullRequest(input: {headRefName: $branchName, baseRefName: $baseBranch, title: $title, body: $description, repositoryId: $repoId}) {
+        clientMutationId
+        pullRequest {
+            ... singleStatusPullRequest
+        }
+    }
+}
+
 
