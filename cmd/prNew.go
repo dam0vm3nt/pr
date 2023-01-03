@@ -60,5 +60,5 @@ func init() {
 	prNewCmd.Flags().StringVarP(&newPrTitle, "title", "T", "", "The new PR title")
 	prNewCmd.Flags().StringVarP(&newPrDescription, "description", "d", "", "New PR optional description")
 	prNewCmd.Flags().StringVarP(&newPrBaseBranch, "base", "b", "", "The base branch (required)")
-	prNewCmd.Flags().StringVarP(&newPrDestBranch, "head", "h", "", "The (optional) head branch")
+	prNewCmd.Flags().StringVarP(&newPrDestBranch, "head", "H", "", "The (optional) head branch")
 }
