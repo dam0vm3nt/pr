@@ -337,6 +337,15 @@ query searchLabels($query: String!, $owner: String!, $repo: String!, $cursor: St
     }
 }
 
+mutation createLabel($name: String!, $description: String,$color: String!, $repoId: ID!) {
+    createLabel(input: {name: $name, color:$color, repositoryId: $repoId, description: $description }) {
+        clientMutationId
+        label {
+            ...LabelInfo
+        }
+    }
+}
+
 fragment LabelInfo on Label {
     id
     color

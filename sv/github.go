@@ -68,12 +68,24 @@ func toLabelIdsChan(repo *GitHubSv, labels []string) <-chan idOrError {
 	ch := make(chan idOrError)
 
 	go func() {
-		for _, label := range labels {
-			if resp, err := getLabelByName(repo.ctx, label, repo.owner, repo.repo); err != nil {
-				ch <- idOrError{error: err}
-				break
-			} else {
-				ch <- idOrError{string: resp.Repository.Label.Id}
+
+		// Get the repo id first
+		if repoIdResp, err := repositoryId(repo.ctx, repo.owner, repo.repo); err != nil {
+			ch <- idOrError{error: err}
+		} else {
+			repoId := repoIdResp.Repository.Id
+			for _, label := range labels {
+				if resp, err := getLabelByName(repo.ctx, label, repo.owner, repo.repo); err != nil {
+					ch <- idOrError{error: err}
+					break
+				} else if resp.Repository.Label != nil {
+					ch <- idOrError{string: resp.Repository.Label.Id}
+				} else if resp2, err := createLabel(repo.ctx, label, nil, "#a0a0a0", repoId); err != nil {
+					ch <- idOrError{error: err}
+					break
+				} else {
+					ch <- idOrError{string: resp2.CreateLabel.Label.Id}
+				}
 			}
 		}
 		close(ch)
