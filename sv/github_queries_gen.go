@@ -4166,6 +4166,44 @@ func (v *GetChecksAndStatusResponse) GetRepository() *GetChecksAndStatusReposito
 	return v.Repository
 }
 
+// LabelInfo includes the GraphQL fields of Label requested by the fragment LabelInfo.
+// The GraphQL type's documentation follows.
+//
+// A label for categorizing Issues, Pull Requests, Milestones, or Discussions with a given Repository.
+type LabelInfo struct {
+	Id string `json:"id"`
+	// Identifies the label color.
+	Color string `json:"color"`
+	// A brief description of this label.
+	Description *string `json:"description"`
+}
+
+// GetId returns LabelInfo.Id, and is useful for accessing the field via an interface.
+func (v *LabelInfo) GetId() string { return v.Id }
+
+// GetColor returns LabelInfo.Color, and is useful for accessing the field via an interface.
+func (v *LabelInfo) GetColor() string { return v.Color }
+
+// GetDescription returns LabelInfo.Description, and is useful for accessing the field via an interface.
+func (v *LabelInfo) GetDescription() *string { return v.Description }
+
+// NextPageInfo includes the GraphQL fields of PageInfo requested by the fragment NextPageInfo.
+// The GraphQL type's documentation follows.
+//
+// Information about pagination in a connection.
+type NextPageInfo struct {
+	// When paginating forwards, are there more items?
+	HasNextPage bool `json:"hasNextPage"`
+	// When paginating forwards, the cursor to continue.
+	EndCursor *string `json:"endCursor"`
+}
+
+// GetHasNextPage returns NextPageInfo.HasNextPage, and is useful for accessing the field via an interface.
+func (v *NextPageInfo) GetHasNextPage() bool { return v.HasNextPage }
+
+// GetEndCursor returns NextPageInfo.EndCursor, and is useful for accessing the field via an interface.
+func (v *NextPageInfo) GetEndCursor() *string { return v.EndCursor }
+
 // The possible events to perform on a pull request review.
 type PullRequestReviewEvent string
 
@@ -5472,6 +5510,26 @@ func (v *__closeReviewWithEventInput) GetEvent() PullRequestReviewEvent { return
 // GetComment returns __closeReviewWithEventInput.Comment, and is useful for accessing the field via an interface.
 func (v *__closeReviewWithEventInput) GetComment() *string { return v.Comment }
 
+// __createLabelInput is used internally by genqlient
+type __createLabelInput struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
+	Color       string  `json:"color"`
+	RepoId      string  `json:"repoId"`
+}
+
+// GetName returns __createLabelInput.Name, and is useful for accessing the field via an interface.
+func (v *__createLabelInput) GetName() string { return v.Name }
+
+// GetDescription returns __createLabelInput.Description, and is useful for accessing the field via an interface.
+func (v *__createLabelInput) GetDescription() *string { return v.Description }
+
+// GetColor returns __createLabelInput.Color, and is useful for accessing the field via an interface.
+func (v *__createLabelInput) GetColor() string { return v.Color }
+
+// GetRepoId returns __createLabelInput.RepoId, and is useful for accessing the field via an interface.
+func (v *__createLabelInput) GetRepoId() string { return v.RepoId }
+
 // __createPullRequestInput is used internally by genqlient
 type __createPullRequestInput struct {
 	RepoId      string  `json:"repoId"`
@@ -5507,6 +5565,54 @@ func (v *__currentPendingReviewInput) GetPrId() string { return v.PrId }
 
 // GetAuthor returns __currentPendingReviewInput.Author, and is useful for accessing the field via an interface.
 func (v *__currentPendingReviewInput) GetAuthor() *string { return v.Author }
+
+// __editPullRequestInput is used internally by genqlient
+type __editPullRequestInput struct {
+	Id     string   `json:"id"`
+	Labels []string `json:"labels"`
+}
+
+// GetId returns __editPullRequestInput.Id, and is useful for accessing the field via an interface.
+func (v *__editPullRequestInput) GetId() string { return v.Id }
+
+// GetLabels returns __editPullRequestInput.Labels, and is useful for accessing the field via an interface.
+func (v *__editPullRequestInput) GetLabels() []string { return v.Labels }
+
+// __editPullRequestReviewersInput is used internally by genqlient
+type __editPullRequestReviewersInput struct {
+	Id        string   `json:"id"`
+	Reviewers []string `json:"reviewers"`
+}
+
+// GetId returns __editPullRequestReviewersInput.Id, and is useful for accessing the field via an interface.
+func (v *__editPullRequestReviewersInput) GetId() string { return v.Id }
+
+// GetReviewers returns __editPullRequestReviewersInput.Reviewers, and is useful for accessing the field via an interface.
+func (v *__editPullRequestReviewersInput) GetReviewers() []string { return v.Reviewers }
+
+// __getLabelByNameInput is used internally by genqlient
+type __getLabelByNameInput struct {
+	Label string `json:"label"`
+	Owner string `json:"owner"`
+	Repo  string `json:"repo"`
+}
+
+// GetLabel returns __getLabelByNameInput.Label, and is useful for accessing the field via an interface.
+func (v *__getLabelByNameInput) GetLabel() string { return v.Label }
+
+// GetOwner returns __getLabelByNameInput.Owner, and is useful for accessing the field via an interface.
+func (v *__getLabelByNameInput) GetOwner() string { return v.Owner }
+
+// GetRepo returns __getLabelByNameInput.Repo, and is useful for accessing the field via an interface.
+func (v *__getLabelByNameInput) GetRepo() string { return v.Repo }
+
+// __getUserIdByLoginInput is used internally by genqlient
+type __getUserIdByLoginInput struct {
+	Login string `json:"login"`
+}
+
+// GetLogin returns __getUserIdByLoginInput.Login, and is useful for accessing the field via an interface.
+func (v *__getUserIdByLoginInput) GetLogin() string { return v.Login }
 
 // __mergePullRequestInput is used internally by genqlient
 type __mergePullRequestInput struct {
@@ -5604,6 +5710,26 @@ func (v *__requestedReviewsInput) GetPrQuery() string { return v.PrQuery }
 // GetAfter returns __requestedReviewsInput.After, and is useful for accessing the field via an interface.
 func (v *__requestedReviewsInput) GetAfter() *string { return v.After }
 
+// __searchLabelsInput is used internally by genqlient
+type __searchLabelsInput struct {
+	Query  string  `json:"query"`
+	Owner  string  `json:"owner"`
+	Repo   string  `json:"repo"`
+	Cursor *string `json:"cursor"`
+}
+
+// GetQuery returns __searchLabelsInput.Query, and is useful for accessing the field via an interface.
+func (v *__searchLabelsInput) GetQuery() string { return v.Query }
+
+// GetOwner returns __searchLabelsInput.Owner, and is useful for accessing the field via an interface.
+func (v *__searchLabelsInput) GetOwner() string { return v.Owner }
+
+// GetRepo returns __searchLabelsInput.Repo, and is useful for accessing the field via an interface.
+func (v *__searchLabelsInput) GetRepo() string { return v.Repo }
+
+// GetCursor returns __searchLabelsInput.Cursor, and is useful for accessing the field via an interface.
+func (v *__searchLabelsInput) GetCursor() *string { return v.Cursor }
+
 // __singleStatusInput is used internally by genqlient
 type __singleStatusInput struct {
 	Ids []string `json:"ids"`
@@ -5687,6 +5813,107 @@ func (v *closeReviewWithEventSubmitPullRequestReviewSubmitPullRequestReviewPaylo
 	return v.ClientMutationId
 }
 
+// createLabelCreateLabelCreateLabelPayload includes the requested fields of the GraphQL type CreateLabelPayload.
+// The GraphQL type's documentation follows.
+//
+// Autogenerated return type of CreateLabel
+type createLabelCreateLabelCreateLabelPayload struct {
+	// A unique identifier for the client performing the mutation.
+	ClientMutationId *string `json:"clientMutationId"`
+	// The new label.
+	Label *createLabelCreateLabelCreateLabelPayloadLabel `json:"label"`
+}
+
+// GetClientMutationId returns createLabelCreateLabelCreateLabelPayload.ClientMutationId, and is useful for accessing the field via an interface.
+func (v *createLabelCreateLabelCreateLabelPayload) GetClientMutationId() *string {
+	return v.ClientMutationId
+}
+
+// GetLabel returns createLabelCreateLabelCreateLabelPayload.Label, and is useful for accessing the field via an interface.
+func (v *createLabelCreateLabelCreateLabelPayload) GetLabel() *createLabelCreateLabelCreateLabelPayloadLabel {
+	return v.Label
+}
+
+// createLabelCreateLabelCreateLabelPayloadLabel includes the requested fields of the GraphQL type Label.
+// The GraphQL type's documentation follows.
+//
+// A label for categorizing Issues, Pull Requests, Milestones, or Discussions with a given Repository.
+type createLabelCreateLabelCreateLabelPayloadLabel struct {
+	LabelInfo `json:"-"`
+}
+
+// GetId returns createLabelCreateLabelCreateLabelPayloadLabel.Id, and is useful for accessing the field via an interface.
+func (v *createLabelCreateLabelCreateLabelPayloadLabel) GetId() string { return v.LabelInfo.Id }
+
+// GetColor returns createLabelCreateLabelCreateLabelPayloadLabel.Color, and is useful for accessing the field via an interface.
+func (v *createLabelCreateLabelCreateLabelPayloadLabel) GetColor() string { return v.LabelInfo.Color }
+
+// GetDescription returns createLabelCreateLabelCreateLabelPayloadLabel.Description, and is useful for accessing the field via an interface.
+func (v *createLabelCreateLabelCreateLabelPayloadLabel) GetDescription() *string {
+	return v.LabelInfo.Description
+}
+
+func (v *createLabelCreateLabelCreateLabelPayloadLabel) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*createLabelCreateLabelCreateLabelPayloadLabel
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.createLabelCreateLabelCreateLabelPayloadLabel = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(
+		b, &v.LabelInfo)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type __premarshalcreateLabelCreateLabelCreateLabelPayloadLabel struct {
+	Id string `json:"id"`
+
+	Color string `json:"color"`
+
+	Description *string `json:"description"`
+}
+
+func (v *createLabelCreateLabelCreateLabelPayloadLabel) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *createLabelCreateLabelCreateLabelPayloadLabel) __premarshalJSON() (*__premarshalcreateLabelCreateLabelCreateLabelPayloadLabel, error) {
+	var retval __premarshalcreateLabelCreateLabelCreateLabelPayloadLabel
+
+	retval.Id = v.LabelInfo.Id
+	retval.Color = v.LabelInfo.Color
+	retval.Description = v.LabelInfo.Description
+	return &retval, nil
+}
+
+// createLabelResponse is returned by createLabel on success.
+type createLabelResponse struct {
+	// Creates a new label.
+	CreateLabel *createLabelCreateLabelCreateLabelPayload `json:"createLabel"`
+}
+
+// GetCreateLabel returns createLabelResponse.CreateLabel, and is useful for accessing the field via an interface.
+func (v *createLabelResponse) GetCreateLabel() *createLabelCreateLabelCreateLabelPayload {
+	return v.CreateLabel
+}
+
 // createPullRequestCreatePullRequestCreatePullRequestPayload includes the requested fields of the GraphQL type CreatePullRequestPayload.
 // The GraphQL type's documentation follows.
 //
@@ -5714,6 +5941,11 @@ func (v *createPullRequestCreatePullRequestCreatePullRequestPayload) GetPullRequ
 // A repository pull request.
 type createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest struct {
 	singleStatusPullRequest `json:"-"`
+}
+
+// GetId returns createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest.Id, and is useful for accessing the field via an interface.
+func (v *createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest) GetId() string {
+	return v.singleStatusPullRequest.Id
 }
 
 // GetNumber returns createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest.Number, and is useful for accessing the field via an interface.
@@ -5756,6 +5988,11 @@ func (v *createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest) 
 	return v.singleStatusPullRequest.Reviews
 }
 
+// GetReviewRequests returns createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest.ReviewRequests, and is useful for accessing the field via an interface.
+func (v *createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest) GetReviewRequests() *singleStatusPullRequestReviewRequestsReviewRequestConnection {
+	return v.singleStatusPullRequest.ReviewRequests
+}
+
 // GetCommits returns createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest.Commits, and is useful for accessing the field via an interface.
 func (v *createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest) GetCommits() singleStatusPullRequestCommitsPullRequestCommitConnection {
 	return v.singleStatusPullRequest.Commits
@@ -5787,6 +6024,8 @@ func (v *createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest) 
 }
 
 type __premarshalcreatePullRequestCreatePullRequestCreatePullRequestPayloadPullRequest struct {
+	Id string `json:"id"`
+
 	Number int `json:"number"`
 
 	Title string `json:"title"`
@@ -5803,6 +6042,8 @@ type __premarshalcreatePullRequestCreatePullRequestCreatePullRequestPayloadPullR
 
 	Reviews *singleStatusPullRequestReviewsPullRequestReviewConnection `json:"reviews"`
 
+	ReviewRequests *singleStatusPullRequestReviewRequestsReviewRequestConnection `json:"reviewRequests"`
+
 	Commits singleStatusPullRequestCommitsPullRequestCommitConnection `json:"commits"`
 }
 
@@ -5817,6 +6058,7 @@ func (v *createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest) 
 func (v *createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest) __premarshalJSON() (*__premarshalcreatePullRequestCreatePullRequestCreatePullRequestPayloadPullRequest, error) {
 	var retval __premarshalcreatePullRequestCreatePullRequestCreatePullRequestPayloadPullRequest
 
+	retval.Id = v.singleStatusPullRequest.Id
 	retval.Number = v.singleStatusPullRequest.Number
 	retval.Title = v.singleStatusPullRequest.Title
 	retval.State = v.singleStatusPullRequest.State
@@ -5838,6 +6080,7 @@ func (v *createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest) 
 	retval.BaseRefName = v.singleStatusPullRequest.BaseRefName
 	retval.HeadRefName = v.singleStatusPullRequest.HeadRefName
 	retval.Reviews = v.singleStatusPullRequest.Reviews
+	retval.ReviewRequests = v.singleStatusPullRequest.ReviewRequests
 	retval.Commits = v.singleStatusPullRequest.Commits
 	return &retval, nil
 }
@@ -5987,6 +6230,8 @@ func (v *createPullRequestResponse) GetCreatePullRequest() *createPullRequestCre
 // currentPendingReviewNodeProjectNextField
 // currentPendingReviewNodeProjectNextItem
 // currentPendingReviewNodeProjectNextItemFieldValue
+// currentPendingReviewNodeProjectNextIterationField
+// currentPendingReviewNodeProjectNextSingleSelectField
 // currentPendingReviewNodeProjectV2
 // currentPendingReviewNodeProjectV2Field
 // currentPendingReviewNodeProjectV2Item
@@ -6318,6 +6563,10 @@ func (v *currentPendingReviewNodeProjectNextField) implementsGraphQLInterfacecur
 func (v *currentPendingReviewNodeProjectNextItem) implementsGraphQLInterfacecurrentPendingReviewNode() {
 }
 func (v *currentPendingReviewNodeProjectNextItemFieldValue) implementsGraphQLInterfacecurrentPendingReviewNode() {
+}
+func (v *currentPendingReviewNodeProjectNextIterationField) implementsGraphQLInterfacecurrentPendingReviewNode() {
+}
+func (v *currentPendingReviewNodeProjectNextSingleSelectField) implementsGraphQLInterfacecurrentPendingReviewNode() {
 }
 func (v *currentPendingReviewNodeProjectV2) implementsGraphQLInterfacecurrentPendingReviewNode() {}
 func (v *currentPendingReviewNodeProjectV2Field) implementsGraphQLInterfacecurrentPendingReviewNode() {
@@ -6902,6 +7151,12 @@ func __unmarshalcurrentPendingReviewNode(b []byte, v *currentPendingReviewNode) 
 		return json.Unmarshal(b, *v)
 	case "ProjectNextItemFieldValue":
 		*v = new(currentPendingReviewNodeProjectNextItemFieldValue)
+		return json.Unmarshal(b, *v)
+	case "ProjectNextIterationField":
+		*v = new(currentPendingReviewNodeProjectNextIterationField)
+		return json.Unmarshal(b, *v)
+	case "ProjectNextSingleSelectField":
+		*v = new(currentPendingReviewNodeProjectNextSingleSelectField)
 		return json.Unmarshal(b, *v)
 	case "ProjectV2":
 		*v = new(currentPendingReviewNodeProjectV2)
@@ -8259,6 +8514,22 @@ func __marshalcurrentPendingReviewNode(v *currentPendingReviewNode) ([]byte, err
 		result := struct {
 			TypeName string `json:"__typename"`
 			*currentPendingReviewNodeProjectNextItemFieldValue
+		}{typename, v}
+		return json.Marshal(result)
+	case *currentPendingReviewNodeProjectNextIterationField:
+		typename = "ProjectNextIterationField"
+
+		result := struct {
+			TypeName string `json:"__typename"`
+			*currentPendingReviewNodeProjectNextIterationField
+		}{typename, v}
+		return json.Marshal(result)
+	case *currentPendingReviewNodeProjectNextSingleSelectField:
+		typename = "ProjectNextSingleSelectField"
+
+		result := struct {
+			TypeName string `json:"__typename"`
+			*currentPendingReviewNodeProjectNextSingleSelectField
 		}{typename, v}
 		return json.Marshal(result)
 	case *currentPendingReviewNodeProjectV2:
@@ -10564,6 +10835,30 @@ type currentPendingReviewNodeProjectNextItemFieldValue struct {
 // GetTypename returns currentPendingReviewNodeProjectNextItemFieldValue.Typename, and is useful for accessing the field via an interface.
 func (v *currentPendingReviewNodeProjectNextItemFieldValue) GetTypename() *string { return v.Typename }
 
+// currentPendingReviewNodeProjectNextIterationField includes the requested fields of the GraphQL type ProjectNextIterationField.
+// The GraphQL type's documentation follows.
+//
+// An iteration field inside a project.
+type currentPendingReviewNodeProjectNextIterationField struct {
+	Typename *string `json:"__typename"`
+}
+
+// GetTypename returns currentPendingReviewNodeProjectNextIterationField.Typename, and is useful for accessing the field via an interface.
+func (v *currentPendingReviewNodeProjectNextIterationField) GetTypename() *string { return v.Typename }
+
+// currentPendingReviewNodeProjectNextSingleSelectField includes the requested fields of the GraphQL type ProjectNextSingleSelectField.
+// The GraphQL type's documentation follows.
+//
+// A single select field inside a project.
+type currentPendingReviewNodeProjectNextSingleSelectField struct {
+	Typename *string `json:"__typename"`
+}
+
+// GetTypename returns currentPendingReviewNodeProjectNextSingleSelectField.Typename, and is useful for accessing the field via an interface.
+func (v *currentPendingReviewNodeProjectNextSingleSelectField) GetTypename() *string {
+	return v.Typename
+}
+
 // currentPendingReviewNodeProjectV2 includes the requested fields of the GraphQL type ProjectV2.
 // The GraphQL type's documentation follows.
 //
@@ -11915,6 +12210,478 @@ func (v *currentPendingReviewResponse) __premarshalJSON() (*__premarshalcurrentP
 	return &retval, nil
 }
 
+// editPullRequestResponse is returned by editPullRequest on success.
+type editPullRequestResponse struct {
+	// Update a pull request
+	UpdatePullRequest *editPullRequestUpdatePullRequestUpdatePullRequestPayload `json:"updatePullRequest"`
+}
+
+// GetUpdatePullRequest returns editPullRequestResponse.UpdatePullRequest, and is useful for accessing the field via an interface.
+func (v *editPullRequestResponse) GetUpdatePullRequest() *editPullRequestUpdatePullRequestUpdatePullRequestPayload {
+	return v.UpdatePullRequest
+}
+
+// editPullRequestReviewersRequestReviewsRequestReviewsPayload includes the requested fields of the GraphQL type RequestReviewsPayload.
+// The GraphQL type's documentation follows.
+//
+// Autogenerated return type of RequestReviews
+type editPullRequestReviewersRequestReviewsRequestReviewsPayload struct {
+	// A unique identifier for the client performing the mutation.
+	ClientMutationId *string `json:"clientMutationId"`
+	// The pull request that is getting requests.
+	PullRequest *editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest `json:"pullRequest"`
+}
+
+// GetClientMutationId returns editPullRequestReviewersRequestReviewsRequestReviewsPayload.ClientMutationId, and is useful for accessing the field via an interface.
+func (v *editPullRequestReviewersRequestReviewsRequestReviewsPayload) GetClientMutationId() *string {
+	return v.ClientMutationId
+}
+
+// GetPullRequest returns editPullRequestReviewersRequestReviewsRequestReviewsPayload.PullRequest, and is useful for accessing the field via an interface.
+func (v *editPullRequestReviewersRequestReviewsRequestReviewsPayload) GetPullRequest() *editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest {
+	return v.PullRequest
+}
+
+// editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest includes the requested fields of the GraphQL type PullRequest.
+// The GraphQL type's documentation follows.
+//
+// A repository pull request.
+type editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest struct {
+	singleStatusPullRequest `json:"-"`
+}
+
+// GetId returns editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest.Id, and is useful for accessing the field via an interface.
+func (v *editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest) GetId() string {
+	return v.singleStatusPullRequest.Id
+}
+
+// GetNumber returns editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest.Number, and is useful for accessing the field via an interface.
+func (v *editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest) GetNumber() int {
+	return v.singleStatusPullRequest.Number
+}
+
+// GetTitle returns editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest.Title, and is useful for accessing the field via an interface.
+func (v *editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest) GetTitle() string {
+	return v.singleStatusPullRequest.Title
+}
+
+// GetState returns editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest.State, and is useful for accessing the field via an interface.
+func (v *editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest) GetState() PullRequestState {
+	return v.singleStatusPullRequest.State
+}
+
+// GetRepository returns editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest.Repository, and is useful for accessing the field via an interface.
+func (v *editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest) GetRepository() singleStatusPullRequestRepository {
+	return v.singleStatusPullRequest.Repository
+}
+
+// GetAuthor returns editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest.Author, and is useful for accessing the field via an interface.
+func (v *editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest) GetAuthor() *singleStatusPullRequestAuthorActor {
+	return v.singleStatusPullRequest.Author
+}
+
+// GetBaseRefName returns editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest.BaseRefName, and is useful for accessing the field via an interface.
+func (v *editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest) GetBaseRefName() string {
+	return v.singleStatusPullRequest.BaseRefName
+}
+
+// GetHeadRefName returns editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest.HeadRefName, and is useful for accessing the field via an interface.
+func (v *editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest) GetHeadRefName() string {
+	return v.singleStatusPullRequest.HeadRefName
+}
+
+// GetReviews returns editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest.Reviews, and is useful for accessing the field via an interface.
+func (v *editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest) GetReviews() *singleStatusPullRequestReviewsPullRequestReviewConnection {
+	return v.singleStatusPullRequest.Reviews
+}
+
+// GetReviewRequests returns editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest.ReviewRequests, and is useful for accessing the field via an interface.
+func (v *editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest) GetReviewRequests() *singleStatusPullRequestReviewRequestsReviewRequestConnection {
+	return v.singleStatusPullRequest.ReviewRequests
+}
+
+// GetCommits returns editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest.Commits, and is useful for accessing the field via an interface.
+func (v *editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest) GetCommits() singleStatusPullRequestCommitsPullRequestCommitConnection {
+	return v.singleStatusPullRequest.Commits
+}
+
+func (v *editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(
+		b, &v.singleStatusPullRequest)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type __premarshaleditPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest struct {
+	Id string `json:"id"`
+
+	Number int `json:"number"`
+
+	Title string `json:"title"`
+
+	State PullRequestState `json:"state"`
+
+	Repository singleStatusPullRequestRepository `json:"repository"`
+
+	Author json.RawMessage `json:"author"`
+
+	BaseRefName string `json:"baseRefName"`
+
+	HeadRefName string `json:"headRefName"`
+
+	Reviews *singleStatusPullRequestReviewsPullRequestReviewConnection `json:"reviews"`
+
+	ReviewRequests *singleStatusPullRequestReviewRequestsReviewRequestConnection `json:"reviewRequests"`
+
+	Commits singleStatusPullRequestCommitsPullRequestCommitConnection `json:"commits"`
+}
+
+func (v *editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest) __premarshalJSON() (*__premarshaleditPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest, error) {
+	var retval __premarshaleditPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest
+
+	retval.Id = v.singleStatusPullRequest.Id
+	retval.Number = v.singleStatusPullRequest.Number
+	retval.Title = v.singleStatusPullRequest.Title
+	retval.State = v.singleStatusPullRequest.State
+	retval.Repository = v.singleStatusPullRequest.Repository
+	{
+
+		dst := &retval.Author
+		src := v.singleStatusPullRequest.Author
+		if src != nil {
+			var err error
+			*dst, err = __marshalsingleStatusPullRequestAuthorActor(
+				src)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Unable to marshal editPullRequestReviewersRequestReviewsRequestReviewsPayloadPullRequest.singleStatusPullRequest.Author: %w", err)
+			}
+		}
+	}
+	retval.BaseRefName = v.singleStatusPullRequest.BaseRefName
+	retval.HeadRefName = v.singleStatusPullRequest.HeadRefName
+	retval.Reviews = v.singleStatusPullRequest.Reviews
+	retval.ReviewRequests = v.singleStatusPullRequest.ReviewRequests
+	retval.Commits = v.singleStatusPullRequest.Commits
+	return &retval, nil
+}
+
+// editPullRequestReviewersResponse is returned by editPullRequestReviewers on success.
+type editPullRequestReviewersResponse struct {
+	// Set review requests on a pull request.
+	RequestReviews *editPullRequestReviewersRequestReviewsRequestReviewsPayload `json:"requestReviews"`
+}
+
+// GetRequestReviews returns editPullRequestReviewersResponse.RequestReviews, and is useful for accessing the field via an interface.
+func (v *editPullRequestReviewersResponse) GetRequestReviews() *editPullRequestReviewersRequestReviewsRequestReviewsPayload {
+	return v.RequestReviews
+}
+
+// editPullRequestUpdatePullRequestUpdatePullRequestPayload includes the requested fields of the GraphQL type UpdatePullRequestPayload.
+// The GraphQL type's documentation follows.
+//
+// Autogenerated return type of UpdatePullRequest
+type editPullRequestUpdatePullRequestUpdatePullRequestPayload struct {
+	// A unique identifier for the client performing the mutation.
+	ClientMutationId *string `json:"clientMutationId"`
+	// The updated pull request.
+	PullRequest *editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest `json:"pullRequest"`
+}
+
+// GetClientMutationId returns editPullRequestUpdatePullRequestUpdatePullRequestPayload.ClientMutationId, and is useful for accessing the field via an interface.
+func (v *editPullRequestUpdatePullRequestUpdatePullRequestPayload) GetClientMutationId() *string {
+	return v.ClientMutationId
+}
+
+// GetPullRequest returns editPullRequestUpdatePullRequestUpdatePullRequestPayload.PullRequest, and is useful for accessing the field via an interface.
+func (v *editPullRequestUpdatePullRequestUpdatePullRequestPayload) GetPullRequest() *editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest {
+	return v.PullRequest
+}
+
+// editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest includes the requested fields of the GraphQL type PullRequest.
+// The GraphQL type's documentation follows.
+//
+// A repository pull request.
+type editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest struct {
+	singleStatusPullRequest `json:"-"`
+}
+
+// GetId returns editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest.Id, and is useful for accessing the field via an interface.
+func (v *editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest) GetId() string {
+	return v.singleStatusPullRequest.Id
+}
+
+// GetNumber returns editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest.Number, and is useful for accessing the field via an interface.
+func (v *editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest) GetNumber() int {
+	return v.singleStatusPullRequest.Number
+}
+
+// GetTitle returns editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest.Title, and is useful for accessing the field via an interface.
+func (v *editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest) GetTitle() string {
+	return v.singleStatusPullRequest.Title
+}
+
+// GetState returns editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest.State, and is useful for accessing the field via an interface.
+func (v *editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest) GetState() PullRequestState {
+	return v.singleStatusPullRequest.State
+}
+
+// GetRepository returns editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest.Repository, and is useful for accessing the field via an interface.
+func (v *editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest) GetRepository() singleStatusPullRequestRepository {
+	return v.singleStatusPullRequest.Repository
+}
+
+// GetAuthor returns editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest.Author, and is useful for accessing the field via an interface.
+func (v *editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest) GetAuthor() *singleStatusPullRequestAuthorActor {
+	return v.singleStatusPullRequest.Author
+}
+
+// GetBaseRefName returns editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest.BaseRefName, and is useful for accessing the field via an interface.
+func (v *editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest) GetBaseRefName() string {
+	return v.singleStatusPullRequest.BaseRefName
+}
+
+// GetHeadRefName returns editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest.HeadRefName, and is useful for accessing the field via an interface.
+func (v *editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest) GetHeadRefName() string {
+	return v.singleStatusPullRequest.HeadRefName
+}
+
+// GetReviews returns editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest.Reviews, and is useful for accessing the field via an interface.
+func (v *editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest) GetReviews() *singleStatusPullRequestReviewsPullRequestReviewConnection {
+	return v.singleStatusPullRequest.Reviews
+}
+
+// GetReviewRequests returns editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest.ReviewRequests, and is useful for accessing the field via an interface.
+func (v *editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest) GetReviewRequests() *singleStatusPullRequestReviewRequestsReviewRequestConnection {
+	return v.singleStatusPullRequest.ReviewRequests
+}
+
+// GetCommits returns editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest.Commits, and is useful for accessing the field via an interface.
+func (v *editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest) GetCommits() singleStatusPullRequestCommitsPullRequestCommitConnection {
+	return v.singleStatusPullRequest.Commits
+}
+
+func (v *editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(
+		b, &v.singleStatusPullRequest)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type __premarshaleditPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest struct {
+	Id string `json:"id"`
+
+	Number int `json:"number"`
+
+	Title string `json:"title"`
+
+	State PullRequestState `json:"state"`
+
+	Repository singleStatusPullRequestRepository `json:"repository"`
+
+	Author json.RawMessage `json:"author"`
+
+	BaseRefName string `json:"baseRefName"`
+
+	HeadRefName string `json:"headRefName"`
+
+	Reviews *singleStatusPullRequestReviewsPullRequestReviewConnection `json:"reviews"`
+
+	ReviewRequests *singleStatusPullRequestReviewRequestsReviewRequestConnection `json:"reviewRequests"`
+
+	Commits singleStatusPullRequestCommitsPullRequestCommitConnection `json:"commits"`
+}
+
+func (v *editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest) __premarshalJSON() (*__premarshaleditPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest, error) {
+	var retval __premarshaleditPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest
+
+	retval.Id = v.singleStatusPullRequest.Id
+	retval.Number = v.singleStatusPullRequest.Number
+	retval.Title = v.singleStatusPullRequest.Title
+	retval.State = v.singleStatusPullRequest.State
+	retval.Repository = v.singleStatusPullRequest.Repository
+	{
+
+		dst := &retval.Author
+		src := v.singleStatusPullRequest.Author
+		if src != nil {
+			var err error
+			*dst, err = __marshalsingleStatusPullRequestAuthorActor(
+				src)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Unable to marshal editPullRequestUpdatePullRequestUpdatePullRequestPayloadPullRequest.singleStatusPullRequest.Author: %w", err)
+			}
+		}
+	}
+	retval.BaseRefName = v.singleStatusPullRequest.BaseRefName
+	retval.HeadRefName = v.singleStatusPullRequest.HeadRefName
+	retval.Reviews = v.singleStatusPullRequest.Reviews
+	retval.ReviewRequests = v.singleStatusPullRequest.ReviewRequests
+	retval.Commits = v.singleStatusPullRequest.Commits
+	return &retval, nil
+}
+
+// getLabelByNameRepository includes the requested fields of the GraphQL type Repository.
+// The GraphQL type's documentation follows.
+//
+// A repository contains the content for a project.
+type getLabelByNameRepository struct {
+	// Returns a single label by name
+	Label *getLabelByNameRepositoryLabel `json:"label"`
+}
+
+// GetLabel returns getLabelByNameRepository.Label, and is useful for accessing the field via an interface.
+func (v *getLabelByNameRepository) GetLabel() *getLabelByNameRepositoryLabel { return v.Label }
+
+// getLabelByNameRepositoryLabel includes the requested fields of the GraphQL type Label.
+// The GraphQL type's documentation follows.
+//
+// A label for categorizing Issues, Pull Requests, Milestones, or Discussions with a given Repository.
+type getLabelByNameRepositoryLabel struct {
+	LabelInfo `json:"-"`
+}
+
+// GetId returns getLabelByNameRepositoryLabel.Id, and is useful for accessing the field via an interface.
+func (v *getLabelByNameRepositoryLabel) GetId() string { return v.LabelInfo.Id }
+
+// GetColor returns getLabelByNameRepositoryLabel.Color, and is useful for accessing the field via an interface.
+func (v *getLabelByNameRepositoryLabel) GetColor() string { return v.LabelInfo.Color }
+
+// GetDescription returns getLabelByNameRepositoryLabel.Description, and is useful for accessing the field via an interface.
+func (v *getLabelByNameRepositoryLabel) GetDescription() *string { return v.LabelInfo.Description }
+
+func (v *getLabelByNameRepositoryLabel) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*getLabelByNameRepositoryLabel
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.getLabelByNameRepositoryLabel = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(
+		b, &v.LabelInfo)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type __premarshalgetLabelByNameRepositoryLabel struct {
+	Id string `json:"id"`
+
+	Color string `json:"color"`
+
+	Description *string `json:"description"`
+}
+
+func (v *getLabelByNameRepositoryLabel) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *getLabelByNameRepositoryLabel) __premarshalJSON() (*__premarshalgetLabelByNameRepositoryLabel, error) {
+	var retval __premarshalgetLabelByNameRepositoryLabel
+
+	retval.Id = v.LabelInfo.Id
+	retval.Color = v.LabelInfo.Color
+	retval.Description = v.LabelInfo.Description
+	return &retval, nil
+}
+
+// getLabelByNameResponse is returned by getLabelByName on success.
+type getLabelByNameResponse struct {
+	// Lookup a given repository by the owner and repository name.
+	Repository *getLabelByNameRepository `json:"repository"`
+}
+
+// GetRepository returns getLabelByNameResponse.Repository, and is useful for accessing the field via an interface.
+func (v *getLabelByNameResponse) GetRepository() *getLabelByNameRepository { return v.Repository }
+
+// getUserIdByLoginResponse is returned by getUserIdByLogin on success.
+type getUserIdByLoginResponse struct {
+	// Lookup a user by login.
+	User *getUserIdByLoginUser `json:"user"`
+}
+
+// GetUser returns getUserIdByLoginResponse.User, and is useful for accessing the field via an interface.
+func (v *getUserIdByLoginResponse) GetUser() *getUserIdByLoginUser { return v.User }
+
+// getUserIdByLoginUser includes the requested fields of the GraphQL type User.
+// The GraphQL type's documentation follows.
+//
+// A user is an individual's account on GitHub that owns repositories and can make new content.
+type getUserIdByLoginUser struct {
+	Id string `json:"id"`
+}
+
+// GetId returns getUserIdByLoginUser.Id, and is useful for accessing the field via an interface.
+func (v *getUserIdByLoginUser) GetId() string { return v.Id }
+
 // mergePullRequestMergePullRequestMergePullRequestPayload includes the requested fields of the GraphQL type MergePullRequestPayload.
 // The GraphQL type's documentation follows.
 //
@@ -12283,20 +13050,64 @@ func (v *pullRequestCommentsRepositoryPullRequestCommentsIssueCommentConnectionN
 //
 // Information about pagination in a connection.
 type pullRequestCommentsRepositoryPullRequestCommentsIssueCommentConnectionPageInfo struct {
-	// When paginating forwards, are there more items?
-	HasNextPage bool `json:"hasNextPage"`
-	// When paginating forwards, the cursor to continue.
-	EndCursor *string `json:"endCursor"`
+	NextPageInfo `json:"-"`
 }
 
 // GetHasNextPage returns pullRequestCommentsRepositoryPullRequestCommentsIssueCommentConnectionPageInfo.HasNextPage, and is useful for accessing the field via an interface.
 func (v *pullRequestCommentsRepositoryPullRequestCommentsIssueCommentConnectionPageInfo) GetHasNextPage() bool {
-	return v.HasNextPage
+	return v.NextPageInfo.HasNextPage
 }
 
 // GetEndCursor returns pullRequestCommentsRepositoryPullRequestCommentsIssueCommentConnectionPageInfo.EndCursor, and is useful for accessing the field via an interface.
 func (v *pullRequestCommentsRepositoryPullRequestCommentsIssueCommentConnectionPageInfo) GetEndCursor() *string {
-	return v.EndCursor
+	return v.NextPageInfo.EndCursor
+}
+
+func (v *pullRequestCommentsRepositoryPullRequestCommentsIssueCommentConnectionPageInfo) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*pullRequestCommentsRepositoryPullRequestCommentsIssueCommentConnectionPageInfo
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.pullRequestCommentsRepositoryPullRequestCommentsIssueCommentConnectionPageInfo = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(
+		b, &v.NextPageInfo)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type __premarshalpullRequestCommentsRepositoryPullRequestCommentsIssueCommentConnectionPageInfo struct {
+	HasNextPage bool `json:"hasNextPage"`
+
+	EndCursor *string `json:"endCursor"`
+}
+
+func (v *pullRequestCommentsRepositoryPullRequestCommentsIssueCommentConnectionPageInfo) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *pullRequestCommentsRepositoryPullRequestCommentsIssueCommentConnectionPageInfo) __premarshalJSON() (*__premarshalpullRequestCommentsRepositoryPullRequestCommentsIssueCommentConnectionPageInfo, error) {
+	var retval __premarshalpullRequestCommentsRepositoryPullRequestCommentsIssueCommentConnectionPageInfo
+
+	retval.HasNextPage = v.NextPageInfo.HasNextPage
+	retval.EndCursor = v.NextPageInfo.EndCursor
+	return &retval, nil
 }
 
 // pullRequestCommentsResponse is returned by pullRequestComments on success.
@@ -13173,6 +13984,191 @@ func (v *requestedReviewsSearchSearchResultItemConnectionPageInfo) GetEndCursor(
 func (v *requestedReviewsSearchSearchResultItemConnectionPageInfo) GetHasNextPage() bool {
 	return v.HasNextPage
 }
+
+// searchLabelsRepository includes the requested fields of the GraphQL type Repository.
+// The GraphQL type's documentation follows.
+//
+// A repository contains the content for a project.
+type searchLabelsRepository struct {
+	// A list of labels associated with the repository.
+	Labels *searchLabelsRepositoryLabelsLabelConnection `json:"labels"`
+}
+
+// GetLabels returns searchLabelsRepository.Labels, and is useful for accessing the field via an interface.
+func (v *searchLabelsRepository) GetLabels() *searchLabelsRepositoryLabelsLabelConnection {
+	return v.Labels
+}
+
+// searchLabelsRepositoryLabelsLabelConnection includes the requested fields of the GraphQL type LabelConnection.
+// The GraphQL type's documentation follows.
+//
+// The connection type for Label.
+type searchLabelsRepositoryLabelsLabelConnection struct {
+	// Identifies the total count of items in the connection.
+	TotalCount int `json:"totalCount"`
+	// A list of nodes.
+	Nodes []*searchLabelsRepositoryLabelsLabelConnectionNodesLabel `json:"nodes"`
+	// Information to aid in pagination.
+	PageInfo searchLabelsRepositoryLabelsLabelConnectionPageInfo `json:"pageInfo"`
+}
+
+// GetTotalCount returns searchLabelsRepositoryLabelsLabelConnection.TotalCount, and is useful for accessing the field via an interface.
+func (v *searchLabelsRepositoryLabelsLabelConnection) GetTotalCount() int { return v.TotalCount }
+
+// GetNodes returns searchLabelsRepositoryLabelsLabelConnection.Nodes, and is useful for accessing the field via an interface.
+func (v *searchLabelsRepositoryLabelsLabelConnection) GetNodes() []*searchLabelsRepositoryLabelsLabelConnectionNodesLabel {
+	return v.Nodes
+}
+
+// GetPageInfo returns searchLabelsRepositoryLabelsLabelConnection.PageInfo, and is useful for accessing the field via an interface.
+func (v *searchLabelsRepositoryLabelsLabelConnection) GetPageInfo() searchLabelsRepositoryLabelsLabelConnectionPageInfo {
+	return v.PageInfo
+}
+
+// searchLabelsRepositoryLabelsLabelConnectionNodesLabel includes the requested fields of the GraphQL type Label.
+// The GraphQL type's documentation follows.
+//
+// A label for categorizing Issues, Pull Requests, Milestones, or Discussions with a given Repository.
+type searchLabelsRepositoryLabelsLabelConnectionNodesLabel struct {
+	LabelInfo `json:"-"`
+}
+
+// GetId returns searchLabelsRepositoryLabelsLabelConnectionNodesLabel.Id, and is useful for accessing the field via an interface.
+func (v *searchLabelsRepositoryLabelsLabelConnectionNodesLabel) GetId() string { return v.LabelInfo.Id }
+
+// GetColor returns searchLabelsRepositoryLabelsLabelConnectionNodesLabel.Color, and is useful for accessing the field via an interface.
+func (v *searchLabelsRepositoryLabelsLabelConnectionNodesLabel) GetColor() string {
+	return v.LabelInfo.Color
+}
+
+// GetDescription returns searchLabelsRepositoryLabelsLabelConnectionNodesLabel.Description, and is useful for accessing the field via an interface.
+func (v *searchLabelsRepositoryLabelsLabelConnectionNodesLabel) GetDescription() *string {
+	return v.LabelInfo.Description
+}
+
+func (v *searchLabelsRepositoryLabelsLabelConnectionNodesLabel) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*searchLabelsRepositoryLabelsLabelConnectionNodesLabel
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.searchLabelsRepositoryLabelsLabelConnectionNodesLabel = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(
+		b, &v.LabelInfo)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type __premarshalsearchLabelsRepositoryLabelsLabelConnectionNodesLabel struct {
+	Id string `json:"id"`
+
+	Color string `json:"color"`
+
+	Description *string `json:"description"`
+}
+
+func (v *searchLabelsRepositoryLabelsLabelConnectionNodesLabel) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *searchLabelsRepositoryLabelsLabelConnectionNodesLabel) __premarshalJSON() (*__premarshalsearchLabelsRepositoryLabelsLabelConnectionNodesLabel, error) {
+	var retval __premarshalsearchLabelsRepositoryLabelsLabelConnectionNodesLabel
+
+	retval.Id = v.LabelInfo.Id
+	retval.Color = v.LabelInfo.Color
+	retval.Description = v.LabelInfo.Description
+	return &retval, nil
+}
+
+// searchLabelsRepositoryLabelsLabelConnectionPageInfo includes the requested fields of the GraphQL type PageInfo.
+// The GraphQL type's documentation follows.
+//
+// Information about pagination in a connection.
+type searchLabelsRepositoryLabelsLabelConnectionPageInfo struct {
+	NextPageInfo `json:"-"`
+}
+
+// GetHasNextPage returns searchLabelsRepositoryLabelsLabelConnectionPageInfo.HasNextPage, and is useful for accessing the field via an interface.
+func (v *searchLabelsRepositoryLabelsLabelConnectionPageInfo) GetHasNextPage() bool {
+	return v.NextPageInfo.HasNextPage
+}
+
+// GetEndCursor returns searchLabelsRepositoryLabelsLabelConnectionPageInfo.EndCursor, and is useful for accessing the field via an interface.
+func (v *searchLabelsRepositoryLabelsLabelConnectionPageInfo) GetEndCursor() *string {
+	return v.NextPageInfo.EndCursor
+}
+
+func (v *searchLabelsRepositoryLabelsLabelConnectionPageInfo) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*searchLabelsRepositoryLabelsLabelConnectionPageInfo
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.searchLabelsRepositoryLabelsLabelConnectionPageInfo = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(
+		b, &v.NextPageInfo)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type __premarshalsearchLabelsRepositoryLabelsLabelConnectionPageInfo struct {
+	HasNextPage bool `json:"hasNextPage"`
+
+	EndCursor *string `json:"endCursor"`
+}
+
+func (v *searchLabelsRepositoryLabelsLabelConnectionPageInfo) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *searchLabelsRepositoryLabelsLabelConnectionPageInfo) __premarshalJSON() (*__premarshalsearchLabelsRepositoryLabelsLabelConnectionPageInfo, error) {
+	var retval __premarshalsearchLabelsRepositoryLabelsLabelConnectionPageInfo
+
+	retval.HasNextPage = v.NextPageInfo.HasNextPage
+	retval.EndCursor = v.NextPageInfo.EndCursor
+	return &retval, nil
+}
+
+// searchLabelsResponse is returned by searchLabels on success.
+type searchLabelsResponse struct {
+	// Lookup a given repository by the owner and repository name.
+	Repository *searchLabelsRepository `json:"repository"`
+}
+
+// GetRepository returns searchLabelsResponse.Repository, and is useful for accessing the field via an interface.
+func (v *searchLabelsResponse) GetRepository() *searchLabelsRepository { return v.Repository }
 
 // singleStatusNodesAddedToProjectEvent includes the requested fields of the GraphQL type AddedToProjectEvent.
 // The GraphQL type's documentation follows.
@@ -14240,6 +15236,8 @@ func (v *singleStatusNodesMovedColumnsInProjectEvent) GetTypename() *string { re
 // singleStatusNodesProjectNextField
 // singleStatusNodesProjectNextItem
 // singleStatusNodesProjectNextItemFieldValue
+// singleStatusNodesProjectNextIterationField
+// singleStatusNodesProjectNextSingleSelectField
 // singleStatusNodesProjectV2
 // singleStatusNodesProjectV2Field
 // singleStatusNodesProjectV2Item
@@ -14526,6 +15524,10 @@ func (v *singleStatusNodesProjectNext) implementsGraphQLInterfacesingleStatusNod
 func (v *singleStatusNodesProjectNextField) implementsGraphQLInterfacesingleStatusNodesNode() {}
 func (v *singleStatusNodesProjectNextItem) implementsGraphQLInterfacesingleStatusNodesNode()  {}
 func (v *singleStatusNodesProjectNextItemFieldValue) implementsGraphQLInterfacesingleStatusNodesNode() {
+}
+func (v *singleStatusNodesProjectNextIterationField) implementsGraphQLInterfacesingleStatusNodesNode() {
+}
+func (v *singleStatusNodesProjectNextSingleSelectField) implementsGraphQLInterfacesingleStatusNodesNode() {
 }
 func (v *singleStatusNodesProjectV2) implementsGraphQLInterfacesingleStatusNodesNode()      {}
 func (v *singleStatusNodesProjectV2Field) implementsGraphQLInterfacesingleStatusNodesNode() {}
@@ -15070,6 +16072,12 @@ func __unmarshalsingleStatusNodesNode(b []byte, v *singleStatusNodesNode) error 
 		return json.Unmarshal(b, *v)
 	case "ProjectNextItemFieldValue":
 		*v = new(singleStatusNodesProjectNextItemFieldValue)
+		return json.Unmarshal(b, *v)
+	case "ProjectNextIterationField":
+		*v = new(singleStatusNodesProjectNextIterationField)
+		return json.Unmarshal(b, *v)
+	case "ProjectNextSingleSelectField":
+		*v = new(singleStatusNodesProjectNextSingleSelectField)
 		return json.Unmarshal(b, *v)
 	case "ProjectV2":
 		*v = new(singleStatusNodesProjectV2)
@@ -16429,6 +17437,22 @@ func __marshalsingleStatusNodesNode(v *singleStatusNodesNode) ([]byte, error) {
 			*singleStatusNodesProjectNextItemFieldValue
 		}{typename, v}
 		return json.Marshal(result)
+	case *singleStatusNodesProjectNextIterationField:
+		typename = "ProjectNextIterationField"
+
+		result := struct {
+			TypeName string `json:"__typename"`
+			*singleStatusNodesProjectNextIterationField
+		}{typename, v}
+		return json.Marshal(result)
+	case *singleStatusNodesProjectNextSingleSelectField:
+		typename = "ProjectNextSingleSelectField"
+
+		result := struct {
+			TypeName string `json:"__typename"`
+			*singleStatusNodesProjectNextSingleSelectField
+		}{typename, v}
+		return json.Marshal(result)
 	case *singleStatusNodesProjectV2:
 		typename = "ProjectV2"
 
@@ -17778,6 +18802,28 @@ type singleStatusNodesProjectNextItemFieldValue struct {
 // GetTypename returns singleStatusNodesProjectNextItemFieldValue.Typename, and is useful for accessing the field via an interface.
 func (v *singleStatusNodesProjectNextItemFieldValue) GetTypename() *string { return v.Typename }
 
+// singleStatusNodesProjectNextIterationField includes the requested fields of the GraphQL type ProjectNextIterationField.
+// The GraphQL type's documentation follows.
+//
+// An iteration field inside a project.
+type singleStatusNodesProjectNextIterationField struct {
+	Typename *string `json:"__typename"`
+}
+
+// GetTypename returns singleStatusNodesProjectNextIterationField.Typename, and is useful for accessing the field via an interface.
+func (v *singleStatusNodesProjectNextIterationField) GetTypename() *string { return v.Typename }
+
+// singleStatusNodesProjectNextSingleSelectField includes the requested fields of the GraphQL type ProjectNextSingleSelectField.
+// The GraphQL type's documentation follows.
+//
+// A single select field inside a project.
+type singleStatusNodesProjectNextSingleSelectField struct {
+	Typename *string `json:"__typename"`
+}
+
+// GetTypename returns singleStatusNodesProjectNextSingleSelectField.Typename, and is useful for accessing the field via an interface.
+func (v *singleStatusNodesProjectNextSingleSelectField) GetTypename() *string { return v.Typename }
+
 // singleStatusNodesProjectV2 includes the requested fields of the GraphQL type ProjectV2.
 // The GraphQL type's documentation follows.
 //
@@ -17935,6 +18981,9 @@ type singleStatusNodesPullRequest struct {
 // GetTypename returns singleStatusNodesPullRequest.Typename, and is useful for accessing the field via an interface.
 func (v *singleStatusNodesPullRequest) GetTypename() *string { return v.Typename }
 
+// GetId returns singleStatusNodesPullRequest.Id, and is useful for accessing the field via an interface.
+func (v *singleStatusNodesPullRequest) GetId() string { return v.singleStatusPullRequest.Id }
+
 // GetNumber returns singleStatusNodesPullRequest.Number, and is useful for accessing the field via an interface.
 func (v *singleStatusNodesPullRequest) GetNumber() int { return v.singleStatusPullRequest.Number }
 
@@ -17971,6 +19020,11 @@ func (v *singleStatusNodesPullRequest) GetReviews() *singleStatusPullRequestRevi
 	return v.singleStatusPullRequest.Reviews
 }
 
+// GetReviewRequests returns singleStatusNodesPullRequest.ReviewRequests, and is useful for accessing the field via an interface.
+func (v *singleStatusNodesPullRequest) GetReviewRequests() *singleStatusPullRequestReviewRequestsReviewRequestConnection {
+	return v.singleStatusPullRequest.ReviewRequests
+}
+
 // GetCommits returns singleStatusNodesPullRequest.Commits, and is useful for accessing the field via an interface.
 func (v *singleStatusNodesPullRequest) GetCommits() singleStatusPullRequestCommitsPullRequestCommitConnection {
 	return v.singleStatusPullRequest.Commits
@@ -18004,6 +19058,8 @@ func (v *singleStatusNodesPullRequest) UnmarshalJSON(b []byte) error {
 type __premarshalsingleStatusNodesPullRequest struct {
 	Typename *string `json:"__typename"`
 
+	Id string `json:"id"`
+
 	Number int `json:"number"`
 
 	Title string `json:"title"`
@@ -18020,6 +19076,8 @@ type __premarshalsingleStatusNodesPullRequest struct {
 
 	Reviews *singleStatusPullRequestReviewsPullRequestReviewConnection `json:"reviews"`
 
+	ReviewRequests *singleStatusPullRequestReviewRequestsReviewRequestConnection `json:"reviewRequests"`
+
 	Commits singleStatusPullRequestCommitsPullRequestCommitConnection `json:"commits"`
 }
 
@@ -18035,6 +19093,7 @@ func (v *singleStatusNodesPullRequest) __premarshalJSON() (*__premarshalsingleSt
 	var retval __premarshalsingleStatusNodesPullRequest
 
 	retval.Typename = v.Typename
+	retval.Id = v.singleStatusPullRequest.Id
 	retval.Number = v.singleStatusPullRequest.Number
 	retval.Title = v.singleStatusPullRequest.Title
 	retval.State = v.singleStatusPullRequest.State
@@ -18056,6 +19115,7 @@ func (v *singleStatusNodesPullRequest) __premarshalJSON() (*__premarshalsingleSt
 	retval.BaseRefName = v.singleStatusPullRequest.BaseRefName
 	retval.HeadRefName = v.singleStatusPullRequest.HeadRefName
 	retval.Reviews = v.singleStatusPullRequest.Reviews
+	retval.ReviewRequests = v.singleStatusPullRequest.ReviewRequests
 	retval.Commits = v.singleStatusPullRequest.Commits
 	return &retval, nil
 }
@@ -19024,6 +20084,7 @@ func (v *singleStatusNodesWorkflowRun) GetTypename() *string { return v.Typename
 //
 // A repository pull request.
 type singleStatusPullRequest struct {
+	Id string `json:"id"`
 	// Identifies the pull request number.
 	Number int `json:"number"`
 	// Identifies the pull request title.
@@ -19040,9 +20101,14 @@ type singleStatusPullRequest struct {
 	HeadRefName string `json:"headRefName"`
 	// A list of reviews associated with the pull request.
 	Reviews *singleStatusPullRequestReviewsPullRequestReviewConnection `json:"reviews"`
+	// A list of review requests associated with the pull request.
+	ReviewRequests *singleStatusPullRequestReviewRequestsReviewRequestConnection `json:"reviewRequests"`
 	// A list of commits present in this pull request's head branch not present in the base branch.
 	Commits singleStatusPullRequestCommitsPullRequestCommitConnection `json:"commits"`
 }
+
+// GetId returns singleStatusPullRequest.Id, and is useful for accessing the field via an interface.
+func (v *singleStatusPullRequest) GetId() string { return v.Id }
 
 // GetNumber returns singleStatusPullRequest.Number, and is useful for accessing the field via an interface.
 func (v *singleStatusPullRequest) GetNumber() int { return v.Number }
@@ -19070,6 +20136,11 @@ func (v *singleStatusPullRequest) GetHeadRefName() string { return v.HeadRefName
 // GetReviews returns singleStatusPullRequest.Reviews, and is useful for accessing the field via an interface.
 func (v *singleStatusPullRequest) GetReviews() *singleStatusPullRequestReviewsPullRequestReviewConnection {
 	return v.Reviews
+}
+
+// GetReviewRequests returns singleStatusPullRequest.ReviewRequests, and is useful for accessing the field via an interface.
+func (v *singleStatusPullRequest) GetReviewRequests() *singleStatusPullRequestReviewRequestsReviewRequestConnection {
+	return v.ReviewRequests
 }
 
 // GetCommits returns singleStatusPullRequest.Commits, and is useful for accessing the field via an interface.
@@ -19112,6 +20183,8 @@ func (v *singleStatusPullRequest) UnmarshalJSON(b []byte) error {
 }
 
 type __premarshalsingleStatusPullRequest struct {
+	Id string `json:"id"`
+
 	Number int `json:"number"`
 
 	Title string `json:"title"`
@@ -19128,6 +20201,8 @@ type __premarshalsingleStatusPullRequest struct {
 
 	Reviews *singleStatusPullRequestReviewsPullRequestReviewConnection `json:"reviews"`
 
+	ReviewRequests *singleStatusPullRequestReviewRequestsReviewRequestConnection `json:"reviewRequests"`
+
 	Commits singleStatusPullRequestCommitsPullRequestCommitConnection `json:"commits"`
 }
 
@@ -19142,6 +20217,7 @@ func (v *singleStatusPullRequest) MarshalJSON() ([]byte, error) {
 func (v *singleStatusPullRequest) __premarshalJSON() (*__premarshalsingleStatusPullRequest, error) {
 	var retval __premarshalsingleStatusPullRequest
 
+	retval.Id = v.Id
 	retval.Number = v.Number
 	retval.Title = v.Title
 	retval.State = v.State
@@ -19163,6 +20239,7 @@ func (v *singleStatusPullRequest) __premarshalJSON() (*__premarshalsingleStatusP
 	retval.BaseRefName = v.BaseRefName
 	retval.HeadRefName = v.HeadRefName
 	retval.Reviews = v.Reviews
+	retval.ReviewRequests = v.ReviewRequests
 	retval.Commits = v.Commits
 	return &retval, nil
 }
@@ -19687,6 +20764,350 @@ func (v *singleStatusPullRequestRepositoryOwnerUser) GetTypename() *string { ret
 // GetLogin returns singleStatusPullRequestRepositoryOwnerUser.Login, and is useful for accessing the field via an interface.
 func (v *singleStatusPullRequestRepositoryOwnerUser) GetLogin() string { return v.Login }
 
+// singleStatusPullRequestReviewRequestsReviewRequestConnection includes the requested fields of the GraphQL type ReviewRequestConnection.
+// The GraphQL type's documentation follows.
+//
+// The connection type for ReviewRequest.
+type singleStatusPullRequestReviewRequestsReviewRequestConnection struct {
+	// Identifies the total count of items in the connection.
+	TotalCount int `json:"totalCount"`
+	// A list of nodes.
+	Nodes []*singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequest `json:"nodes"`
+}
+
+// GetTotalCount returns singleStatusPullRequestReviewRequestsReviewRequestConnection.TotalCount, and is useful for accessing the field via an interface.
+func (v *singleStatusPullRequestReviewRequestsReviewRequestConnection) GetTotalCount() int {
+	return v.TotalCount
+}
+
+// GetNodes returns singleStatusPullRequestReviewRequestsReviewRequestConnection.Nodes, and is useful for accessing the field via an interface.
+func (v *singleStatusPullRequestReviewRequestsReviewRequestConnection) GetNodes() []*singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequest {
+	return v.Nodes
+}
+
+// singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequest includes the requested fields of the GraphQL type ReviewRequest.
+// The GraphQL type's documentation follows.
+//
+// A request for a user to review a pull request.
+type singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequest struct {
+	// The reviewer that is requested.
+	RequestedReviewer *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewer `json:"-"`
+}
+
+// GetRequestedReviewer returns singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequest.RequestedReviewer, and is useful for accessing the field via an interface.
+func (v *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequest) GetRequestedReviewer() *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewer {
+	return v.RequestedReviewer
+}
+
+func (v *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequest) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequest
+		RequestedReviewer json.RawMessage `json:"requestedReviewer"`
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequest = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	{
+		dst := &v.RequestedReviewer
+		src := firstPass.RequestedReviewer
+		if len(src) != 0 && string(src) != "null" {
+			*dst = new(singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewer)
+			err = __unmarshalsingleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewer(
+				src, *dst)
+			if err != nil {
+				return fmt.Errorf(
+					"Unable to unmarshal singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequest.RequestedReviewer: %w", err)
+			}
+		}
+	}
+	return nil
+}
+
+type __premarshalsingleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequest struct {
+	RequestedReviewer json.RawMessage `json:"requestedReviewer"`
+}
+
+func (v *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequest) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequest) __premarshalJSON() (*__premarshalsingleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequest, error) {
+	var retval __premarshalsingleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequest
+
+	{
+
+		dst := &retval.RequestedReviewer
+		src := v.RequestedReviewer
+		if src != nil {
+			var err error
+			*dst, err = __marshalsingleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewer(
+				src)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Unable to marshal singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequest.RequestedReviewer: %w", err)
+			}
+		}
+	}
+	return &retval, nil
+}
+
+// singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewer includes the requested fields of the GraphQL interface RequestedReviewer.
+//
+// singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewer is implemented by the following types:
+// singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerMannequin
+// singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerTeam
+// singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerUser
+// The GraphQL type's documentation follows.
+//
+// Types that can be requested reviewers.
+type singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewer interface {
+	implementsGraphQLInterfacesingleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewer()
+	// GetTypename returns the receiver's concrete GraphQL type-name (see interface doc for possible values).
+	GetTypename() *string
+}
+
+func (v *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerMannequin) implementsGraphQLInterfacesingleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewer() {
+}
+func (v *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerTeam) implementsGraphQLInterfacesingleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewer() {
+}
+func (v *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerUser) implementsGraphQLInterfacesingleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewer() {
+}
+
+func __unmarshalsingleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewer(b []byte, v *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewer) error {
+	if string(b) == "null" {
+		return nil
+	}
+
+	var tn struct {
+		TypeName string `json:"__typename"`
+	}
+	err := json.Unmarshal(b, &tn)
+	if err != nil {
+		return err
+	}
+
+	switch tn.TypeName {
+	case "Mannequin":
+		*v = new(singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerMannequin)
+		return json.Unmarshal(b, *v)
+	case "Team":
+		*v = new(singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerTeam)
+		return json.Unmarshal(b, *v)
+	case "User":
+		*v = new(singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerUser)
+		return json.Unmarshal(b, *v)
+	case "":
+		return fmt.Errorf(
+			"response was missing RequestedReviewer.__typename")
+	default:
+		return fmt.Errorf(
+			`unexpected concrete type for singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewer: "%v"`, tn.TypeName)
+	}
+}
+
+func __marshalsingleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewer(v *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewer) ([]byte, error) {
+
+	var typename string
+	switch v := (*v).(type) {
+	case *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerMannequin:
+		typename = "Mannequin"
+
+		premarshaled, err := v.__premarshalJSON()
+		if err != nil {
+			return nil, err
+		}
+		result := struct {
+			TypeName string `json:"__typename"`
+			*__premarshalsingleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerMannequin
+		}{typename, premarshaled}
+		return json.Marshal(result)
+	case *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerTeam:
+		typename = "Team"
+
+		result := struct {
+			TypeName string `json:"__typename"`
+			*singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerTeam
+		}{typename, v}
+		return json.Marshal(result)
+	case *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerUser:
+		typename = "User"
+
+		premarshaled, err := v.__premarshalJSON()
+		if err != nil {
+			return nil, err
+		}
+		result := struct {
+			TypeName string `json:"__typename"`
+			*__premarshalsingleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerUser
+		}{typename, premarshaled}
+		return json.Marshal(result)
+	case nil:
+		return []byte("null"), nil
+	default:
+		return nil, fmt.Errorf(
+			`unexpected concrete type for singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewer: "%T"`, v)
+	}
+}
+
+// singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerMannequin includes the requested fields of the GraphQL type Mannequin.
+// The GraphQL type's documentation follows.
+//
+// A placeholder user for attribution of imported data on GitHub.
+type singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerMannequin struct {
+	Typename          *string `json:"__typename"`
+	UserInfoMannequin `json:"-"`
+}
+
+// GetTypename returns singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerMannequin.Typename, and is useful for accessing the field via an interface.
+func (v *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerMannequin) GetTypename() *string {
+	return v.Typename
+}
+
+// GetDisplayName returns singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerMannequin.DisplayName, and is useful for accessing the field via an interface.
+func (v *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerMannequin) GetDisplayName() string {
+	return v.UserInfoMannequin.DisplayName
+}
+
+func (v *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerMannequin) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerMannequin
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerMannequin = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(
+		b, &v.UserInfoMannequin)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type __premarshalsingleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerMannequin struct {
+	Typename *string `json:"__typename"`
+
+	DisplayName string `json:"displayName"`
+}
+
+func (v *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerMannequin) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerMannequin) __premarshalJSON() (*__premarshalsingleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerMannequin, error) {
+	var retval __premarshalsingleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerMannequin
+
+	retval.Typename = v.Typename
+	retval.DisplayName = v.UserInfoMannequin.DisplayName
+	return &retval, nil
+}
+
+// singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerTeam includes the requested fields of the GraphQL type Team.
+// The GraphQL type's documentation follows.
+//
+// A team of users in an organization.
+type singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerTeam struct {
+	Typename *string `json:"__typename"`
+}
+
+// GetTypename returns singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerTeam.Typename, and is useful for accessing the field via an interface.
+func (v *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerTeam) GetTypename() *string {
+	return v.Typename
+}
+
+// singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerUser includes the requested fields of the GraphQL type User.
+// The GraphQL type's documentation follows.
+//
+// A user is an individual's account on GitHub that owns repositories and can make new content.
+type singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerUser struct {
+	Typename     *string `json:"__typename"`
+	UserInfoUser `json:"-"`
+}
+
+// GetTypename returns singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerUser.Typename, and is useful for accessing the field via an interface.
+func (v *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerUser) GetTypename() *string {
+	return v.Typename
+}
+
+// GetDisplayName returns singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerUser.DisplayName, and is useful for accessing the field via an interface.
+func (v *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerUser) GetDisplayName() string {
+	return v.UserInfoUser.DisplayName
+}
+
+func (v *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerUser) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerUser
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerUser = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(
+		b, &v.UserInfoUser)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type __premarshalsingleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerUser struct {
+	Typename *string `json:"__typename"`
+
+	DisplayName string `json:"displayName"`
+}
+
+func (v *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerUser) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *singleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerUser) __premarshalJSON() (*__premarshalsingleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerUser, error) {
+	var retval __premarshalsingleStatusPullRequestReviewRequestsReviewRequestConnectionNodesReviewRequestRequestedReviewerUser
+
+	retval.Typename = v.Typename
+	retval.DisplayName = v.UserInfoUser.DisplayName
+	return &retval, nil
+}
+
 // singleStatusPullRequestReviewsPullRequestReviewConnection includes the requested fields of the GraphQL type PullRequestReviewConnection.
 // The GraphQL type's documentation follows.
 //
@@ -20150,6 +21571,57 @@ mutation closeReviewWithEvent ($revId: ID!, $event: PullRequestReviewEvent!, $co
 	return &data, err
 }
 
+func createLabel(
+	ctx context.Context,
+	name string,
+	description *string,
+	color string,
+	repoId string,
+) (*createLabelResponse, error) {
+	req := &graphql.Request{
+		OpName: "createLabel",
+		Query: `
+mutation createLabel ($name: String!, $description: String, $color: String!, $repoId: ID!) {
+	createLabel(input: {name:$name,color:$color,repositoryId:$repoId,description:$description}) {
+		clientMutationId
+		label {
+			... LabelInfo
+		}
+	}
+}
+fragment LabelInfo on Label {
+	id
+	color
+	description
+}
+`,
+		Variables: &__createLabelInput{
+			Name:        name,
+			Description: description,
+			Color:       color,
+			RepoId:      repoId,
+		},
+	}
+	var err error
+	var client graphql.Client
+
+	client, err = gh_utils.GetGraphQLClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var data createLabelResponse
+	resp := &graphql.Response{Data: &data}
+
+	err = client.MakeRequest(
+		ctx,
+		req,
+		resp,
+	)
+
+	return &data, err
+}
+
 func createPullRequest(
 	ctx context.Context,
 	repoId string,
@@ -20170,6 +21642,7 @@ mutation createPullRequest ($repoId: ID!, $branchName: String!, $baseBranch: Str
 	}
 }
 fragment singleStatusPullRequest on PullRequest {
+	id
 	number
 	title
 	state
@@ -20189,6 +21662,15 @@ fragment singleStatusPullRequest on PullRequest {
 	reviews(first: 5) {
 		nodes {
 			... ReviewInfo
+		}
+	}
+	reviewRequests(first: 10) {
+		totalCount
+		nodes {
+			requestedReviewer {
+				__typename
+				... UserInfo
+			}
 		}
 	}
 	commits(last: 1) {
@@ -20214,6 +21696,9 @@ fragment ReviewInfo on PullRequestReview {
 	... CommonCommentInfo
 	state
 }
+fragment UserInfo on Actor {
+	displayName: login
+}
 fragment CommonCommentInfo on Comment {
 	id
 	author {
@@ -20224,9 +21709,6 @@ fragment CommonCommentInfo on Comment {
 	bodyText
 	bodyHTML
 	createdAt
-}
-fragment UserInfo on Actor {
-	displayName: login
 }
 `,
 		Variables: &__createPullRequestInput{
@@ -20310,6 +21792,313 @@ fragment UserInfo on Actor {
 	}
 
 	var data currentPendingReviewResponse
+	resp := &graphql.Response{Data: &data}
+
+	err = client.MakeRequest(
+		ctx,
+		req,
+		resp,
+	)
+
+	return &data, err
+}
+
+func editPullRequest(
+	ctx context.Context,
+	id string,
+	labels []string,
+) (*editPullRequestResponse, error) {
+	req := &graphql.Request{
+		OpName: "editPullRequest",
+		Query: `
+mutation editPullRequest ($id: ID!, $labels: [ID!]) {
+	updatePullRequest(input: {pullRequestId:$id,labelIds:$labels}) {
+		clientMutationId
+		pullRequest {
+			... singleStatusPullRequest
+		}
+	}
+}
+fragment singleStatusPullRequest on PullRequest {
+	id
+	number
+	title
+	state
+	repository {
+		name
+		owner {
+			__typename
+			login
+		}
+	}
+	author {
+		__typename
+		login
+	}
+	baseRefName
+	headRefName
+	reviews(first: 5) {
+		nodes {
+			... ReviewInfo
+		}
+	}
+	reviewRequests(first: 10) {
+		totalCount
+		nodes {
+			requestedReviewer {
+				__typename
+				... UserInfo
+			}
+		}
+	}
+	commits(last: 1) {
+		nodes {
+			commit {
+				statusCheckRollup {
+					contexts {
+						checkRunCountsByState {
+							state
+							count
+						}
+						statusContextCountsByState {
+							state
+							count
+						}
+					}
+				}
+			}
+		}
+	}
+}
+fragment ReviewInfo on PullRequestReview {
+	... CommonCommentInfo
+	state
+}
+fragment UserInfo on Actor {
+	displayName: login
+}
+fragment CommonCommentInfo on Comment {
+	id
+	author {
+		__typename
+		... UserInfo
+	}
+	raw: body
+	bodyText
+	bodyHTML
+	createdAt
+}
+`,
+		Variables: &__editPullRequestInput{
+			Id:     id,
+			Labels: labels,
+		},
+	}
+	var err error
+	var client graphql.Client
+
+	client, err = gh_utils.GetGraphQLClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var data editPullRequestResponse
+	resp := &graphql.Response{Data: &data}
+
+	err = client.MakeRequest(
+		ctx,
+		req,
+		resp,
+	)
+
+	return &data, err
+}
+
+func editPullRequestReviewers(
+	ctx context.Context,
+	id string,
+	reviewers []string,
+) (*editPullRequestReviewersResponse, error) {
+	req := &graphql.Request{
+		OpName: "editPullRequestReviewers",
+		Query: `
+mutation editPullRequestReviewers ($id: ID!, $reviewers: [ID!]) {
+	requestReviews(input: {pullRequestId:$id,userIds:$reviewers}) {
+		clientMutationId
+		pullRequest {
+			... singleStatusPullRequest
+		}
+	}
+}
+fragment singleStatusPullRequest on PullRequest {
+	id
+	number
+	title
+	state
+	repository {
+		name
+		owner {
+			__typename
+			login
+		}
+	}
+	author {
+		__typename
+		login
+	}
+	baseRefName
+	headRefName
+	reviews(first: 5) {
+		nodes {
+			... ReviewInfo
+		}
+	}
+	reviewRequests(first: 10) {
+		totalCount
+		nodes {
+			requestedReviewer {
+				__typename
+				... UserInfo
+			}
+		}
+	}
+	commits(last: 1) {
+		nodes {
+			commit {
+				statusCheckRollup {
+					contexts {
+						checkRunCountsByState {
+							state
+							count
+						}
+						statusContextCountsByState {
+							state
+							count
+						}
+					}
+				}
+			}
+		}
+	}
+}
+fragment ReviewInfo on PullRequestReview {
+	... CommonCommentInfo
+	state
+}
+fragment UserInfo on Actor {
+	displayName: login
+}
+fragment CommonCommentInfo on Comment {
+	id
+	author {
+		__typename
+		... UserInfo
+	}
+	raw: body
+	bodyText
+	bodyHTML
+	createdAt
+}
+`,
+		Variables: &__editPullRequestReviewersInput{
+			Id:        id,
+			Reviewers: reviewers,
+		},
+	}
+	var err error
+	var client graphql.Client
+
+	client, err = gh_utils.GetGraphQLClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var data editPullRequestReviewersResponse
+	resp := &graphql.Response{Data: &data}
+
+	err = client.MakeRequest(
+		ctx,
+		req,
+		resp,
+	)
+
+	return &data, err
+}
+
+func getLabelByName(
+	ctx context.Context,
+	label string,
+	owner string,
+	repo string,
+) (*getLabelByNameResponse, error) {
+	req := &graphql.Request{
+		OpName: "getLabelByName",
+		Query: `
+query getLabelByName ($label: String!, $owner: String!, $repo: String!) {
+	repository(owner: $owner, name: $repo) {
+		label(name: $label) {
+			... LabelInfo
+		}
+	}
+}
+fragment LabelInfo on Label {
+	id
+	color
+	description
+}
+`,
+		Variables: &__getLabelByNameInput{
+			Label: label,
+			Owner: owner,
+			Repo:  repo,
+		},
+	}
+	var err error
+	var client graphql.Client
+
+	client, err = gh_utils.GetGraphQLClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var data getLabelByNameResponse
+	resp := &graphql.Response{Data: &data}
+
+	err = client.MakeRequest(
+		ctx,
+		req,
+		resp,
+	)
+
+	return &data, err
+}
+
+func getUserIdByLogin(
+	ctx context.Context,
+	login string,
+) (*getUserIdByLoginResponse, error) {
+	req := &graphql.Request{
+		OpName: "getUserIdByLogin",
+		Query: `
+query getUserIdByLogin ($login: String!) {
+	user(login: $login) {
+		id
+	}
+}
+`,
+		Variables: &__getUserIdByLoginInput{
+			Login: login,
+		},
+	}
+	var err error
+	var client graphql.Client
+
+	client, err = gh_utils.GetGraphQLClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var data getUserIdByLoginResponse
 	resp := &graphql.Response{Data: &data}
 
 	err = client.MakeRequest(
@@ -20463,8 +22252,7 @@ query pullRequestComments ($number: Int!, $owner: String!, $name: String!, $comm
 		pullRequest(number: $number) {
 			comments(first: 100, after: $commentAfter) {
 				pageInfo {
-					hasNextPage
-					endCursor
+					... NextPageInfo
 				}
 				totalCount
 				nodes {
@@ -20473,6 +22261,10 @@ query pullRequestComments ($number: Int!, $owner: String!, $name: String!, $comm
 			}
 		}
 	}
+}
+fragment NextPageInfo on PageInfo {
+	hasNextPage
+	endCursor
 }
 fragment CommentInfo on Comment {
 	... CommonCommentInfo
@@ -20769,6 +22561,66 @@ query requestedReviews ($prQuery: String!, $after: String) {
 	return &data, err
 }
 
+func searchLabels(
+	ctx context.Context,
+	query string,
+	owner string,
+	repo string,
+	cursor *string,
+) (*searchLabelsResponse, error) {
+	req := &graphql.Request{
+		OpName: "searchLabels",
+		Query: `
+query searchLabels ($query: String!, $owner: String!, $repo: String!, $cursor: String) {
+	repository(owner: $owner, name: $repo) {
+		labels(query: $query, first: 10, after: $cursor) {
+			totalCount
+			nodes {
+				... LabelInfo
+			}
+			pageInfo {
+				... NextPageInfo
+			}
+		}
+	}
+}
+fragment LabelInfo on Label {
+	id
+	color
+	description
+}
+fragment NextPageInfo on PageInfo {
+	hasNextPage
+	endCursor
+}
+`,
+		Variables: &__searchLabelsInput{
+			Query:  query,
+			Owner:  owner,
+			Repo:   repo,
+			Cursor: cursor,
+		},
+	}
+	var err error
+	var client graphql.Client
+
+	client, err = gh_utils.GetGraphQLClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var data searchLabelsResponse
+	resp := &graphql.Response{Data: &data}
+
+	err = client.MakeRequest(
+		ctx,
+		req,
+		resp,
+	)
+
+	return &data, err
+}
+
 func singleStatus(
 	ctx context.Context,
 	ids []string,
@@ -20783,6 +22635,7 @@ query singleStatus ($ids: [ID!]!) {
 	}
 }
 fragment singleStatusPullRequest on PullRequest {
+	id
 	number
 	title
 	state
@@ -20802,6 +22655,15 @@ fragment singleStatusPullRequest on PullRequest {
 	reviews(first: 5) {
 		nodes {
 			... ReviewInfo
+		}
+	}
+	reviewRequests(first: 10) {
+		totalCount
+		nodes {
+			requestedReviewer {
+				__typename
+				... UserInfo
+			}
 		}
 	}
 	commits(last: 1) {
@@ -20827,6 +22689,9 @@ fragment ReviewInfo on PullRequestReview {
 	... CommonCommentInfo
 	state
 }
+fragment UserInfo on Actor {
+	displayName: login
+}
 fragment CommonCommentInfo on Comment {
 	id
 	author {
@@ -20837,9 +22702,6 @@ fragment CommonCommentInfo on Comment {
 	bodyText
 	bodyHTML
 	createdAt
-}
-fragment UserInfo on Actor {
-	displayName: login
 }
 `,
 		Variables: &__singleStatusInput{
