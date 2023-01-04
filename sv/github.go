@@ -80,7 +80,7 @@ func toLabelIdsChan(repo *GitHubSv, labels []string) <-chan idOrError {
 					break
 				} else if resp.Repository.Label != nil {
 					ch <- idOrError{string: resp.Repository.Label.Id}
-				} else if resp2, err := createLabel(repo.ctx, label, nil, "#a0a0a0", repoId); err != nil {
+				} else if resp2, err := createLabel(repo.ctx, label, nil, "a0a0a0", repoId); err != nil {
 					ch <- idOrError{error: err}
 					break
 				} else {
