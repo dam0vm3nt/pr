@@ -367,6 +367,15 @@ func (g *GitHubSv) Fetch() error {
 const githubDefaultHost = "github.com"
 const githubDefaultGraphQLUrl = "https://api.github.com/graphql"
 
+type GitHubExtendedHttpClient struct {
+	*http.Client
+}
+
+func (g GitHubExtendedHttpClient) Do(req *http.Request) (*http.Response, error) {
+	req.Header.Set("accept", "application/vnd.github.bane-preview+json")
+	return g.Client.Do(req)
+}
+
 func (g *GitHubSv) GetPullRequest(id string) (PullRequest, error) {
 	num, _ := strconv.ParseInt(id, 10, 32)
 	pr, _, err := g.client.PullRequests.Get(g.ctx, g.owner, g.repo, int(num))
@@ -390,8 +399,7 @@ func NewGitHubSv(token string, repo string, sshKeyComment string, owner string, 
 
 	if re, err := regexp.Compile(sshKeyComment); err == nil {
 
-		cl2 := graphql.NewClient(githubDefaultGraphQLUrl, tc)
-
+		cl2 := graphql.NewClient(githubDefaultGraphQLUrl, GitHubExtendedHttpClient{tc})
 		ctx = gh_utils.InitContext(ctx, cl2)
 
 		return &GitHubSv{
