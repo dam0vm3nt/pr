@@ -1,6 +1,7 @@
 package sv
 
 import (
+	"github.com/antihax/optional"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"os/exec"
 	"time"
@@ -78,8 +79,18 @@ type Sv interface {
 	PullRequestStatus() (<-chan PullRequestStatus, error)
 	Fetch() error
 	GetRepositoryFullName() string
-	CreatePullRequest(baseBranch string, headBranch string, title string, description *string, labels []string, reviewers []string) (PullRequestStatus, error)
+	CreatePullRequest(args CreatePullRequestArgs) (PullRequestStatus, error)
 	GetCurrentBranch() (string, error)
+}
+
+type CreatePullRequestArgs struct {
+	BaseBranch          optional.String
+	HeadBranch          optional.String
+	Title               optional.String
+	Description         optional.String
+	Labels              []string
+	Reviewers           []string
+	CreateMissingLabels bool
 }
 
 type PullRequestStatus interface {

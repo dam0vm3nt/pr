@@ -157,6 +157,18 @@ mutation mergePullRequest($prId: ID!) {
     }
 }
 
+query defaultBranch($name: String!, $owner: String!) {
+    repository(name: $name, owner: $owner ) {
+        defaultBranchRef {
+            name
+            prefix
+            target {
+                oid
+            }
+        }
+    }
+}
+
 query currentPendingReview($prId: ID!, $author: String) {
     node(id: $prId) {
         ...on PullRequest {
