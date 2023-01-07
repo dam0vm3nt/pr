@@ -131,7 +131,7 @@ func (g *GitHubSv) resolveHeadBranch(headBranch optional.String) (string, error)
 }
 
 func (g *GitHubSv) GetDefaultBranch() (string, error) {
-	if resp, err := defaultBranch(g.ctx, g.owner, g.repo); err != nil {
+	if resp, err := defaultBranch(g.ctx, g.repo, g.owner); err != nil {
 		return "", err
 	} else {
 		return resp.Repository.DefaultBranchRef.Name, nil
