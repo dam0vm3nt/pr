@@ -33,7 +33,7 @@ func (b *BitBucketSv) GetCurrentBranch() (string, error) {
 	panic("implement me")
 }
 
-func (b *BitBucketSv) CreatePullRequest(baseBranch string, headBranch string, title string, description *string, labels []string, reviewers []string) (PullRequestStatus, error) {
+func (b *BitBucketSv) CreatePullRequest(args CreatePullRequestArgs) (PullRequestStatus, error) {
 	//TODO implement me
 	panic("implement me")
 }

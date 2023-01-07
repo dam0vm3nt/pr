@@ -4,9 +4,19 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"github.com/antihax/optional"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
+	"github.com/vballestra/sv/sv"
 )
+
+func optionalString(s string) optional.String {
+	if s == "" {
+		return optional.EmptyString()
+	} else {
+		return optional.NewString(s)
+	}
+}
 
 // prNewCmd represents the prNew command
 var prNewCmd = &cobra.Command{
@@ -14,24 +24,19 @@ var prNewCmd = &cobra.Command{
 	Short: "Create a new PR",
 	Long:  `Create a new PR`,
 	Run: func(cmd *cobra.Command, args []string) {
-		sv := GetSv()
+		sv2 := GetSv()
 
-		if newPrDestBranch == "" {
-			if currentBranch, err := sv.GetCurrentBranch(); err != nil {
-				pterm.Fatal.Printfln("no head branch was provided or could be inferred: %v", err)
-			} else {
-				newPrDestBranch = currentBranch
-			}
+		a := sv.CreatePullRequestArgs{
+			BaseBranch:          optionalString(newPrBaseBranch),
+			HeadBranch:          optionalString(newPrDestBranch),
+			Title:               optionalString(newPrTitle),
+			Description:         optionalString(newPrDescription),
+			Labels:              newPrLabels,
+			Reviewers:           newPrReviwers,
+			CreateMissingLabels: true,
 		}
 
-		var newPrDescriptionOpt *string
-		if newPrDescription == "" {
-			newPrDescriptionOpt = nil
-		} else {
-			newPrDescriptionOpt = &newPrDescription
-		}
-
-		if pr, err := sv.CreatePullRequest(newPrBaseBranch, newPrDestBranch, newPrTitle, newPrDescriptionOpt, newPrLabels, newPrReviwers); err != nil {
+		if pr, err := sv2.CreatePullRequest(a); err != nil {
 			pterm.Fatal.Printfln("couldn't create a new pr : %v", err)
 		} else {
 			pterm.Info.Printfln("New Pr created.\nId: %v\nStatus: %v", pr.GetId(), pr.GetStatus())

@@ -5566,6 +5566,18 @@ func (v *__currentPendingReviewInput) GetPrId() string { return v.PrId }
 // GetAuthor returns __currentPendingReviewInput.Author, and is useful for accessing the field via an interface.
 func (v *__currentPendingReviewInput) GetAuthor() *string { return v.Author }
 
+// __defaultBranchInput is used internally by genqlient
+type __defaultBranchInput struct {
+	Name  string `json:"name"`
+	Owner string `json:"owner"`
+}
+
+// GetName returns __defaultBranchInput.Name, and is useful for accessing the field via an interface.
+func (v *__defaultBranchInput) GetName() string { return v.Name }
+
+// GetOwner returns __defaultBranchInput.Owner, and is useful for accessing the field via an interface.
+func (v *__defaultBranchInput) GetOwner() string { return v.Owner }
+
 // __editPullRequestInput is used internally by genqlient
 type __editPullRequestInput struct {
 	Id     string   `json:"id"`
@@ -12209,6 +12221,300 @@ func (v *currentPendingReviewResponse) __premarshalJSON() (*__premarshalcurrentP
 	}
 	return &retval, nil
 }
+
+// defaultBranchRepository includes the requested fields of the GraphQL type Repository.
+// The GraphQL type's documentation follows.
+//
+// A repository contains the content for a project.
+type defaultBranchRepository struct {
+	// The Ref associated with the repository's default branch.
+	DefaultBranchRef *defaultBranchRepositoryDefaultBranchRef `json:"defaultBranchRef"`
+}
+
+// GetDefaultBranchRef returns defaultBranchRepository.DefaultBranchRef, and is useful for accessing the field via an interface.
+func (v *defaultBranchRepository) GetDefaultBranchRef() *defaultBranchRepositoryDefaultBranchRef {
+	return v.DefaultBranchRef
+}
+
+// defaultBranchRepositoryDefaultBranchRef includes the requested fields of the GraphQL type Ref.
+// The GraphQL type's documentation follows.
+//
+// Represents a Git reference.
+type defaultBranchRepositoryDefaultBranchRef struct {
+	// The ref name.
+	Name string `json:"name"`
+	// The ref's prefix, such as `refs/heads/` or `refs/tags/`.
+	Prefix string `json:"prefix"`
+	// The object the ref points to. Returns null when object does not exist.
+	Target *defaultBranchRepositoryDefaultBranchRefTargetGitObject `json:"-"`
+}
+
+// GetName returns defaultBranchRepositoryDefaultBranchRef.Name, and is useful for accessing the field via an interface.
+func (v *defaultBranchRepositoryDefaultBranchRef) GetName() string { return v.Name }
+
+// GetPrefix returns defaultBranchRepositoryDefaultBranchRef.Prefix, and is useful for accessing the field via an interface.
+func (v *defaultBranchRepositoryDefaultBranchRef) GetPrefix() string { return v.Prefix }
+
+// GetTarget returns defaultBranchRepositoryDefaultBranchRef.Target, and is useful for accessing the field via an interface.
+func (v *defaultBranchRepositoryDefaultBranchRef) GetTarget() *defaultBranchRepositoryDefaultBranchRefTargetGitObject {
+	return v.Target
+}
+
+func (v *defaultBranchRepositoryDefaultBranchRef) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*defaultBranchRepositoryDefaultBranchRef
+		Target json.RawMessage `json:"target"`
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.defaultBranchRepositoryDefaultBranchRef = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	{
+		dst := &v.Target
+		src := firstPass.Target
+		if len(src) != 0 && string(src) != "null" {
+			*dst = new(defaultBranchRepositoryDefaultBranchRefTargetGitObject)
+			err = __unmarshaldefaultBranchRepositoryDefaultBranchRefTargetGitObject(
+				src, *dst)
+			if err != nil {
+				return fmt.Errorf(
+					"Unable to unmarshal defaultBranchRepositoryDefaultBranchRef.Target: %w", err)
+			}
+		}
+	}
+	return nil
+}
+
+type __premarshaldefaultBranchRepositoryDefaultBranchRef struct {
+	Name string `json:"name"`
+
+	Prefix string `json:"prefix"`
+
+	Target json.RawMessage `json:"target"`
+}
+
+func (v *defaultBranchRepositoryDefaultBranchRef) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *defaultBranchRepositoryDefaultBranchRef) __premarshalJSON() (*__premarshaldefaultBranchRepositoryDefaultBranchRef, error) {
+	var retval __premarshaldefaultBranchRepositoryDefaultBranchRef
+
+	retval.Name = v.Name
+	retval.Prefix = v.Prefix
+	{
+
+		dst := &retval.Target
+		src := v.Target
+		if src != nil {
+			var err error
+			*dst, err = __marshaldefaultBranchRepositoryDefaultBranchRefTargetGitObject(
+				src)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Unable to marshal defaultBranchRepositoryDefaultBranchRef.Target: %w", err)
+			}
+		}
+	}
+	return &retval, nil
+}
+
+// defaultBranchRepositoryDefaultBranchRefTargetBlob includes the requested fields of the GraphQL type Blob.
+// The GraphQL type's documentation follows.
+//
+// Represents a Git blob.
+type defaultBranchRepositoryDefaultBranchRefTargetBlob struct {
+	Typename *string `json:"__typename"`
+	// The Git object ID
+	Oid string `json:"oid"`
+}
+
+// GetTypename returns defaultBranchRepositoryDefaultBranchRefTargetBlob.Typename, and is useful for accessing the field via an interface.
+func (v *defaultBranchRepositoryDefaultBranchRefTargetBlob) GetTypename() *string { return v.Typename }
+
+// GetOid returns defaultBranchRepositoryDefaultBranchRefTargetBlob.Oid, and is useful for accessing the field via an interface.
+func (v *defaultBranchRepositoryDefaultBranchRefTargetBlob) GetOid() string { return v.Oid }
+
+// defaultBranchRepositoryDefaultBranchRefTargetCommit includes the requested fields of the GraphQL type Commit.
+// The GraphQL type's documentation follows.
+//
+// Represents a Git commit.
+type defaultBranchRepositoryDefaultBranchRefTargetCommit struct {
+	Typename *string `json:"__typename"`
+	// The Git object ID
+	Oid string `json:"oid"`
+}
+
+// GetTypename returns defaultBranchRepositoryDefaultBranchRefTargetCommit.Typename, and is useful for accessing the field via an interface.
+func (v *defaultBranchRepositoryDefaultBranchRefTargetCommit) GetTypename() *string {
+	return v.Typename
+}
+
+// GetOid returns defaultBranchRepositoryDefaultBranchRefTargetCommit.Oid, and is useful for accessing the field via an interface.
+func (v *defaultBranchRepositoryDefaultBranchRefTargetCommit) GetOid() string { return v.Oid }
+
+// defaultBranchRepositoryDefaultBranchRefTargetGitObject includes the requested fields of the GraphQL interface GitObject.
+//
+// defaultBranchRepositoryDefaultBranchRefTargetGitObject is implemented by the following types:
+// defaultBranchRepositoryDefaultBranchRefTargetBlob
+// defaultBranchRepositoryDefaultBranchRefTargetCommit
+// defaultBranchRepositoryDefaultBranchRefTargetTag
+// defaultBranchRepositoryDefaultBranchRefTargetTree
+// The GraphQL type's documentation follows.
+//
+// Represents a Git object.
+type defaultBranchRepositoryDefaultBranchRefTargetGitObject interface {
+	implementsGraphQLInterfacedefaultBranchRepositoryDefaultBranchRefTargetGitObject()
+	// GetTypename returns the receiver's concrete GraphQL type-name (see interface doc for possible values).
+	GetTypename() *string
+	// GetOid returns the interface-field "oid" from its implementation.
+	// The GraphQL interface field's documentation follows.
+	//
+	// The Git object ID
+	GetOid() string
+}
+
+func (v *defaultBranchRepositoryDefaultBranchRefTargetBlob) implementsGraphQLInterfacedefaultBranchRepositoryDefaultBranchRefTargetGitObject() {
+}
+func (v *defaultBranchRepositoryDefaultBranchRefTargetCommit) implementsGraphQLInterfacedefaultBranchRepositoryDefaultBranchRefTargetGitObject() {
+}
+func (v *defaultBranchRepositoryDefaultBranchRefTargetTag) implementsGraphQLInterfacedefaultBranchRepositoryDefaultBranchRefTargetGitObject() {
+}
+func (v *defaultBranchRepositoryDefaultBranchRefTargetTree) implementsGraphQLInterfacedefaultBranchRepositoryDefaultBranchRefTargetGitObject() {
+}
+
+func __unmarshaldefaultBranchRepositoryDefaultBranchRefTargetGitObject(b []byte, v *defaultBranchRepositoryDefaultBranchRefTargetGitObject) error {
+	if string(b) == "null" {
+		return nil
+	}
+
+	var tn struct {
+		TypeName string `json:"__typename"`
+	}
+	err := json.Unmarshal(b, &tn)
+	if err != nil {
+		return err
+	}
+
+	switch tn.TypeName {
+	case "Blob":
+		*v = new(defaultBranchRepositoryDefaultBranchRefTargetBlob)
+		return json.Unmarshal(b, *v)
+	case "Commit":
+		*v = new(defaultBranchRepositoryDefaultBranchRefTargetCommit)
+		return json.Unmarshal(b, *v)
+	case "Tag":
+		*v = new(defaultBranchRepositoryDefaultBranchRefTargetTag)
+		return json.Unmarshal(b, *v)
+	case "Tree":
+		*v = new(defaultBranchRepositoryDefaultBranchRefTargetTree)
+		return json.Unmarshal(b, *v)
+	case "":
+		return fmt.Errorf(
+			"response was missing GitObject.__typename")
+	default:
+		return fmt.Errorf(
+			`unexpected concrete type for defaultBranchRepositoryDefaultBranchRefTargetGitObject: "%v"`, tn.TypeName)
+	}
+}
+
+func __marshaldefaultBranchRepositoryDefaultBranchRefTargetGitObject(v *defaultBranchRepositoryDefaultBranchRefTargetGitObject) ([]byte, error) {
+
+	var typename string
+	switch v := (*v).(type) {
+	case *defaultBranchRepositoryDefaultBranchRefTargetBlob:
+		typename = "Blob"
+
+		result := struct {
+			TypeName string `json:"__typename"`
+			*defaultBranchRepositoryDefaultBranchRefTargetBlob
+		}{typename, v}
+		return json.Marshal(result)
+	case *defaultBranchRepositoryDefaultBranchRefTargetCommit:
+		typename = "Commit"
+
+		result := struct {
+			TypeName string `json:"__typename"`
+			*defaultBranchRepositoryDefaultBranchRefTargetCommit
+		}{typename, v}
+		return json.Marshal(result)
+	case *defaultBranchRepositoryDefaultBranchRefTargetTag:
+		typename = "Tag"
+
+		result := struct {
+			TypeName string `json:"__typename"`
+			*defaultBranchRepositoryDefaultBranchRefTargetTag
+		}{typename, v}
+		return json.Marshal(result)
+	case *defaultBranchRepositoryDefaultBranchRefTargetTree:
+		typename = "Tree"
+
+		result := struct {
+			TypeName string `json:"__typename"`
+			*defaultBranchRepositoryDefaultBranchRefTargetTree
+		}{typename, v}
+		return json.Marshal(result)
+	case nil:
+		return []byte("null"), nil
+	default:
+		return nil, fmt.Errorf(
+			`unexpected concrete type for defaultBranchRepositoryDefaultBranchRefTargetGitObject: "%T"`, v)
+	}
+}
+
+// defaultBranchRepositoryDefaultBranchRefTargetTag includes the requested fields of the GraphQL type Tag.
+// The GraphQL type's documentation follows.
+//
+// Represents a Git tag.
+type defaultBranchRepositoryDefaultBranchRefTargetTag struct {
+	Typename *string `json:"__typename"`
+	// The Git object ID
+	Oid string `json:"oid"`
+}
+
+// GetTypename returns defaultBranchRepositoryDefaultBranchRefTargetTag.Typename, and is useful for accessing the field via an interface.
+func (v *defaultBranchRepositoryDefaultBranchRefTargetTag) GetTypename() *string { return v.Typename }
+
+// GetOid returns defaultBranchRepositoryDefaultBranchRefTargetTag.Oid, and is useful for accessing the field via an interface.
+func (v *defaultBranchRepositoryDefaultBranchRefTargetTag) GetOid() string { return v.Oid }
+
+// defaultBranchRepositoryDefaultBranchRefTargetTree includes the requested fields of the GraphQL type Tree.
+// The GraphQL type's documentation follows.
+//
+// Represents a Git tree.
+type defaultBranchRepositoryDefaultBranchRefTargetTree struct {
+	Typename *string `json:"__typename"`
+	// The Git object ID
+	Oid string `json:"oid"`
+}
+
+// GetTypename returns defaultBranchRepositoryDefaultBranchRefTargetTree.Typename, and is useful for accessing the field via an interface.
+func (v *defaultBranchRepositoryDefaultBranchRefTargetTree) GetTypename() *string { return v.Typename }
+
+// GetOid returns defaultBranchRepositoryDefaultBranchRefTargetTree.Oid, and is useful for accessing the field via an interface.
+func (v *defaultBranchRepositoryDefaultBranchRefTargetTree) GetOid() string { return v.Oid }
+
+// defaultBranchResponse is returned by defaultBranch on success.
+type defaultBranchResponse struct {
+	// Lookup a given repository by the owner and repository name.
+	Repository *defaultBranchRepository `json:"repository"`
+}
+
+// GetRepository returns defaultBranchResponse.Repository, and is useful for accessing the field via an interface.
+func (v *defaultBranchResponse) GetRepository() *defaultBranchRepository { return v.Repository }
 
 // editPullRequestResponse is returned by editPullRequest on success.
 type editPullRequestResponse struct {
@@ -21792,6 +22098,52 @@ fragment UserInfo on Actor {
 	}
 
 	var data currentPendingReviewResponse
+	resp := &graphql.Response{Data: &data}
+
+	err = client.MakeRequest(
+		ctx,
+		req,
+		resp,
+	)
+
+	return &data, err
+}
+
+func defaultBranch(
+	ctx context.Context,
+	name string,
+	owner string,
+) (*defaultBranchResponse, error) {
+	req := &graphql.Request{
+		OpName: "defaultBranch",
+		Query: `
+query defaultBranch ($name: String!, $owner: String!) {
+	repository(name: $name, owner: $owner) {
+		defaultBranchRef {
+			name
+			prefix
+			target {
+				__typename
+				oid
+			}
+		}
+	}
+}
+`,
+		Variables: &__defaultBranchInput{
+			Name:  name,
+			Owner: owner,
+		},
+	}
+	var err error
+	var client graphql.Client
+
+	client, err = gh_utils.GetGraphQLClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var data defaultBranchResponse
 	resp := &graphql.Response{Data: &data}
 
 	err = client.MakeRequest(

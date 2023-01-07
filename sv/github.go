@@ -8,11 +8,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Khan/genqlient/graphql"
+	"github.com/antihax/optional"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"github.com/briandowns/spinner"
 	"github.com/cli/cli/v2/api"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	gh "github.com/google/go-github/v43/github"
 	"github.com/pterm/pterm"
@@ -26,6 +28,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -119,15 +122,119 @@ func toIds(iter func() <-chan idOrError) ([]string, error) {
 	return userIds, nil
 }
 
-func (g *GitHubSv) CreatePullRequest(baseBranch string, headBranch string, title string, description *string, labels []string, reviewers []string) (PullRequestStatus, error) {
+func (g *GitHubSv) resolveHeadBranch(headBranch optional.String) (string, error) {
+	if headBranch.IsSet() {
+		return headBranch.Value(), nil
+	} else {
+		return g.GetCurrentBranch()
+	}
+}
+
+func (g *GitHubSv) GetDefaultBranch() (string, error) {
+	if resp, err := defaultBranch(g.ctx, g.owner, g.repo); err != nil {
+		return "", err
+	} else {
+		return resp.Repository.DefaultBranchRef.Name, nil
+	}
+}
+
+func (g *GitHubSv) resolveBaseBranch(baseBranch optional.String) (string, error) {
+	if baseBranch.IsSet() {
+		return baseBranch.Value(), nil
+	} else {
+		return g.GetDefaultBranch()
+	}
+}
+
+func (g *GitHubSv) resolveTitleAndDescription(titleOpt optional.String, descriptionOpt optional.String, headBranch string, baseBranch string) (string, string, error) {
+	if titleOpt.IsSet() && descriptionOpt.IsSet() {
+		return titleOpt.Value(), descriptionOpt.Value(), nil
+	}
+
+	// Check if we only have one commit
+	rep, err := git.PlainOpen(g.localRepo)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Get Head Commit
+	br, err := rep.Branch(headBranch)
+	if err != nil {
+		return "", "", err
+	}
+	hdRef, err := rep.Reference(br.Merge, true)
+	if err != nil {
+		return "", "", err
+	}
+	hdCommit, err := rep.CommitObject(hdRef.Hash())
+	if err != nil {
+		return "", "", err
+	}
+
+	// Get Base Commit
+	ba, err := rep.Branch(baseBranch)
+	if err != nil {
+		return "", "", err
+	}
+	baRef, err := rep.Reference(ba.Merge, true)
+	if err != nil {
+		return "", "", err
+	}
+	baCommit, err := rep.CommitObject(baRef.Hash())
+	if err != nil {
+		return "", "", err
+	}
+
+	mbs, err := hdCommit.MergeBase(baCommit)
+	if err != nil {
+		return "", "", err
+	}
+	if len(mbs) != 1 {
+		return "", "", fmt.Errorf("cannot find unique common base between %v and %v", headBranch, baseBranch)
+	}
+	mb := mbs[0]
+	isValid := object.CommitFilter(func(commit *object.Commit) bool {
+		if isAncestor, err := mb.IsAncestor(commit); err != nil {
+			return isAncestor
+		} else {
+			return false
+		}
+	})
+	isLimit := object.CommitFilter(func(c *object.Commit) bool {
+		return !isValid(c)
+	})
+
+	iter := object.NewFilterCommitIter(hdCommit, &isValid, &isLimit)
+	logs := make([]string, 0)
+	_ = iter.ForEach(func(commit *object.Commit) error {
+		logs = append(logs, strings.Split(commit.Message, "\n")[0])
+		return nil
+	})
+
+	lastIdx := len(logs) - 1
+	if lastIdx > 0 {
+		return titleOpt.Default(logs[lastIdx]), descriptionOpt.Default(strings.Join(logs[0:lastIdx-1], "\n")), nil
+	} else {
+		return titleOpt.Default(logs[lastIdx]), "", nil
+	}
+
+}
+
+func (g *GitHubSv) CreatePullRequest(args CreatePullRequestArgs) (PullRequestStatus, error) {
 	// First get the repository id
-	if labelIds, err := toLabelIds(g, labels); err != nil {
+	if labelIds, err := toLabelIds(g, args.Labels); err != nil {
 		return nil, err
-	} else if reviewerIds, err := toUserIds(g, reviewers); err != nil {
+	} else if reviewerIds, err := toUserIds(g, args.Reviewers); err != nil {
 		return nil, err
 	} else if resp, err := repositoryId(g.ctx, g.owner, g.repo); err != nil {
 		return nil, err
-	} else if resp2, err := createPullRequest(g.ctx, resp.Repository.Id, headBranch, baseBranch, title, description); err != nil {
+	} else if headBranch, err := g.resolveHeadBranch(args.HeadBranch); err != nil {
+		return nil, err
+	} else if baseBranch, err := g.resolveBaseBranch(args.BaseBranch); err != nil {
+		return nil, err
+	} else if title, description, err := g.resolveTitleAndDescription(args.Title, args.Description, headBranch, baseBranch); err != nil {
+		return nil, err
+	} else if resp2, err := createPullRequest(g.ctx, resp.Repository.Id, headBranch, baseBranch, title, &description); err != nil {
 		return nil, err
 	} else {
 		pr := resp2.CreatePullRequest.PullRequest.singleStatusPullRequest

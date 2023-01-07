@@ -30,3 +30,5 @@ bindings:
     type: string
   URI:
     type: string
+  GitObjectID:
+    type: string
