@@ -194,7 +194,9 @@ func (g *GitHubSv) resolveTitleAndDescription(titleOpt optional.String, descript
 	}
 	mb := mbs[0]
 	isValid := object.CommitFilter(func(commit *object.Commit) bool {
-		if isAncestor, err := mb.IsAncestor(commit); err != nil {
+		if commit.ID() == mb.ID() {
+			return false
+		} else if isAncestor, err := mb.IsAncestor(commit); err == nil {
 			return isAncestor
 		} else {
 			return false
@@ -213,7 +215,7 @@ func (g *GitHubSv) resolveTitleAndDescription(titleOpt optional.String, descript
 
 	lastIdx := len(logs) - 1
 	if lastIdx > 0 {
-		return titleOpt.Default(logs[lastIdx]), descriptionOpt.Default(strings.Join(logs[0:lastIdx-1], "\n")), nil
+		return titleOpt.Default(logs[lastIdx]), descriptionOpt.Default(strings.Join(logs[0:lastIdx], "\n")), nil
 	} else {
 		return titleOpt.Default(logs[lastIdx]), "", nil
 	}
