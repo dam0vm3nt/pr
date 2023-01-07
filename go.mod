@@ -16,6 +16,7 @@ require (
 	github.com/evertras/bubble-table v0.14.6
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/google/go-github/v43 v43.0.0
+	github.com/itchyny/timefmt-go v0.1.3
 	github.com/pterm/pterm v0.12.40
 	github.com/shurcooL/githubv4 v0.0.0-20200928013246-d292edc3691b
 	github.com/spf13/cobra v1.4.0
