@@ -1139,7 +1139,8 @@ func (g GitHubPullRequest) GetCommentsByLine() ([]Comment, map[string]map[int64]
 		if re.error != nil {
 			return nil, nil, re.error
 		}
-		prComments = append(prComments, GithubQLCommentWrapper{&re.Comment})
+		cmt := re.Comment
+		prComments = append(prComments, GithubQLCommentWrapper{&cmt})
 	}
 
 	return prComments, commentMap, nil
